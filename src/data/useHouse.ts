@@ -5,6 +5,7 @@ import { actionCall, serviceCalls } from '../ha/actions'
 import { connectToHA, haConfig, watchEntities, watchForecast } from '../ha/connection'
 import { entities } from '../ha/entities'
 import { applyEntities, type Forecasts } from '../ha/map'
+import { withPickups } from './pickups'
 import { sampleHouse } from './sample'
 import type { HouseAction, HouseState } from './types'
 
@@ -96,7 +97,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
   }, [])
 
   return useMemo(() => {
-    if (!states) return { house: local, update, run, link: { status: conn } as Link }
+    if (!states) return { house: withPickups(local, new Date()), update, run, link: { status: conn } as Link }
     const { house, linked, total, unavailable } = applyEntities(local, states, new Date(), forecasts)
     // Artwork comes as a path on the Home Assistant server.
     const base = haConfig()?.url
@@ -107,6 +108,6 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
         .map((e) => `${e.entity_id}  ${String(e.attributes.friendly_name ?? '')}`.trimEnd())
         .sort()
         .join('\n')
-    return { house, update, run, link: { status: 'live', linked, total, unavailable, entityList } }
+    return { house: withPickups(house, new Date()), update, run, link: { status: 'live', linked, total, unavailable, entityList } }
   }, [local, states, forecasts, conn, update, run])
 }
