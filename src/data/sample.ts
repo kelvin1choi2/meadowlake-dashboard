@@ -125,7 +125,6 @@ export const sampleHouse: HouseState = {
     robovac: { state: 'Docked', battery: 87, lastClean: 'Yesterday · 42 min', next: 'Today 10:00a', runWhenAway: true },
     upkeep: [
       { label: 'HVAC filter', due: '12 days', soon: true },
-      { label: 'Recycling', due: 'Tomorrow', soon: true },
       { label: 'Water heater flush', due: 'January' },
       { label: 'NAS bays 1–2 age', due: '4.7 years' },
     ],
