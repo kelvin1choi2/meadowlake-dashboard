@@ -1,7 +1,27 @@
-import { roonDisplayUrl } from '../config/home'
+import { roonDisplayUrl, roonRockUrl } from '../config/home'
 import { Bar, Card, Chip, Dot, KV, Toggle } from '../widgets'
 import { canEmbed } from '../widgets/embed'
 import type { Category } from './types'
+
+/** A page from the home network in a card, with a link to open it on its own. */
+function EmbedCard({ title, url, frameTitle }: { title: string; url: string; frameTitle: string }) {
+  return (
+    <Card
+      wide
+      color="var(--media)"
+      title={title}
+      chip={<a className="chip neutral link" href={url} target="_blank" rel="noreferrer">Open full screen</a>}
+    >
+      {canEmbed(url, window.location.href) ? (
+        <iframe className="embed" src={url} title={frameTitle} />
+      ) : (
+        <div className="embed embed-off">
+          <p>This appears here when the dashboard runs on your home network.</p>
+        </div>
+      )}
+    </Card>
+  )
+}
 
 export const media: Category = {
   id: 'media',
@@ -41,20 +61,7 @@ export const media: Category = {
   },
   Sheet: ({ house, update }) => (
     <>
-      <Card
-        wide
-        color="var(--media)"
-        title="Roon display"
-        chip={<a className="chip neutral link" href={roonDisplayUrl} target="_blank" rel="noreferrer">Open full screen</a>}
-      >
-        {canEmbed(roonDisplayUrl, window.location.href) ? (
-          <iframe className="embed" src={roonDisplayUrl} title="Roon now playing display" />
-        ) : (
-          <div className="embed embed-off">
-            <p>The Roon display appears here when the dashboard runs on your home network.</p>
-          </div>
-        )}
-      </Card>
+      <EmbedCard title="Roon display" url={roonDisplayUrl} frameTitle="Roon now playing display" />
       <Card wide color="var(--media)" title="Roon zones">
         <div className="tw">
           <table>
@@ -90,6 +97,7 @@ export const media: Category = {
           <Toggle key={s.id} label={s.name} on={s.on} onChange={(on) => update((h) => { h.media.screens[i].on = on })} />
         ))}
       </Card>
+      <EmbedCard title="Roon ROCK" url={roonRockUrl} frameTitle="Roon ROCK server page" />
     </>
   ),
 }
