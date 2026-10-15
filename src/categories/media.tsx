@@ -1,4 +1,6 @@
+import { roonDisplayUrl } from '../config/home'
 import { Bar, Card, Chip, Dot, Idea, KV, Toggle } from '../widgets'
+import { canEmbed } from '../widgets/embed'
 import type { Category } from './types'
 
 export const media: Category = {
@@ -39,6 +41,20 @@ export const media: Category = {
   },
   Sheet: ({ house, update }) => (
     <>
+      <Card
+        wide
+        color="var(--media)"
+        title="Roon display"
+        chip={<a className="chip neutral link" href={roonDisplayUrl} target="_blank" rel="noreferrer">Open full screen</a>}
+      >
+        {canEmbed(roonDisplayUrl, window.location.href) ? (
+          <iframe className="embed" src={roonDisplayUrl} title="Roon now playing display" />
+        ) : (
+          <div className="embed embed-off">
+            <p>The Roon display appears here when the dashboard runs on your home network.</p>
+          </div>
+        )}
+      </Card>
       <Card wide color="var(--media)" title="Roon zones">
         <div className="tw">
           <table>
@@ -70,7 +86,7 @@ export const media: Category = {
         ))}
       </Card>
       <Card title="Coming later">
-        <Idea>Big album-art view when the Linn or Ayre is playing, with volume and transfer-zone controls through the Roon API.</Idea>
+        <Idea>Volume and transfer-zone controls through the Roon API.</Idea>
       </Card>
     </>
   ),

@@ -155,6 +155,10 @@ th { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: 
 .step { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); font-size: 20px; cursor: pointer; }
 .idea { margin: 0; font-size: 13px; color: var(--muted); border-left: 3px solid var(--c); padding-left: 10px; }
 .spark { width: 100%; height: auto; }
+.embed { display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; max-height: 60vh; border: 0; border-radius: 14px; background: var(--fg); }
+.embed-off { display: grid; place-items: center; background: repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--line) 10px 20px); color: var(--muted); text-align: center; padding: 16px; }
+.embed-off p { margin: 0; max-width: 40ch; background: var(--surface); padding: 8px 14px; border-radius: 10px; }
+a.chip.link { text-decoration: none; }
 .spark .axis { font-size: 11px; fill: var(--muted); font-family: var(--mono); }
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 12px 18px; border-radius: 16px; z-index: 20; max-width: min(560px, calc(100% - 32px)); font-size: 14px; }
 
