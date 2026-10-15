@@ -32,7 +32,7 @@ export const entities = {
     favorites: [
       'scene.lounge_lounge_bright_lounge',
       'scene.lounge_lounge_vinyl',
-      'scene.theater_theater_bright',
+      'scene.theater_theater_bright_video',
       'scene.kitchen_kitchen_undercounter_only',
       'scene.kitchen_kitchen_bright_kitchen',
     ],
