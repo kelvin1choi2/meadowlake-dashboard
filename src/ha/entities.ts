@@ -1,59 +1,71 @@
-// Which Home Assistant entity feeds which part of the dashboard.
-// The IDs below are best guesses; replace them with the real ones from
-// Home Assistant → Settings → Entities, or from the list on the dashboard's
-// Settings screen. An ID Home Assistant doesn't have just leaves that spot on
-// sample data, and the header counts how many are linked.
+// Which Home Assistant entities feed which part of the dashboard, using the IDs from
+// Meadowlake's Home Assistant (Settings → entity list). Anything missing here, or not
+// found in Home Assistant, stays on sample data, and the header counts what's linked.
+// Keep this to device IDs: no people, addresses or anything else personal, since the
+// repo is public.
 
 export const entities = {
   climate: {
+    /** Ecobee isn't in Home Assistant yet; it needs pairing via HomeKit Device. */
     thermostat: 'climate.ecobee',
-    /** Keyed by the room ids in src/data/sample.ts. */
-    rooms: {
-      living: 'sensor.living_room_temperature',
-      kitchen: 'sensor.kitchen_temperature',
-      office: 'sensor.office_temperature',
-      primary: 'sensor.primary_bedroom_temperature',
-      guest: 'sensor.guest_room_temperature',
-      den: 'sensor.den_temperature',
-    },
   },
+  /**
+   * Rooms come from Hue: each room's lights share an ID prefix. The Hue room group
+   * itself (e.g. light.lounge_lounge) is skipped when counting lights.
+   */
+  rooms: [
+    { id: 'lounge', name: 'Lounge', lights: 'light.lounge_' },
+    { id: 'kitchen', name: 'Kitchen', lights: 'light.kitchen_' },
+    { id: 'theater', name: 'Theater', lights: 'light.theater_' },
+    { id: 'hallway', name: 'Hallway', lights: 'light.hallway_' },
+    { id: 'master-suite', name: 'Master', lights: 'light.master_suite_' },
+    { id: 'master-bath', name: 'Bath', lights: 'light.master_bathroom_' },
+  ],
   weather: 'weather.forecast_home',
+  cameras: {
+    armed: 'alarm_control_panel.blink_meadowlake',
+    list: [
+      { name: 'Front door', motion: 'binary_sensor.front_door_motion' },
+      { name: 'Patio', motion: 'binary_sensor.patio_motion' },
+    ],
+  },
+  irrigation: {
+    rainDelay: 'switch.meadowlake_rachio_rain_delay',
+  },
   nas: {
-    volumeUsedTB: 'sensor.ds1513_volume_1_used_space',
-    volumeStatus: 'sensor.ds1513_volume_1_status',
+    volumes: [1, 2, 3].map((n) => ({
+      usedTB: `sensor.choi_vault_volume_${n}_used_space`,
+      usedPct: `sensor.choi_vault_volume_${n}_volume_used`,
+    })),
+    volumeStatus: 'sensor.choi_vault_volume_1_status',
+    cpuPct: 'sensor.choi_vault_cpu_utilization_total',
+    ramPct: 'sensor.choi_vault_memory_usage_real',
+    drives: [1, 2, 3, 4, 5].map((n) => ({
+      bay: n,
+      tempC: `sensor.choi_vault_drive_${n}_temperature`,
+      status: `sensor.choi_vault_drive_${n}_status`,
+    })),
   },
   media: {
-    /** Keyed by Roon zone name, as shown in the Media sheet. */
-    roon: {
-      'Linn Klimax DSM': 'media_player.linn_klimax_dsm',
-      'Ayre QX-5': 'media_player.ayre_qx_5',
-    } as Record<string, string>,
-    /** Keyed by the screen ids in src/data/sample.ts. */
-    screens: {
-      lg: 'media_player.lg_webos_tv',
-      sony: 'media_player.sony_bravia',
-      'atv-living': 'media_player.living_room',
-      'atv-den': 'media_player.den',
-    } as Record<string, string>,
+    /** Roon zones, by the name shown on the dashboard. */
+    roon: [
+      { name: 'Lounge · Linn Klimax', id: 'media_player.1_lounge_linn_klimax' },
+      { name: 'Theater · Ayre QX-5', id: 'media_player.2_theater_ayre_qx_5' },
+      { name: 'Master bath', id: 'media_player.master_bath' },
+    ],
+    screens: [
+      { id: 'theater-tv', name: 'Theater TV', tv: true, entity: 'media_player.theater_tv' },
+      { id: 'theater-atv', name: 'Theater Apple TV', entity: 'media_player.theater_appletv_theater_appletv' },
+      { id: 'master-atv', name: 'Master Apple TV', entity: 'media_player.master_appletv_master_appletv' },
+    ],
   },
   appliances: {
-    waterHeater: 'water_heater.rheem',
+    waterHeater: 'water_heater.electric_water_heater',
+    hotWaterPct: 'sensor.electric_water_heater_electric_water_heater_available_hot_water',
   },
   safety: {
+    /** eHome garage and leak sensors aren't in Home Assistant yet. */
     garage: 'cover.garage_door',
-    /** Same order as the leak sensors in src/data/sample.ts. */
     leaks: ['binary_sensor.leak_water_heater', 'binary_sensor.leak_laundry'],
   },
-}
-
-/** Every entity ID above, for counting how many the house actually has. */
-export function allEntityIds(): string[] {
-  const out: string[] = []
-  const walk = (v: unknown) => {
-    if (typeof v === 'string') out.push(v)
-    else if (Array.isArray(v)) v.forEach(walk)
-    else if (v && typeof v === 'object') Object.values(v).forEach(walk)
-  }
-  walk(entities)
-  return out
 }

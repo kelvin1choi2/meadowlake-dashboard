@@ -14,7 +14,7 @@ export const media: Category = {
   Tile: ({ house }) => {
     const playing = house.media.roon.find((z) => z.state === 'playing')
     const stream = house.media.plex.streams[0]
-    const tvs = house.media.screens.filter((s) => s.id === 'lg' || s.id === 'sony')
+    const tvs = house.media.screens.filter((s) => s.tv)
     return (
       <>
         {playing ? (

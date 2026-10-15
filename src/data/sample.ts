@@ -3,7 +3,7 @@ import type { HouseState } from './types'
 // Made-up but realistic numbers for building and demoing without Home Assistant.
 export const sampleHouse: HouseState = {
   mode: 'home',
-  climate: { setpointF: 69, mode: 'Heat', action: 'Idle', humidity: 41, comfort: 'Home', filterDays: 12 },
+  climate: { currentF: 71, setpointF: 69, mode: 'Heat', action: 'Idle', humidity: 41, comfort: 'Home', filterDays: 12 },
   rooms: [
     { id: 'living', name: 'Living', tempF: 71, occupied: true, lightsOn: 3, lightsTotal: 5, fan: true },
     { id: 'kitchen', name: 'Kitchen', tempF: 72, occupied: true, lightsOn: 2, lightsTotal: 4 },
@@ -62,8 +62,8 @@ export const sampleHouse: HouseState = {
     ],
     plex: { up: true, streams: [{ client: 'Den Apple TV', title: 'Shōgun S1E4', transcoding: false }], addedThisWeek: 7 },
     screens: [
-      { id: 'lg', name: 'LG OLED (living)', on: false },
-      { id: 'sony', name: 'Sony OLED (den)', on: false },
+      { id: 'lg', name: 'LG OLED (living)', on: false, tv: true },
+      { id: 'sony', name: 'Sony OLED (den)', on: false, tv: true },
       { id: 'atv-living', name: 'Apple TV living', on: false },
       { id: 'atv-den', name: 'Apple TV den', on: true },
     ],

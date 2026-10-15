@@ -16,7 +16,7 @@ export const inside: Category = {
         <div className="stats">
           <div className="stat">
             <div className="lbl">Thermostat</div>
-            <div className="v num">{house.rooms[0].tempF}°<small> {house.climate.mode.toLowerCase()} to {house.climate.setpointF}</small></div>
+            <div className="v num">{house.climate.currentF}°<small> {house.climate.mode.toLowerCase()} to {house.climate.setpointF}</small></div>
           </div>
           <div className="stat">
             <div className="lbl">Lights on</div>
@@ -29,9 +29,11 @@ export const inside: Category = {
         </div>
         <div className="rooms">
           {house.rooms.map((r) => (
-            <div key={r.id} className="room" style={{ '--tc': tempColor(r.tempF) } as CSSProperties}>
+            <div key={r.id} className="room" style={{ '--tc': r.tempF === undefined ? 'var(--surface-2)' : tempColor(r.tempF) } as CSSProperties}>
               <div className="n">{r.name}</div>
-              <div className="v num">{r.tempF}°</div>
+              {r.tempF === undefined
+                ? <div className="v num">{r.lightsOn}<small>/{r.lightsTotal} on</small></div>
+                : <div className="v num">{r.tempF}°</div>}
             </div>
           ))}
         </div>
@@ -54,7 +56,7 @@ export const inside: Category = {
       {house.rooms.map((r, i) => (
         <Card key={r.id} title={r.name} color="var(--inside)" chip={<Chip tone={r.occupied ? 'good' : 'neutral'}>{r.occupied ? 'Occupied' : 'Empty'}</Chip>}>
           <div className="row">
-            <div className="v num room-temp" style={{ color: tempColor(r.tempF) }}>{r.tempF}°</div>
+            {r.tempF !== undefined && <div className="v num room-temp" style={{ color: tempColor(r.tempF) }}>{r.tempF}°</div>}
             <KV rows={[['Lights', r.lightsOn ? `${r.lightsOn} of ${r.lightsTotal} on` : 'Off']]} />
           </div>
           <Toggle

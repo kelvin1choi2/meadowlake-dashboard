@@ -16,7 +16,8 @@ export type Tone = 'good' | 'warn' | 'bad' | 'neutral'
 export interface Room {
   id: string
   name: string
-  tempF: number
+  /** Missing when the room has no temperature sensor linked. */
+  tempF?: number
   occupied: boolean
   lightsOn: number
   lightsTotal: number
@@ -37,12 +38,14 @@ export interface Screen {
   id: string
   name: string
   on: boolean
+  /** A TV, as opposed to a streaming box. The Media tile lists TVs. */
+  tv?: boolean
 }
 
 export interface Drive {
   bay: number
   tempC: number
-  hours: number
+  hours?: number
   status: string
 }
 
@@ -56,6 +59,7 @@ export interface ScriptRun {
 export interface HouseState {
   mode: 'home' | 'away' | 'night' | 'guests'
   climate: {
+    currentF: number
     setpointF: number
     mode: string
     action: string
