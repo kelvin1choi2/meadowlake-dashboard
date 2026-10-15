@@ -7,6 +7,7 @@ import { Settings } from '../ha/Settings'
 import { Chip, Icon } from '../widgets'
 import { Clock } from './Clock'
 import { Rail } from './Rail'
+import { PlayerBar } from './PlayerBar'
 import { Sheet } from './Sheet'
 import { Toast } from './Toast'
 
@@ -56,6 +57,8 @@ export function App() {
           )
         })}
       </main>
+
+      <PlayerBar players={house.media.players} run={run} />
 
       {openCategory?.Sheet && (
         <Sheet id={openCategory.id} title={openCategory.name} onClose={() => setOpen(null)}>

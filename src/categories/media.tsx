@@ -1,5 +1,5 @@
 import { roonDisplayUrl } from '../config/home'
-import { Bar, Card, Chip, Dot, Idea, KV, Toggle } from '../widgets'
+import { Bar, Card, Chip, Dot, KV, Toggle } from '../widgets'
 import { canEmbed } from '../widgets/embed'
 import type { Category } from './types'
 
@@ -89,9 +89,6 @@ export const media: Category = {
         {house.media.screens.map((s, i) => (
           <Toggle key={s.id} label={s.name} on={s.on} onChange={(on) => update((h) => { h.media.screens[i].on = on })} />
         ))}
-      </Card>
-      <Card title="Coming later">
-        <Idea>Volume and transfer-zone controls through the Roon API.</Idea>
       </Card>
     </>
   ),

@@ -58,8 +58,20 @@ export function serviceCalls(before: HouseState, after: HouseState, states: Hass
   return calls
 }
 
-/** The service call for a one-tap action. Scenes are Home Assistant scene entities. */
+/** The service call for a one-tap action: a scene, all lights off, or a media player control. */
 export function actionCall(action: HouseAction): ServiceCall {
   if ('scene' in action) return { domain: 'scene', service: 'turn_on', entityIds: [action.scene.id] }
+  if ('player' in action) {
+    const { player, command } = action
+    const ids = [player.id]
+    if (typeof command === 'object') return { domain: 'media_player', service: 'volume_set', data: { volume_level: command.volume }, entityIds: ids }
+    switch (command) {
+      case 'play_pause': return { domain: 'media_player', service: 'media_play_pause', entityIds: ids }
+      case 'next': return { domain: 'media_player', service: 'media_next_track', entityIds: ids }
+      case 'previous': return { domain: 'media_player', service: 'media_previous_track', entityIds: ids }
+      case 'mute': return { domain: 'media_player', service: 'volume_mute', data: { is_volume_muted: !player.muted }, entityIds: ids }
+      case 'power': return { domain: 'media_player', service: player.state === 'off' ? 'turn_on' : 'turn_off', entityIds: ids }
+    }
+  }
   return { domain: 'light', service: 'turn_off', entityIds: ['all'] }
 }

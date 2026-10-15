@@ -42,6 +42,25 @@ export interface Screen {
   tv?: boolean
 }
 
+/** Anything that plays media: Roon zones, Apple TVs, TVs, HomePods. */
+export interface Player {
+  id: string
+  name: string
+  state: 'playing' | 'paused' | 'idle' | 'off'
+  title?: string
+  /** Artist, show or app, whichever the device reports. */
+  subtitle?: string
+  art?: string
+  /** 0–1, when the device reports it. */
+  volume?: number
+  muted?: boolean
+  progress?: number
+  /** What the device says it can do. */
+  can: { pause: boolean; next: boolean; previous: boolean; volume: boolean; mute: boolean; power: boolean }
+}
+
+export type PlayerCommand = 'play_pause' | 'next' | 'previous' | 'mute' | 'power' | { volume: number }
+
 export interface Drive {
   bay: number
   tempC: number
@@ -65,7 +84,7 @@ export interface Scene {
 }
 
 /** One-tap actions that don't change a value on screen, so they don't go through `update`. */
-export type HouseAction = { scene: Scene } | { allLightsOff: true }
+export type HouseAction = { scene: Scene } | { allLightsOff: true } | { player: Player; command: PlayerCommand }
 
 export interface HouseState {
   mode: 'home' | 'away' | 'night' | 'guests'
@@ -112,6 +131,7 @@ export interface HouseState {
       addedThisWeek?: number
     }
     screens: Screen[]
+    players: Player[]
   }
   nas: {
     model: string

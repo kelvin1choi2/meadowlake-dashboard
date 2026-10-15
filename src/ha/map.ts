@@ -267,6 +267,9 @@ export function applyEntities(
   })
   if (screens.length) h.media.screens = screens
 
+  const players = playersFrom(states)
+  if (players.length) h.media.players = players
+
   // The Plex server sensor is named after the server, so find it by its unit instead.
   // Its attributes are one entry per stream: "user - device": "title".
   total++
@@ -330,6 +333,63 @@ export function applyEntities(
   if (linked) h.pulse = pulseFrom(states, now)
 
   return { house: h, linked, total, unavailable }
+}
+
+// Home Assistant's media_player feature flags.
+const feature = { pause: 1, volumeSet: 4, mute: 8, previous: 16, next: 32, turnOn: 128, turnOff: 256, volumeStep: 1024, play: 16384 }
+
+/**
+ * Every media player Home Assistant can reach, for the playback bar: Roon zones and
+ * screens first, under the dashboard's names, then the rest by name. Players that share
+ * a name get a number so the picker can tell them apart.
+ */
+export function playersFrom(states: HassEntities): HouseState['media']['players'] {
+  const named = new Map<string, string>([
+    ...entities.media.roon.map((z): [string, string] => [z.id, z.name]),
+    ...entities.media.screens.map((s): [string, string] => [s.entity, s.name]),
+  ])
+  const known = [...named.keys()]
+  const list = Object.values(states)
+    .filter((e) => e.entity_id.startsWith('media_player.') && !offline.has(e.state))
+    .map((e) => {
+      const a = e.attributes
+      const flags = num(a.supported_features) ?? 0
+      const has = (f: number) => (flags & f) !== 0
+      const pos = num(a.media_position)
+      const dur = num(a.media_duration)
+      const vl = num(a.volume_level)
+      const state = e.state === 'playing' ? 'playing' as const : e.state === 'paused' ? 'paused' as const
+        : e.state === 'off' || e.state === 'standby' ? 'off' as const : 'idle' as const
+      const player: HouseState['media']['players'][number] = {
+        id: e.entity_id,
+        name: named.get(e.entity_id) ?? String(a.friendly_name ?? e.entity_id),
+        state,
+        title: str(a.media_title),
+        subtitle: str(a.media_artist) ?? str(a.media_series_title) ?? str(a.app_name),
+        art: str(a.entity_picture),
+        volume: vl,
+        muted: typeof a.is_volume_muted === 'boolean' ? a.is_volume_muted : undefined,
+        progress: pos !== undefined && dur ? Math.min(1, pos / dur) : undefined,
+        can: {
+          pause: has(feature.pause) || has(feature.play),
+          next: has(feature.next),
+          previous: has(feature.previous),
+          volume: has(feature.volumeSet) || has(feature.volumeStep),
+          mute: has(feature.mute),
+          power: has(feature.turnOn) && has(feature.turnOff),
+        },
+      }
+      return player
+    })
+  const rank = (p: { id: string }) => { const i = known.indexOf(p.id); return i < 0 ? known.length : i }
+  list.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
+  const seen = new Map<string, number>()
+  for (const p of list) {
+    const n = (seen.get(p.name) ?? 0) + 1
+    seen.set(p.name, n)
+    if (n > 1) p.name = `${p.name} (${n})`
+  }
+  return list
 }
 
 /**

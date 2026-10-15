@@ -113,6 +113,27 @@ button { font: inherit; color: inherit; }
 .card .scene { background: color-mix(in srgb, var(--sc, var(--scenes)) 26%, var(--surface)); }
 .card .scene.off { background: color-mix(in srgb, var(--fg) 8%, var(--surface)); }
 
+/* Playback bar, under the tiles */
+.playerbar { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding: 14px 18px;
+  border-radius: var(--radius-tile); background: color-mix(in srgb, var(--media) var(--tint), var(--surface)); }
+.pb-pick { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 0 1 250px; }
+.pb-pick select { font: inherit; font-weight: 600; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); max-width: 100%; }
+.pb-now { display: flex; align-items: center; gap: 12px; flex: 1 1 240px; min-width: 0; }
+.pb-art { width: 52px; height: 52px; border-radius: 12px; flex: none; object-fit: cover; background: color-mix(in srgb, var(--media) 55%, var(--surface)); }
+.pb-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.pb-meta b, .pb-meta span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-meta span { font-size: 13px; color: var(--muted); }
+.pb-track { height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--fg) 12%, transparent); margin-top: 4px; }
+.pb-track div { height: 100%; border-radius: 2px; background: var(--media); }
+.pb-controls, .pb-volume { display: flex; align-items: center; gap: 8px; }
+.pb-volume input { width: 140px; accent-color: var(--media); }
+.pb-vol { width: 28px; text-align: right; font-size: 13px; color: var(--muted); }
+.pb-btn { width: 42px; height: 42px; border-radius: 50%; border: none; display: grid; place-items: center; cursor: pointer;
+  background: var(--surface); color: var(--fg); }
+.pb-btn svg { width: 20px; height: 20px; fill: currentColor; }
+.pb-btn.main { width: 52px; height: 52px; background: var(--fg); color: var(--surface); }
+.pb-btn:disabled { opacity: 0.35; cursor: default; }
+
 /* Sheet */
 .scrim { position: fixed; inset: 0; background: rgba(243, 245, 251, 0.7); backdrop-filter: blur(6px); z-index: 10; display: flex; justify-content: center; align-items: flex-end; }
 .sheet { --c: var(--muted); width: min(1100px, 100%); max-height: 92%; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-bottom: 0; border-radius: 28px 28px 0 0; animation: up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -177,6 +198,8 @@ a.chip.link { text-decoration: none; }
   .tile.w2 { grid-column: auto; }
   .clock .t { font-size: 36px; }
   .scenes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pb-pick { flex-basis: 100%; }
+  .pb-volume input { width: 100px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .track, .sheet { animation: none; }

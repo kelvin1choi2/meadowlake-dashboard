@@ -67,6 +67,13 @@ export const sampleHouse: HouseState = {
       { id: 'atv-living', name: 'Apple TV living', on: false },
       { id: 'atv-den', name: 'Apple TV den', on: true },
     ],
+    players: [
+      { id: 'sample-linn', name: 'Linn Klimax DSM', state: 'playing', title: 'So What', subtitle: 'Miles Davis', volume: 0.32, progress: 0.38, can: { pause: true, next: true, previous: true, volume: true, mute: true, power: false } },
+      { id: 'sample-ayre', name: 'Ayre QX-5', state: 'idle', volume: 0.2, can: { pause: true, next: true, previous: true, volume: true, mute: true, power: false } },
+      { id: 'sample-homepod', name: 'Kitchen HomePod', state: 'idle', volume: 0.35, can: { pause: true, next: true, previous: true, volume: true, mute: true, power: false } },
+      { id: 'sample-atv', name: 'Apple TV den', state: 'paused', title: 'Shōgun', subtitle: 'S1E4', progress: 0.6, can: { pause: true, next: true, previous: true, volume: false, mute: false, power: true } },
+      { id: 'sample-lg', name: 'LG OLED (living)', state: 'off', can: { pause: false, next: false, previous: false, volume: true, mute: true, power: true } },
+    ],
   },
   nas: {
     model: 'Synology DS1513+',
