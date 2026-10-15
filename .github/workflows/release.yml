@@ -1,0 +1,40 @@
+name: NAS package
+
+# On every push to main, builds the dashboard and publishes it as a GitHub release
+# with meadowlake.zip (to copy by hand) and meadowlake.tar.gz (for the NAS auto-update
+# script). The newest is always at:
+#   https://github.com/kelvin1choi2/meadowlake-dashboard/releases/latest/download/meadowlake.zip
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Stamp the version
+        run: echo "${GITHUB_SHA::7}" > dist/version.txt
+      - name: Package
+        run: |
+          (cd dist && zip -qr ../meadowlake.zip .)
+          tar -czf meadowlake.tar.gz -C dist .
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "dashboard-${GITHUB_RUN_NUMBER}" meadowlake.zip meadowlake.tar.gz \
+            --target "$GITHUB_SHA" \
+            --title "Dashboard build ${GITHUB_RUN_NUMBER} (${GITHUB_SHA::7})" \
+            --notes "Built from ${GITHUB_SHA::7}. Unzip into the Web Station folder on the NAS (see docs/nas.md)." \
+            --latest
