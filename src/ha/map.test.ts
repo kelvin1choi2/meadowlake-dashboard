@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, playersFrom, pulseFrom, scenesFrom, shortTime } from './map'
+import { applyEntities, nasTask, playersFrom, pulseFrom, scenesFrom, shortTime } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -281,5 +281,23 @@ describe('media players', () => {
       can: { pause: true, next: true, previous: true, volume: true, mute: false, power: false },
     })
     expect(list[3].can.power).toBe(true)
+  })
+})
+
+describe('NAS tasks', () => {
+  const t = entities.nas.tasks[0]
+
+  it('reads ok and failed reports with their time and message', () => {
+    const failed = entity(t.entity, 'failed: Backup task RoonBackupSMB failed', {}, new Date(2026, 9, 15, 3, 12))
+    expect(nasTask(t, failed, now)).toEqual({
+      name: t.name, app: t.app, ok: false, when: 'Today 3:12a', detail: 'Backup task RoonBackupSMB failed', reportId: `${t.entity}@${failed.last_changed}`,
+    })
+    expect(nasTask(t, entity(t.entity, 'ok', {}, new Date(2026, 9, 14, 2, 5)), now)).toMatchObject({ ok: true, when: 'Oct 14 2:05a' })
+  })
+
+  it('waits for a first report and replaces the sample tasks once any helper exists', () => {
+    expect(nasTask(t, entity(t.entity, ''), now)).toMatchObject({ ok: null, when: 'No report yet' })
+    const { house } = applyEntities(sampleHouse, states(entity(t.entity, 'ok: done')), now)
+    expect(house.nas.tasks.map((x) => x.name)).toEqual([t.name])
   })
 })
