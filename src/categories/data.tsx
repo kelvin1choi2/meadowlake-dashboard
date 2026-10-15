@@ -42,7 +42,7 @@ export const data: Category = {
               <thead><tr><th>Bay</th><th>Temp</th><th>Hours</th><th>Status</th></tr></thead>
               <tbody>
                 {n.drives.map((d) => (
-                  <tr key={d.bay}><td>Bay {d.bay}</td><td className="num">{d.tempC}°C</td><td className="num">{d.hours.toLocaleString()}</td><td>{d.status}</td></tr>
+                  <tr key={d.bay}><td>Bay {d.bay}</td><td className="num">{d.tempC}°C</td><td className="num">{d.hours?.toLocaleString() ?? '—'}</td><td>{d.status}</td></tr>
                 ))}
               </tbody>
             </table>
