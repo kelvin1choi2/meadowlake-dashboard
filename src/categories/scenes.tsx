@@ -1,20 +1,21 @@
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import type { HouseAction, Scene } from '../data/types'
 import type { RunAction } from '../data/useHouse'
 import { Card } from '../widgets'
+import { distinctTones, sceneTone, type SceneTone } from './sceneTone'
 import type { Category } from './types'
 
 // The tile is tappable (it opens every scene by room), so its buttons keep their taps to themselves.
 const own = { onClick: (e: MouseEvent) => e.stopPropagation(), onKeyDown: (e: KeyboardEvent) => e.stopPropagation() }
 
-function SceneButton({ scene, room, run, notify }: { scene: Scene; room?: boolean; run: RunAction; notify: (m: string) => void }) {
+function SceneButton({ scene, room, tone, run, notify }: { scene: Scene; room?: boolean; tone: SceneTone; run: RunAction; notify: (m: string) => void }) {
   const go = (e: MouseEvent) => {
     own.onClick(e)
     run({ scene })
     notify(`${scene.room} · ${scene.name}`)
   }
   return (
-    <button className="scene" onClick={go} onKeyDown={own.onKeyDown}>
+    <button className="scene" style={{ '--sc': `var(--tone-${tone})` } as CSSProperties} onClick={go} onKeyDown={own.onKeyDown}>
       {scene.name}
       {room && <span>{scene.room}</span>}
     </button>
@@ -40,9 +41,10 @@ export const scenes: Category = {
     const favorites = house.scenes
       .filter((s) => s.favorite !== undefined)
       .sort((a, b) => (a.favorite ?? 0) - (b.favorite ?? 0))
+    const colors = distinctTones(favorites.map((s) => s.name))
     return (
       <div className="scenes">
-        {favorites.map((s) => <SceneButton key={s.id} scene={s} room run={run} notify={notify} />)}
+        {favorites.map((s, i) => <SceneButton key={s.id} scene={s} room tone={colors[i]} run={run} notify={notify} />)}
         <AllOff run={run} notify={notify} />
       </div>
     )
@@ -57,7 +59,7 @@ export const scenes: Category = {
         {rooms.map((room) => (
           <Card key={room} wide color="var(--scenes)" title={room}>
             <div className="scenes">
-              {house.scenes.filter((s) => s.room === room).map((s) => <SceneButton key={s.id} scene={s} run={run} notify={notify} />)}
+              {house.scenes.filter((s) => s.room === room).map((s) => <SceneButton key={s.id} scene={s} tone={sceneTone(s.name)} run={run} notify={notify} />)}
             </div>
           </Card>
         ))}
