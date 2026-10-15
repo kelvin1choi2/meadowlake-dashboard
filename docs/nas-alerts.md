@@ -67,13 +67,16 @@ actions:
 
 ## 3. Synology: send notifications to the webhook
 
-DSM → Control Panel → Notification → **Webhooks** → Add → Custom:
+DSM → Control Panel → Notification → **Push Service** → Application Webhooks →
+**Manage Webhooks** → Add (on newer DSM it's a **Webhooks** tab), provider **Custom**:
 
-- **URL:** `http://192.168.4.75:8123/api/webhook/PICK-A-LONG-RANDOM-ID` (your id from step 2)
-- **Method:** POST, **Content type:** JSON
-- **Body:** `{"text": "@@TEXT@@"}`
-- Send a test message; the Cloud Sync helper won't change (the test doesn't name a task),
-  but Home Assistant's automation trace will show it arrived.
+- **Provider tab:** URL `http://192.168.4.75:8123/api/webhook/PICK-A-LONG-RANDOM-ID`
+  (your id from step 2), method **POST**.
+- **HTTP Request tab:** header `Content-Type` = `application/json`; body parameter
+  `text` = `@@TEXT@@`. (An empty Content-Type value makes Save fail.)
+- **Parameter Type tab:** set `text` to **Message content**.
+- Save, then **Send Test Message**; the Cloud Sync helper won't change (the test doesn't
+  name a task), but Home Assistant's automation trace will show it arrived.
 
 Then choose which events go to it: Control Panel → Notification → **Rules** (or Advanced)
 and tick, for the webhook:
