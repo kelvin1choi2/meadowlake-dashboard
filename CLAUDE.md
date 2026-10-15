@@ -18,7 +18,10 @@ Run typecheck and tests before calling a change done.
   stay generic; pure math lives in `widgets/geometry.ts` with tests beside it.
 - UI reads only `HouseState` via `useHouse()`. Nothing outside `src/ha/` and `useHouse` should
   know about Home Assistant.
-- Never commit tokens or `.env.local`. Sample data stays made-up.
+- Security: the public Pages build must never be able to reach the house. Never read the Home
+  Assistant URL or token from env vars or commit them; they're entered on the device and kept in
+  localStorage (`src/ha/connection.ts`). `scripts/check-no-secrets.mjs` enforces this in every build.
+  Sample data stays made-up.
 
 ## The house (for realistic sample data and integrations)
 Ecobee + 5 room sensors, Philips Hue, Alexa ×3, Apple HomeKit, LG and Sony OLED TVs, 2 Apple TVs,
