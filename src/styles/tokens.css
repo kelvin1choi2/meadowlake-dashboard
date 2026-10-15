@@ -1,0 +1,41 @@
+/* Meadowlake design tokens: the "Pastel" style Kelvin picked from the mockup.
+   Every color in the app comes from here. Category hues are named after their tile. */
+:root {
+  color-scheme: light;
+
+  /* Ground and text */
+  --bg: #f3f5fb;
+  --surface: #ffffff;
+  --surface-2: #edf0f7;
+  --line: #dfe3ee;
+  --fg: #2a2f45;
+  --muted: #686e8c;
+  --faint: #a0a6bd;
+
+  /* Category hues */
+  --inside: #ee8798;
+  --outside: #62c49b;
+  --media: #bf92e6;
+  --data: #62bdd2;
+  --appliances: #efb25e;
+  --safety: #7aa2ee;
+  --chores: #a596e4;
+  --scenes: #e3c75a;
+
+  /* Status, separate from category color */
+  --good: #2f9168;
+  --warn: #b97a22;
+  --bad: #cc4f65;
+
+  /* How strongly a tile is tinted with its hue */
+  --tint: 26%;
+
+  /* Type */
+  --display: 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif;
+  --body: 'Figtree', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+  /* Shape */
+  --radius-tile: 30px;
+  --radius-card: 18px;
+}
