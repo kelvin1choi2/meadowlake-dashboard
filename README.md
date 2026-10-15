@@ -44,8 +44,9 @@ and give it a color token in `src/styles/tokens.css`.
 3. Settings then lists every entity in your Home Assistant. Put the right IDs in
    `src/ha/entities.ts`; `src/ha/map.ts` turns them into `HouseState`.
 
-Controls (toggles, set point) still change only what the screen shows; sending them to Home
-Assistant is the next step.
+While connected, controls act on the house: room lights, TVs and Apple TVs, water heater
+vacation mode, Blink arming, and the thermostat once it's linked (`src/ha/actions.ts`). The
+garage door is deliberately not controllable from the dashboard.
 
 ## Safety
 

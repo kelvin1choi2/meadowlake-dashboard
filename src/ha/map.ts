@@ -53,6 +53,11 @@ function isGroup(e: HassEntity): boolean {
   return a.is_hue_group === true || Array.isArray(a.lights) || Array.isArray(a.entity_id)
 }
 
+/** A room's Hue lights that are reachable, not counting the room group itself. */
+export function roomLights(states: HassEntities, prefix: string): HassEntity[] {
+  return Object.values(states).filter((e) => e.entity_id.startsWith(prefix) && !isGroup(e) && !offline.has(e.state))
+}
+
 export function applyEntities(
   base: HouseState,
   states: HassEntities,
@@ -86,10 +91,9 @@ export function applyEntities(
     if (preset) h.climate.comfort = label(preset)
   }
 
-  const all = Object.values(states)
   const rooms = entities.rooms.flatMap((r) => {
     total++
-    const lights = all.filter((e) => e.entity_id.startsWith(r.lights) && !isGroup(e) && !offline.has(e.state))
+    const lights = roomLights(states, r.lights)
     if (!lights.length) return []
     linked++
     const lightsOn = lights.filter((e) => e.state === 'on').length

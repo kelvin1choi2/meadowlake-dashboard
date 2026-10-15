@@ -11,10 +11,10 @@ import { Sheet } from './Sheet'
 import { Toast } from './Toast'
 
 export function App() {
-  const { house, update, link } = useHouse()
-  const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null)
   const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), [])
+  const { house, update, link } = useHouse(notify)
+  const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
   const props = { house, update, notify }
   const openCategory = categories.find((c) => c.id === open)
 
