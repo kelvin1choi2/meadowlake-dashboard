@@ -22,6 +22,19 @@
   --chores: #a596e4;
   --scenes: #e3c75a;
 
+  /* Scene buttons, picked from each scene's name (categories/sceneTone.ts) */
+  --tone-sun: #f2cf4a;
+  --tone-amber: #e8a04c;
+  --tone-peach: #f2b28c;
+  --tone-coral: #ee8a78;
+  --tone-rose: #ee8fb6;
+  --tone-violet: #a98be6;
+  --tone-indigo: #7c8cf0;
+  --tone-blue: #6aaee8;
+  --tone-teal: #5cc4c4;
+  --tone-mint: #6fcf97;
+  --tone-dusk: #8d97bd;
+
   /* Status, separate from category color */
   --good: #2f9168;
   --warn: #b97a22;
