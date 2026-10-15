@@ -133,6 +133,7 @@ button { font: inherit; color: inherit; }
 .pb-btn svg { width: 20px; height: 20px; fill: currentColor; }
 .pb-btn.main { width: 52px; height: 52px; background: var(--fg); color: var(--surface); }
 .pb-btn:disabled { opacity: 0.35; cursor: default; }
+.sb .playerbar { grid-column: 1 / -1; margin-top: 0; border-radius: var(--radius-card); }
 
 /* Sheet */
 .scrim { position: fixed; inset: 0; background: rgba(243, 245, 251, 0.7); backdrop-filter: blur(6px); z-index: 10; display: flex; justify-content: center; align-items: flex-end; }

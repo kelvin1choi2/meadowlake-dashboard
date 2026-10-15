@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Player, PlayerCommand } from '../data/types'
 import type { RunAction } from '../data/useHouse'
 
-// A full-width playback bar under the tiles: pick any media player, then play, skip,
+// A full-width playback bar, under the tiles and in the Media sheet: pick any media player, then play, skip,
 // change volume or switch it on and off.
 
 const remembered = 'meadowlake.player'

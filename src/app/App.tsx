@@ -7,7 +7,7 @@ import { Settings } from '../ha/Settings'
 import { Chip, Icon } from '../widgets'
 import { Clock } from './Clock'
 import { Rail } from './Rail'
-import { PlayerBar } from './PlayerBar'
+import { PlayerBar } from '../widgets/PlayerBar'
 import { Sheet } from './Sheet'
 import { Toast } from './Toast'
 
