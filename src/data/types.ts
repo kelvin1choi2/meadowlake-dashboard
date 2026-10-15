@@ -68,6 +68,19 @@ export interface Drive {
   status: string
 }
 
+/** A Synology backup or sync task, as last reported by the NAS. */
+export interface NasTask {
+  name: string
+  /** The Synology app that runs it, e.g. Active Backup or Cloud Sync. */
+  app: string
+  /** null until the NAS has reported on this task. */
+  ok: boolean | null
+  when: string
+  detail?: string
+  /** Changes with every report, so a dismissed failure alert comes back on the next failure. */
+  reportId: string
+}
+
 export interface ScriptRun {
   name: string
   schedule: string
@@ -149,6 +162,8 @@ export interface HouseState {
     backupTarget: string
     cloudSync: string
     lastMiss: string | null
+    /** Backup and sync tasks to watch, shown first and alerted on when they fail. */
+    tasks: NasTask[]
   }
   scripts: ScriptRun[]
   macMini: { uptimeDays: number; services: { name: string; up: boolean }[] }

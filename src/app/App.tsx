@@ -8,6 +8,7 @@ import { Chip, Icon } from '../widgets'
 import { Clock } from './Clock'
 import { Rail } from './Rail'
 import { PlayerBar } from '../widgets/PlayerBar'
+import { Alerts } from './Alerts'
 import { Sheet } from './Sheet'
 import { Toast } from './Toast'
 
@@ -27,6 +28,7 @@ export function App() {
         {liveAllowed && <button className="gear" onClick={() => setOpen('settings')}>Settings</button>}
       </header>
 
+      <Alerts house={house} />
       <Rail house={house} update={update} />
 
       <main className="grid">

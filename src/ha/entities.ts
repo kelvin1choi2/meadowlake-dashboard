@@ -57,6 +57,17 @@ export const entities = {
     volumeStatus: 'sensor.choi_vault_volume_1_status',
     cpuPct: 'sensor.choi_vault_cpu_utilization_total',
     ramPct: 'sensor.choi_vault_memory_usage_real',
+    /**
+     * Backup and sync tasks. Home Assistant's Synology integration doesn't report these,
+     * so the NAS sends its notifications to a Home Assistant webhook automation that keeps
+     * each task's last result in a text helper as "ok: <message>" or "failed: <message>"
+     * (see docs/nas-alerts.md).
+     */
+    tasks: [
+      { name: 'RoonBackupSMB', app: 'Active Backup', entity: 'input_text.nas_roon_backup' },
+      { name: 'Photos2SMB_Backup', app: 'Active Backup', entity: 'input_text.nas_photos_backup' },
+      { name: 'Cloud Sync', app: 'Cloud Sync', entity: 'input_text.nas_cloud_sync' },
+    ],
     drives: [1, 2, 3, 4, 5].map((n) => ({
       bay: n,
       tempC: `sensor.choi_vault_drive_${n}_temperature`,

@@ -96,6 +96,11 @@ export const sampleHouse: HouseState = {
     backupTarget: 'Hyper Backup → C2',
     cloudSync: 'Up to date',
     lastMiss: 'Sep 27 (network)',
+    tasks: [
+      { name: 'RoonBackupSMB', app: 'Active Backup', ok: true, when: 'Today 2:10a', reportId: 'sample-roon' },
+      { name: 'Photos2SMB_Backup', app: 'Active Backup', ok: true, when: 'Today 3:05a', reportId: 'sample-photos' },
+      { name: 'Cloud Sync', app: 'Cloud Sync', ok: true, when: 'No errors', reportId: 'sample-sync' },
+    ],
   },
   scripts: [
     { name: 'Photo import to NAS', schedule: 'Daily 1:00a', lastRun: 'Today 1:00a', status: 'ok' },

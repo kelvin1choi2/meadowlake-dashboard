@@ -243,6 +243,12 @@ export function applyEntities(
   })
   if (drives.length) h.nas.drives = drives
 
+  const tasks = entities.nas.tasks.flatMap((t) => {
+    const e = get(t.entity)
+    return e ? [nasTask(t, e, now)] : []
+  })
+  if (tasks.length) h.nas.tasks = tasks
+
   const zones = entities.media.roon.flatMap((z) => {
     const p = get(z.id)
     if (!p) return []
@@ -333,6 +339,29 @@ export function applyEntities(
   if (linked) h.pulse = pulseFrom(states, now)
 
   return { house: h, linked, total, unavailable }
+}
+
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** "Today 3:12a", or "Oct 14 3:12a" for an earlier day. */
+function dayTime(d: Date, now: Date): string {
+  const day = d.toDateString() === now.toDateString() ? 'Today' : `${months[d.getMonth()]} ${d.getDate()}`
+  return `${day} ${shortTime(d)}`
+}
+
+/** A task's last result from its text helper: "ok: <message>" or "failed: <message>". */
+export function nasTask(t: { name: string; app: string; entity: string }, e: HassEntity, now: Date): HouseState['nas']['tasks'][number] {
+  const m = /^(ok|failed)\b:?\s*(.*)$/is.exec(e.state.trim())
+  const reportId = `${e.entity_id}@${e.last_changed}`
+  if (!m) return { name: t.name, app: t.app, ok: null, when: 'No report yet', reportId }
+  return {
+    name: t.name,
+    app: t.app,
+    ok: m[1].toLowerCase() === 'ok',
+    when: dayTime(new Date(e.last_changed), now),
+    ...(m[2] ? { detail: m[2] } : {}),
+    reportId,
+  }
 }
 
 // Home Assistant's media_player feature flags.

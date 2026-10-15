@@ -19,6 +19,7 @@ npm run build      # production build in dist/
 On the tablet, open the site and use **Add to Home Screen** for a full-screen app.
 
 At home it's hosted on the Synology with Web Station; see [docs/nas.md](docs/nas.md).
+Backup and sync failure alerts need a small Home Assistant automation; see [docs/nas-alerts.md](docs/nas-alerts.md).
 
 ## How it's organized
 

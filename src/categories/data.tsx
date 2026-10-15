@@ -1,10 +1,16 @@
 import { Bar, Card, Chip, Dot, KV, Ring } from '../widgets'
+import type { NasTask } from '../data/types'
 import type { Category } from './types'
+
+const taskColor = (t: NasTask) => (t.ok === null ? 'var(--faint)' : t.ok ? 'var(--good)' : 'var(--bad)')
+const taskResult = (t: NasTask) => (t.ok === null ? 'Waiting' : t.ok ? 'OK' : 'Failed')
 
 export const data: Category = {
   id: 'data',
   name: 'Data',
   status: (h) => {
+    const failed = h.nas.tasks.filter((t) => t.ok === false).length
+    if (failed) return { tone: 'bad', label: failed > 1 ? `${failed} tasks failed` : 'Backup failed' }
     const late = h.scripts.filter((s) => s.status !== 'ok').length
     return late ? { tone: 'warn', label: `${late} script${late > 1 ? 's' : ''} late` } : { tone: 'good', label: 'All good' }
   },
@@ -18,11 +24,12 @@ export const data: Category = {
           <div className="list grow">
             <div>Volume 1<span className="r num">{n.usedTB} / {n.totalTB} TB</span></div>
             <div>RAID<span className="r">{n.raid}</span></div>
-            <div>Backup<span className="r num">{n.backupNights.at(-1) ? 'Last night ok' : 'Missed'}</span></div>
           </div>
         </div>
         <div className="list">
-          <div><Dot color="var(--good)" />Cloud Sync<span className="r">{n.cloudSync}</span></div>
+          {n.tasks.map((t) => (
+            <div key={t.name}><Dot color={taskColor(t)} />{t.name}<span className="r">{t.ok === false ? 'Failed' : t.when}</span></div>
+          ))}
           <div><Dot color={ok === house.scripts.length ? 'var(--good)' : 'var(--warn)'} />Windows scripts<span className="r">{ok} of {house.scripts.length} on time</span></div>
         </div>
       </>
@@ -32,6 +39,22 @@ export const data: Category = {
     const n = house.nas
     return (
       <>
+        <Card wide color="var(--data)" title="Backup and sync tasks"
+          chip={<Chip tone={n.tasks.some((t) => t.ok === false) ? 'bad' : 'good'}>{n.tasks.some((t) => t.ok === false) ? 'Needs attention' : 'All OK'}</Chip>}>
+          <div className="tw">
+            <table>
+              <thead><tr><th>Task</th><th>App</th><th>Last report</th><th>Result</th></tr></thead>
+              <tbody>
+                {n.tasks.map((t) => (
+                  <tr key={t.name}>
+                    <td>{t.name}{t.detail && <div className="sub">{t.detail}</div>}</td><td>{t.app}</td><td className="num">{t.when}</td>
+                    <td className={`result ${t.ok === false ? 'failed' : t.ok ? 'ok' : 'waiting'}`}>{taskResult(t)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
         <Card color="var(--data)" title={n.model} chip={<Chip tone="good">{n.raid}</Chip>}>
           <Bar value={n.usedTB / n.totalTB} />
           <KV rows={[['Volume 1 (SHR)', `${n.usedTB} / ${n.totalTB} TB`], ['CPU / RAM', `${n.cpuPct}% / ${n.ramPct}%`], ['Uptime', `${n.uptimeDays} days`], ['DSM', n.dsm]]} />
