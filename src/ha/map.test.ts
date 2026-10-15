@@ -182,6 +182,10 @@ describe('ecobee, garage and robovac', () => {
       entity('sensor.lounge_sensor_temperature', '71.6'),
       entity('binary_sensor.lounge_sensor_occupancy', 'on'),
       entity('sensor.study_sensor_temperature', '69.2', { friendly_name: 'Study Sensor Temperature' }),
+      entity('binary_sensor.study_sensor_occupancy', 'off'),
+      // SmartThings' copies of the same sensors report presence, not occupancy.
+      entity('sensor.lounge_lounge_sensor_temperature', '71.6', { friendly_name: 'Lounge Sensor Temperature' }),
+      entity('binary_sensor.lounge_lounge_sensor_presence', 'on'),
     ), now)
     expect(house.rooms).toEqual([
       { id: 'lounge', name: 'Lounge', tempF: 72, occupied: true, lightsOn: 1, lightsTotal: 1 },
@@ -198,5 +202,37 @@ describe('ecobee, garage and robovac', () => {
     ), now)
     expect(house.safety.garage).toEqual({ open: true, since: '2:40p' })
     expect(house.chores.robovac).toMatchObject({ state: 'Docked', battery: 96, lastClean: '38 min', next: undefined })
+  })
+})
+
+describe('washer and leak sensors', () => {
+  const w = entities.appliances.washer
+
+  it('shows a running wash with time left, progress and finish time', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity(w.machine, 'run', {}, new Date(2026, 9, 15, 14, 30)),
+      entity(w.job, 'rinse'),
+      entity(w.doneAt, new Date(2026, 9, 15, 15, 30).toISOString()),
+      entity(w.cycle, 'normal'),
+      entity(w.waterTemp, 'warm'),
+    ), now)
+    expect(house.appliances.washer).toEqual({ state: 'Rinsing', cycle: 'Normal · Warm water', minutesLeft: 30, progress: 0.5, doneAt: '3:30p' })
+  })
+
+  it('shows an idle washer with no time left and skips coded cycle names', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity(w.machine, 'stop'),
+      entity(w.job, 'none'),
+      entity(w.doneAt, new Date(2026, 9, 15, 11, 5).toISOString()),
+      entity(w.cycle, 'Table_00_Course_5B'),
+    ), now)
+    expect(house.appliances.washer).toEqual({ state: 'Idle', cycle: '—', minutesLeft: 0, progress: 0, doneAt: '11:05a' })
+  })
+
+  it('shows only leak sensors found in Home Assistant', () => {
+    const l = entities.safety.leaks[0]
+    const { house } = applyEntities(sampleHouse, states(entity(l.moisture, 'on'), entity(l.battery, '87')), now)
+    expect(house.safety.leaks).toEqual([{ name: l.name, wet: true, battery: 87 }])
+    expect(pulseFrom(states(entity(l.moisture, 'on')), now)[0]).toMatchObject({ category: 'safety', what: 'wet!' })
   })
 })

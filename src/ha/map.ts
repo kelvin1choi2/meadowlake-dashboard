@@ -145,6 +145,7 @@ export function applyEntities(
   for (const e of Object.values(states)) {
     const sensor = /^sensor\.(.+)_sensor_temperature$/.exec(e.entity_id)?.[1]
     if (!sensor || listed.has(sensor) || offline.has(e.state)) continue
+    if (!states[`binary_sensor.${sensor}_sensor_occupancy`]) continue
     total++
     linked++
     const name = String(e.attributes.friendly_name ?? sensor).replace(/ sensor temperature$/i, '')
@@ -283,6 +284,9 @@ export function applyEntities(
     }
   }
 
+  const washer = washerFrom(get, now)
+  if (washer) h.appliances.washer = washer
+
   const wh = get(entities.appliances.waterHeater)
   if (wh) {
     h.appliances.waterHeater.mode = label(wh.state)
@@ -305,14 +309,59 @@ export function applyEntities(
   if (battery !== undefined) h.chores.robovac.battery = Math.round(battery)
   const minutes = value(entities.chores.cleaningTime)
   if (minutes !== undefined) h.chores.robovac.lastClean = `${Math.round(minutes)} min`
-  entities.safety.leaks.forEach((id, i) => {
-    const s = get(id)
-    if (s && h.safety.leaks[i]) h.safety.leaks[i].wet = s.state === 'on'
+  const leaks = entities.safety.leaks.flatMap((l) => {
+    const s = get(l.moisture)
+    if (!s) return []
+    const battery = value(l.battery)
+    return [{ name: l.name, wet: s.state === 'on', battery: battery === undefined ? undefined : Math.round(battery) }]
   })
+  if (leaks.length) h.safety.leaks = leaks
 
   if (linked) h.pulse = pulseFrom(states, now)
 
   return { house: h, linked, total }
+}
+
+const jobs: Record<string, string> = { none: 'Running', wash: 'Washing', rinse: 'Rinsing', spin: 'Spinning', finish: 'Done' }
+
+/** The Samsung washer, from SmartThings' machine state, job state and finish time. */
+function washerFrom(get: (id: string) => HassEntity | undefined, now: Date): HouseState['appliances']['washer'] | undefined {
+  const w = entities.appliances.washer
+  const machine = get(w.machine)
+  if (!machine) return undefined
+  const job = get(w.job)?.state ?? 'none'
+  const doneEntity = get(w.doneAt)
+  const done = doneEntity ? new Date(doneEntity.state) : undefined
+  const doneOk = done && !Number.isNaN(done.getTime()) ? done : undefined
+  const active = machine.state === 'run' || machine.state === 'pause'
+
+  const cycleEntity = get(w.cycle)
+  // SmartThings sometimes reports cycles as codes (e.g. Table_00_Course_5B); skip those.
+  const cycle = cycleEntity && !/course|table_/i.test(cycleEntity.state) ? label(cycleEntity.state) : undefined
+  const temp = get(w.waterTemp)?.state
+  const cycleText = [cycle, temp && `${label(temp)} water`].filter(Boolean).join(' · ') || '—'
+
+  if (!active) {
+    const finishedToday = doneOk && doneOk <= now && doneOk.toDateString() === now.toDateString()
+    return {
+      state: job === 'finish' ? 'Done' : 'Idle',
+      cycle: cycleText,
+      minutesLeft: 0,
+      progress: job === 'finish' ? 1 : 0,
+      doneAt: finishedToday ? shortTime(doneOk) : '—',
+    }
+  }
+  const left = doneOk ? Math.max(0, Math.ceil((doneOk.getTime() - now.getTime()) / 60000)) : 0
+  const started = new Date(machine.last_changed).getTime()
+  const span = doneOk ? doneOk.getTime() - started : 0
+  const progress = span > 0 ? Math.min(1, Math.max(0, (now.getTime() - started) / span)) : 0
+  return {
+    state: machine.state === 'pause' ? 'Paused' : jobs[job] ?? label(job),
+    cycle: cycleText,
+    minutesLeft: left,
+    progress,
+    doneAt: doneOk ? shortTime(doneOk) : '—',
+  }
 }
 
 /**
@@ -346,6 +395,8 @@ export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] 
   add(entities.safety.garage, 'safety', 'Garage', (e) => (e.state === 'closed' ? 'closed' : e.state))
   add(entities.chores.vacuum, 'chores', 'Robovac', (e) => (e.state === 'docked' ? 'docked' : e.state))
   add(entities.irrigation.rainDelay, 'outside', 'Rachio', (e) => `rain delay ${e.state}`)
+  add(entities.appliances.washer.machine, 'appliances', 'Washer', (e) => ({ run: 'started', pause: 'paused', stop: 'stopped' })[e.state] ?? null)
+  for (const l of entities.safety.leaks) add(l.moisture, 'safety', `${l.name} leak sensor`, (e) => (e.state === 'on' ? 'wet!' : 'dry'))
   add(entities.appliances.waterHeater, 'appliances', 'Water heater', (e) => `switched to ${label(e.state).toLowerCase()}`)
 
   events.sort((a, b) => b.when.getTime() - a.when.getTime())
