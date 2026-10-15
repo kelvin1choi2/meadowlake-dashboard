@@ -11,7 +11,11 @@ export const appliances: Category = {
       <>
         <div>
           <div className="lbl">Washer</div>
-          <div className="stat"><div className="v num">{a.washer.minutesLeft}<small> min left</small></div></div>
+          <div className="stat">
+            {a.washer.minutesLeft > 0
+              ? <div className="v num">{a.washer.minutesLeft}<small> min left</small></div>
+              : <div className="v">{a.washer.state}</div>}
+          </div>
           <Bar value={a.washer.progress} color="var(--appliances)" />
         </div>
         <div className="list">

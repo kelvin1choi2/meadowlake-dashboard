@@ -129,7 +129,7 @@ export interface HouseState {
   safety: {
     /** `since` is when the door last opened or closed. */
     garage: { open: boolean; since: string }
-    leaks: { name: string; wet: boolean; battery: number }[]
+    leaks: { name: string; wet: boolean; battery?: number }[]
   }
   chores: {
     robovac: { state: string; battery: number; lastClean: string; next?: string; runWhenAway: boolean }

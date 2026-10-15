@@ -16,6 +16,8 @@ export const entities = {
    * `sensor` names an Ecobee room sensor (sensor.<name>_sensor_temperature and
    * binary_sensor.<name>_sensor_occupancy). Ecobee sensors not listed here become
    * rooms of their own, named from Home Assistant, so their names stay out of the repo.
+   * Only sensors with an occupancy entity count, which skips the copies SmartThings
+   * makes of the same sensors (those report presence instead).
    */
   rooms: [
     { id: 'lounge', name: 'Lounge', lights: 'light.lounge_', sensor: 'lounge' },
@@ -62,9 +64,18 @@ export const entities = {
       { id: 'theater-tv', name: 'Theater TV', tv: true, entity: 'media_player.theater_tv' },
       { id: 'theater-atv', name: 'Theater Apple TV', entity: 'media_player.theater_appletv_theater_appletv' },
       { id: 'master-atv', name: 'Master Apple TV', entity: 'media_player.master_appletv_master_appletv' },
+      { id: 'guest-tv', name: 'Guest TV', tv: true, entity: 'media_player.guest_room_samsung_6_series_43' },
     ],
   },
   appliances: {
+    /** Samsung washer, through SmartThings. */
+    washer: {
+      machine: 'sensor.laundry_room_washer_machine_state',
+      job: 'sensor.laundry_room_washer_job_state',
+      doneAt: 'sensor.laundry_room_washer_completion_time',
+      cycle: 'select.laundry_room_washer',
+      waterTemp: 'select.laundry_room_washer_water_temperature',
+    },
     waterHeater: 'water_heater.electric_water_heater',
     hotWaterPct: 'sensor.electric_water_heater_electric_water_heater_available_hot_water',
   },
@@ -74,8 +85,15 @@ export const entities = {
     cleaningTime: 'sensor.meadowlake_robovac_cleaning_time',
   },
   safety: {
-    /** eHome garage, paired through HomeKit Device. The leak sensors aren't in Home Assistant yet. */
+    /** eHome garage, paired through HomeKit Device. */
     garage: 'cover.garage_pod_bay_doors_garage_door',
-    leaks: ['binary_sensor.leak_water_heater', 'binary_sensor.leak_laundry'],
+    /** Leak detectors in Home Assistant. Once any is found, only these are shown. */
+    leaks: [
+      {
+        name: 'Laundry',
+        moisture: 'binary_sensor.laundry_room_laundry_leak_sensor_moisture',
+        battery: 'sensor.laundry_room_laundry_leak_sensor_battery',
+      },
+    ],
   },
 }
