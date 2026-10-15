@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, shortTime } from './map'
+import { applyEntities, pulseFrom, shortTime } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -101,5 +101,52 @@ describe('shortTime', () => {
   it('writes times like the sample data', () => {
     expect(shortTime(new Date(2026, 0, 1, 0, 5))).toBe('12:05a')
     expect(shortTime(new Date(2026, 0, 1, 18, 21))).toBe('6:21p')
+  })
+})
+
+describe('forecast and sun', () => {
+  it('fills the hourly chart, rain note, five days and today’s high and low', () => {
+    const hour = (h: number, temperature: number, precipitation_probability = 0) =>
+      ({ datetime: new Date(2026, 9, 15, h).toISOString(), temperature, precipitation_probability })
+    const day = (d: number, temperature: number, templow: number) =>
+      ({ datetime: new Date(2026, 9, d, 12).toISOString(), temperature, templow })
+    const { house } = applyEntities(sampleHouse, states(entity(entities.weather, 'sunny', { temperature: 80, wind_speed: 7.6, wind_speed_unit: 'mph', wind_bearing: 315 })), now, {
+      hourly: [hour(15, 81), hour(16, 80, 10), hour(17, 78, 45)],
+      daily: [15, 16, 17, 18, 19, 20].map((d) => day(d, 85 - d, 70 - d)),
+    })
+    expect(house.weather.hourly).toEqual([{ label: '3p', tempF: 81 }, { label: '4p', tempF: 80 }, { label: '5p', tempF: 78 }])
+    expect(house.weather.rainNote).toBe('45% rain after 5p')
+    expect(house.weather.daily).toHaveLength(5)
+    expect(house.weather.daily[0]).toEqual({ day: 'Thu', high: 70, low: 55 })
+    expect(house.weather).toMatchObject({ high: 70, low: 55, wind: '8 mph NW', aqi: undefined, pollen: undefined })
+  })
+
+  it('reads sunrise and sunset from the sun', () => {
+    const { house } = applyEntities(sampleHouse, states(entity(entities.sun, 'above_horizon', {
+      next_rising: new Date(2026, 9, 16, 7, 24).toISOString(),
+      next_setting: new Date(2026, 9, 15, 18, 58).toISOString(),
+    })), now)
+    expect(house.weather).toMatchObject({ sunrise: '7:24a', sunset: '6:58p' })
+  })
+})
+
+describe('pulseFrom', () => {
+  it("lists today's events newest first and skips older ones", () => {
+    const [front, patio] = entities.cameras.list
+    const pulse = pulseFrom(states(
+      entity(front.motion, 'off', {}, new Date(2026, 9, 15, 8, 14)),
+      entity(patio.motion, 'off', {}, new Date(2026, 9, 14, 22, 0)),
+      entity(entities.media.roon[0].id, 'playing', { media_title: 'So What' }, new Date(2026, 9, 15, 14, 2)),
+      entity('light.lounge_lounge', 'on', { is_hue_group: true }, new Date(2026, 9, 15, 12, 30)),
+    ), now)
+    expect(pulse).toEqual([
+      { category: 'media', who: entities.media.roon[0].name, what: 'playing So What', at: '2:02p' },
+      { category: 'inside', who: 'Lounge lights', what: 'on', at: '12:30p' },
+      { category: 'outside', who: 'Front door', what: 'motion', at: '8:14a' },
+    ])
+  })
+
+  it('says the house is quiet when nothing happened today', () => {
+    expect(pulseFrom({}, now)).toEqual([{ category: 'inside', who: 'House', what: 'quiet so far today', at: '3:00p' }])
   })
 })

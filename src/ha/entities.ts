@@ -22,6 +22,7 @@ export const entities = {
     { id: 'master-bath', name: 'Bath', lights: 'light.master_bathroom_' },
   ],
   weather: 'weather.forecast_home',
+  sun: 'sun.sun',
   cameras: {
     armed: 'alarm_control_panel.blink_meadowlake',
     list: [

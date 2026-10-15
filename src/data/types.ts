@@ -74,9 +74,10 @@ export interface HouseState {
     condition: string
     high: number
     low: number
-    aqi: number
-    pollen: string
-    uv: number
+    /** Air quality, pollen and UV come from sample data only; there's no source for them yet. */
+    aqi?: number
+    pollen?: string
+    uv?: number
     wind: string
     sunrise: string
     sunset: string
@@ -133,5 +134,6 @@ export interface HouseState {
     upkeep: { label: string; due: string; soon?: boolean }[]
   }
   scenes: { id: string; name: string; detail: string }[]
+  /** Today's notable events, newest first. */
   pulse: { category: CategoryId; who: string; what: string; at: string }[]
 }

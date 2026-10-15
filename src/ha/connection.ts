@@ -68,6 +68,37 @@ export async function connectToHA(url: string, token: string): Promise<Connectio
   return createConnection({ auth })
 }
 
+export interface ForecastEntry {
+  datetime: string
+  temperature?: number
+  templow?: number
+  condition?: string
+  precipitation_probability?: number
+}
+
+/** Home Assistant pushes forecasts on their own subscription, not as entity state. */
+export function watchForecast(
+  conn: Connection,
+  entityId: string,
+  type: 'hourly' | 'daily',
+  onChange: (forecast: ForecastEntry[]) => void,
+): () => void {
+  let unsub: (() => Promise<void>) | undefined
+  let stopped = false
+  conn
+    .subscribeMessage<{ forecast: ForecastEntry[] | null }>((msg) => onChange(msg.forecast ?? []), {
+      type: 'weather/subscribe_forecast',
+      entity_id: entityId,
+      forecast_type: type,
+    })
+    .then((u) => { if (stopped) void u(); else unsub = u })
+    .catch(() => {})
+  return () => {
+    stopped = true
+    void unsub?.()
+  }
+}
+
 export function watchEntities(conn: Connection, onChange: (entities: HassEntities) => void): () => void {
   return subscribeEntities(conn, onChange)
 }

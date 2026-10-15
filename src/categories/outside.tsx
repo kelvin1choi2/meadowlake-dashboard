@@ -35,7 +35,7 @@ export const outside: Category = {
     const shouldWater = !ir.rainSkip && ir.rain48hIn < 0.25
     return (
       <>
-        <Card wide title="Today, hourly" chip={<Chip tone="neutral">{w.rainNote}</Chip>}>
+        <Card wide title="Next 12 hours" chip={<Chip tone="neutral">{w.rainNote}</Chip>}>
           <Sparkline points={w.hourly.map((p) => ({ label: p.label, value: p.tempF }))} color="var(--outside)" label="Hourly temperature forecast" />
         </Card>
         <Card wide color="var(--safety)" title="Blink cameras" chip={<Chip tone={house.camerasArmed ? 'good' : 'warn'}>{house.camerasArmed ? 'Armed' : 'Off'}</Chip>}>
@@ -51,7 +51,13 @@ export const outside: Category = {
           <Idea>Should I water? {shouldWater ? 'Yes. It has been dry.' : 'No. Recent rain or rain skip is on.'}</Idea>
         </Card>
         <Card title="Air & sky">
-          <KV rows={[['Air quality', `${w.aqi} Good`], ['Pollen', w.pollen], ['UV', String(w.uv)], ['Wind', w.wind], ['Sunrise / sunset', `${w.sunrise} / ${w.sunset}`]]} />
+          <KV rows={([
+            ['Air quality', w.aqi === undefined ? undefined : `${w.aqi} Good`],
+            ['Pollen', w.pollen],
+            ['UV', w.uv === undefined ? undefined : String(w.uv)],
+            ['Wind', w.wind],
+            ['Sunrise / sunset', `${w.sunrise} / ${w.sunset}`],
+          ] as [string, string | undefined][]).filter((r): r is [string, string] => r[1] !== undefined)} />
         </Card>
       </>
     )

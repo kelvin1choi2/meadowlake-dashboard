@@ -1,5 +1,6 @@
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
-import type { HouseState } from '../data/types'
+import type { CategoryId, HouseState } from '../data/types'
+import type { ForecastEntry } from './connection'
 import { entities } from './entities'
 
 // Turns Home Assistant entity states into HouseState. Pure, so it's unit tested.
@@ -48,6 +49,14 @@ export function shortTime(d: Date): string {
   return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}${h < 12 ? 'a' : 'p'}`
 }
 
+/** "9a", for chart labels. */
+function hourLabel(d: Date): string {
+  const h = d.getHours()
+  return `${h % 12 || 12}${h < 12 ? 'a' : 'p'}`
+}
+
+const compass = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+
 function isGroup(e: HassEntity): boolean {
   const a = e.attributes
   return a.is_hue_group === true || Array.isArray(a.lights) || Array.isArray(a.entity_id)
@@ -58,10 +67,16 @@ export function roomLights(states: HassEntities, prefix: string): HassEntity[] {
   return Object.values(states).filter((e) => e.entity_id.startsWith(prefix) && !isGroup(e) && !offline.has(e.state))
 }
 
+export interface Forecasts {
+  hourly?: ForecastEntry[]
+  daily?: ForecastEntry[]
+}
+
 export function applyEntities(
   base: HouseState,
   states: HassEntities,
   now: Date = new Date(),
+  forecasts: Forecasts = {},
 ): { house: HouseState; linked: number; total: number } {
   const h = structuredClone(base)
   let linked = 0
@@ -108,6 +123,43 @@ export function applyEntities(
     if (temp !== undefined) h.weather.tempF = Math.round(temp)
     const feels = num(w.attributes.apparent_temperature)
     h.weather.feelsF = feels === undefined ? h.weather.tempF : Math.round(feels)
+    // Nothing in Home Assistant reports these yet, so don't show the sample values.
+    h.weather.aqi = undefined
+    h.weather.pollen = undefined
+    const uv = num(w.attributes.uv_index)
+    h.weather.uv = uv === undefined ? undefined : Math.round(uv)
+    const speed = num(w.attributes.wind_speed)
+    const bearing = num(w.attributes.wind_bearing)
+    if (speed !== undefined) {
+      const unit = str(w.attributes.wind_speed_unit) ?? 'mph'
+      const dir = bearing === undefined ? '' : ` ${compass[Math.round(bearing / 45) % 8]}`
+      h.weather.wind = `${Math.round(speed)} ${unit}${dir}`
+    }
+  }
+
+  const hourly = (forecasts.hourly ?? []).filter((f) => num(f.temperature) !== undefined).slice(0, 13)
+  if (hourly.length > 1) {
+    h.weather.hourly = hourly.map((f) => ({ label: hourLabel(new Date(f.datetime)), tempF: Math.round(f.temperature!) }))
+    const wet = hourly.find((f) => (f.precipitation_probability ?? 0) >= 30)
+    h.weather.rainNote = wet ? `${Math.round(wet.precipitation_probability!)}% rain after ${hourLabel(new Date(wet.datetime))}` : 'No rain expected'
+  }
+  const daily = (forecasts.daily ?? []).filter((f) => num(f.temperature) !== undefined).slice(0, 5)
+  if (daily.length) {
+    h.weather.daily = daily.map((f) => ({
+      day: new Date(f.datetime).toLocaleDateString('en-US', { weekday: 'short' }),
+      high: Math.round(f.temperature!),
+      low: Math.round(f.templow ?? f.temperature!),
+    }))
+    h.weather.high = h.weather.daily[0].high
+    h.weather.low = h.weather.daily[0].low
+  }
+
+  const sun = get(entities.sun)
+  if (sun) {
+    const rise = str(sun.attributes.next_rising)
+    const set = str(sun.attributes.next_setting)
+    if (rise) h.weather.sunrise = shortTime(new Date(rise))
+    if (set) h.weather.sunset = shortTime(new Date(set))
   }
 
   const armed = get(entities.cameras.armed)
@@ -192,5 +244,43 @@ export function applyEntities(
     if (s && h.safety.leaks[i]) h.safety.leaks[i].wet = s.state === 'on'
   })
 
+  if (linked) h.pulse = pulseFrom(states, now)
+
   return { house: h, linked, total }
+}
+
+/**
+ * Today's notable events for the Pulse ticker, newest first, read from when each
+ * tracked entity last changed. Rebuilt on every update, so it needs no history.
+ */
+export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] {
+  const events: { category: CategoryId; who: string; what: string; when: Date }[] = []
+  const add = (id: string, category: CategoryId, who: string, describe: (e: HassEntity) => string | null) => {
+    const e = states[id]
+    if (!e || offline.has(e.state)) return
+    const when = new Date(e.last_changed)
+    if (when.toDateString() !== now.toDateString()) return
+    const what = describe(e)
+    if (what) events.push({ category, who, what, when })
+  }
+
+  for (const c of entities.cameras.list) add(c.motion, 'outside', c.name, (e) => (e.state === 'on' ? 'motion now' : 'motion'))
+  add(entities.cameras.armed, 'safety', 'Blink', (e) => (e.state.startsWith('armed') ? 'armed' : 'disarmed'))
+  for (const z of entities.media.roon) {
+    add(z.id, 'media', z.name, (e) => {
+      const title = str(e.attributes.media_title)
+      return e.state === 'playing' ? (title ? `playing ${title}` : 'playing') : e.state === 'paused' ? 'paused' : 'stopped'
+    })
+  }
+  for (const s of entities.media.screens) add(s.entity, 'media', s.name, (e) => (e.state === 'off' || e.state === 'standby' ? 'off' : 'on'))
+  for (const r of entities.rooms) {
+    const group = Object.values(states).find((e) => e.entity_id.startsWith(r.lights) && isGroup(e))
+    if (group) add(group.entity_id, 'inside', `${r.name} lights`, (e) => e.state)
+  }
+  add(entities.irrigation.rainDelay, 'outside', 'Rachio', (e) => `rain delay ${e.state}`)
+  add(entities.appliances.waterHeater, 'appliances', 'Water heater', (e) => `switched to ${label(e.state).toLowerCase()}`)
+
+  events.sort((a, b) => b.when.getTime() - a.when.getTime())
+  const pulse = events.slice(0, 8).map((e) => ({ category: e.category, who: e.who, what: e.what, at: shortTime(e.when) }))
+  return pulse.length ? pulse : [{ category: 'inside', who: 'House', what: 'quiet so far today', at: shortTime(now) }]
 }

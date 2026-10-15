@@ -10,8 +10,8 @@ const modes: { id: HouseState['mode']; label: string }[] = [
 ]
 
 export function Rail({ house, update }: { house: HouseState; update: UpdateHouse }) {
-  const events = house.pulse.map((e) => (
-    <span key={`${e.who}-${e.at}`} className="ev">
+  const events = house.pulse.map((e, i) => (
+    <span key={`${i}-${e.who}`} className="ev">
       <Dot color={`var(--${e.category})`} />
       <b>{e.who}</b> {e.what} <span className="num">{e.at}</span>
     </span>
@@ -37,7 +37,7 @@ export function Rail({ house, update }: { house: HouseState; update: UpdateHouse
         <span className="big num">{w.tempF}°</span>
         <div className="wx-text">
           <div>{w.condition}</div>
-          <div className="muted">H {w.high}° · L {w.low}° · AQI {w.aqi}</div>
+          <div className="muted">H {w.high}° · L {w.low}°{w.aqi !== undefined && ` · AQI ${w.aqi}`}</div>
         </div>
       </div>
     </div>
