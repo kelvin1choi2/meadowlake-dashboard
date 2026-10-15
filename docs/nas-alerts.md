@@ -70,8 +70,9 @@ actions:
 DSM → Control Panel → Notification → **Push Service** → Application Webhooks →
 **Manage Webhooks** → Add (on newer DSM it's a **Webhooks** tab), provider **Custom**:
 
-- **Provider tab:** URL `http://192.168.4.75:8123/api/webhook/PICK-A-LONG-RANDOM-ID`
-  (your id from step 2), method **POST**.
+- **Provider tab:** URL = the address you open Home Assistant with (as in the browser's
+  address bar, e.g. `http://192.168.4.75`), then `/api/webhook/PICK-A-LONG-RANDOM-ID`
+  (your id from step 2), method **POST**. Include `:8123` only if your address has it.
 - **HTTP Request tab:** header `Content-Type` = `application/json`; body parameter
   `text` = `@@TEXT@@`. (An empty Content-Type value makes Save fail.)
 - **Parameter Type tab:** set `text` to **Message content**.
