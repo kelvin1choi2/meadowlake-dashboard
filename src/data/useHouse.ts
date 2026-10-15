@@ -13,7 +13,7 @@ export type UpdateHouse = (change: (draft: HouseState) => void) => void
 export type Link =
   | { status: 'sample' }
   | { status: 'connecting' }
-  | { status: 'live'; linked: number; total: number; entityList: () => string }
+  | { status: 'live'; linked: number; total: number; unavailable: string[]; entityList: () => string }
   | { status: 'error' }
 
 /**
@@ -83,13 +83,13 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
 
   return useMemo(() => {
     if (!states) return { house: local, update, link: { status: conn } as Link }
-    const { house, linked, total } = applyEntities(local, states, new Date(), forecasts)
+    const { house, linked, total, unavailable } = applyEntities(local, states, new Date(), forecasts)
     live.current = { house, states }
     const entityList = () =>
       Object.values(states)
         .map((e) => `${e.entity_id}  ${String(e.attributes.friendly_name ?? '')}`.trimEnd())
         .sort()
         .join('\n')
-    return { house, update, link: { status: 'live', linked, total, entityList } }
+    return { house, update, link: { status: 'live', linked, total, unavailable, entityList } }
   }, [local, states, forecasts, conn, update])
 }

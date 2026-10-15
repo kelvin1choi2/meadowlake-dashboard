@@ -54,6 +54,9 @@ export function Settings({ link, onClose }: { link: Link; onClose: () => void })
             ['Address', saved.url],
             ['Status', link.status === 'live' ? 'Connected' : link.status === 'error' ? "Can't connect" : 'Connecting…'],
             ...(link.status === 'live' ? [['Dashboard items linked', `${link.linked} of ${link.total}`] as [string, string]] : []),
+            ...(link.status === 'live' && link.unavailable.length
+              ? [['Unavailable right now', link.unavailable.join(', ')] as [string, string]]
+              : []),
           ]} />
         )}
         <form className="form" onSubmit={(e) => { e.preventDefault(); void connect() }}>

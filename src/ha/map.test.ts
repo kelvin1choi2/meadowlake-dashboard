@@ -46,7 +46,8 @@ describe('applyEntities', () => {
   })
 
   it('skips unavailable entities instead of showing them', () => {
-    const { house, linked } = applyEntities(sampleHouse, states(entity(entities.appliances.waterHeater, 'unavailable')), now)
+    const { house, linked, unavailable } = applyEntities(sampleHouse, states(entity(entities.appliances.waterHeater, 'unavailable', { friendly_name: 'Electric Water Heater' })), now)
+    expect(unavailable).toEqual(['Electric Water Heater'])
     expect(house.appliances.waterHeater).toEqual(sampleHouse.appliances.waterHeater)
     expect(linked).toBe(0)
   })

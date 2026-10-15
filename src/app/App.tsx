@@ -73,6 +73,11 @@ function linkLabel(link: Link): string {
     case 'sample': return 'Sample data'
     case 'connecting': return 'Connecting to Home Assistant…'
     case 'error': return "Can't reach Home Assistant · showing sample data"
-    case 'live': return link.linked === link.total ? 'Live' : `Live · ${link.linked} of ${link.total} linked, rest is sample`
+    case 'live': {
+      const off = link.unavailable.length
+      const sample = link.total - link.linked - off
+      const notes = [off && `${off} unavailable`, sample && `${sample} on sample data`].filter(Boolean)
+      return notes.length ? `Live · ${notes.join(', ')}` : 'Live'
+    }
   }
 }

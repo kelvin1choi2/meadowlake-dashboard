@@ -92,14 +92,17 @@ export function applyEntities(
   states: HassEntities,
   now: Date = new Date(),
   forecasts: Forecasts = {},
-): { house: HouseState; linked: number; total: number } {
+): { house: HouseState; linked: number; total: number; unavailable: string[] } {
   const h = structuredClone(base)
   let linked = 0
   let total = 0
+  /** Names of entities Home Assistant has but reports as unavailable or unknown right now. */
+  const unavailable: string[] = []
   /** Looks up an entity and counts it toward "N of M linked". */
   const get = (id: string): HassEntity | undefined => {
     total++
     const e = states[id]
+    if (e && offline.has(e.state)) unavailable.push(String(e.attributes.friendly_name ?? id))
     if (!e || offline.has(e.state)) return undefined
     linked++
     return e
@@ -319,7 +322,7 @@ export function applyEntities(
 
   if (linked) h.pulse = pulseFrom(states, now)
 
-  return { house: h, linked, total }
+  return { house: h, linked, total, unavailable }
 }
 
 const jobs: Record<string, string> = { none: 'Running', wash: 'Washing', rinse: 'Rinsing', spin: 'Spinning', finish: 'Done' }
