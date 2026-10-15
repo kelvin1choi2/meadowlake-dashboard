@@ -73,7 +73,7 @@ export function App() {
   )
 }
 
-function linkLabel(link: Link): string {
+export function linkLabel(link: Link): string {
   switch (link.status) {
     case 'sample': return 'Sample data'
     case 'connecting': return 'Connecting to Home Assistant…'
