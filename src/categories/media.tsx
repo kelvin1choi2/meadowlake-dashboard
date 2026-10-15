@@ -1,6 +1,7 @@
 import { roonDisplayUrl, roonRockUrl } from '../config/home'
 import { Bar, Card, Chip, Dot, KV, Toggle } from '../widgets'
 import { canEmbed } from '../widgets/embed'
+import { PlayerBar } from '../widgets/PlayerBar'
 import type { Category } from './types'
 
 /** A page from the home network in a card, with a link to open it on its own. */
@@ -59,9 +60,10 @@ export const media: Category = {
       </>
     )
   },
-  Sheet: ({ house, update }) => (
+  Sheet: ({ house, update, run }) => (
     <>
       <EmbedCard title="Roon display" url={roonDisplayUrl} frameTitle="Roon now playing display" />
+      <PlayerBar players={house.media.players} run={run} />
       <Card wide color="var(--media)" title="Roon zones">
         <div className="tw">
           <table>
