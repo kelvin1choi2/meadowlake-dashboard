@@ -320,9 +320,37 @@ export function applyEntities(
   })
   if (leaks.length) h.safety.leaks = leaks
 
+  const found = scenesFrom(states)
+  for (const id of entities.scenes.favorites) {
+    total++
+    if (found.some((s) => s.id === id)) linked++
+  }
+  if (found.length) h.scenes = found
+
   if (linked) h.pulse = pulseFrom(states, now)
 
   return { house: h, linked, total, unavailable }
+}
+
+/**
+ * Every scene in Home Assistant, ordered by the dashboard's rooms. A scene's state is
+ * when it last ran ("unknown" if never), so only "unavailable" means it can't be used.
+ * Hue scenes carry their room (group_name) and short name; others use their full name.
+ */
+export function scenesFrom(states: HassEntities): HouseState['scenes'] {
+  const order = entities.rooms.map((r) => ({ prefix: r.lights.replace(/^light\./, 'scene.'), name: r.name }))
+  const favorites: string[] = entities.scenes.favorites
+  return Object.values(states)
+    .filter((e) => e.entity_id.startsWith('scene.') && e.state !== 'unavailable')
+    .map((e) => {
+      const known = order.findIndex((r) => e.entity_id.startsWith(r.prefix))
+      const room = known >= 0 ? order[known].name : str(e.attributes.group_name) ?? 'Other'
+      const name = str(e.attributes.name) ?? String(e.attributes.friendly_name ?? e.entity_id)
+      const fav = favorites.indexOf(e.entity_id)
+      return { scene: { id: e.entity_id, name, room, ...(fav >= 0 ? { favorite: fav } : {}) }, rank: known >= 0 ? known : order.length }
+    })
+    .sort((a, b) => a.rank - b.rank || a.scene.room.localeCompare(b.scene.room) || a.scene.name.localeCompare(b.scene.name))
+    .map((s) => s.scene)
 }
 
 const jobs: Record<string, string> = { none: 'Running', wash: 'Washing', rinse: 'Rinsing', spin: 'Spinning', finish: 'Done' }

@@ -27,6 +27,16 @@ export const entities = {
     { id: 'master-suite', name: 'Master', lights: 'light.master_suite_', sensor: 'master' },
     { id: 'master-bath', name: 'Bath', lights: 'light.master_bathroom_' },
   ] as { id: string; name: string; lights: string; sensor?: string }[],
+  /** Scenes for the Scenes tile, in order. Every Hue scene is listed when the tile is opened. */
+  scenes: {
+    favorites: [
+      'scene.lounge_lounge_bright_lounge',
+      'scene.lounge_lounge_vinyl',
+      'scene.theater_theater_bright',
+      'scene.kitchen_kitchen_undercounter_only',
+      'scene.kitchen_kitchen_bright_kitchen',
+    ],
+  },
   weather: 'weather.forecast_home',
   sun: 'sun.sun',
   cameras: {

@@ -1,5 +1,5 @@
 import type { HassEntities } from 'home-assistant-js-websocket'
-import type { HouseState } from '../data/types'
+import type { HouseAction, HouseState } from '../data/types'
 import { entities } from './entities'
 import { roomLights } from './map'
 
@@ -56,4 +56,10 @@ export function serviceCalls(before: HouseState, after: HouseState, states: Hass
   }
 
   return calls
+}
+
+/** The service call for a one-tap action. Scenes are Home Assistant scene entities. */
+export function actionCall(action: HouseAction): ServiceCall {
+  if ('scene' in action) return { domain: 'scene', service: 'turn_on', entityIds: [action.scene.id] }
+  return { domain: 'light', service: 'turn_off', entityIds: ['all'] }
 }

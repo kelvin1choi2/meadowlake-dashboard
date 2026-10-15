@@ -13,9 +13,9 @@ import { Toast } from './Toast'
 export function App() {
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null)
   const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), [])
-  const { house, update, link } = useHouse(notify)
+  const { house, update, run, link } = useHouse(notify)
   const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
-  const props = { house, update, notify }
+  const props = { house, update, run, notify }
   const openCategory = categories.find((c) => c.id === open)
 
   return (

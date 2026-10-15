@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Connection, HassEntities } from 'home-assistant-js-websocket'
 import { callService } from 'home-assistant-js-websocket'
-import { serviceCalls } from '../ha/actions'
+import { actionCall, serviceCalls } from '../ha/actions'
 import { connectToHA, haConfig, watchEntities, watchForecast } from '../ha/connection'
 import { entities } from '../ha/entities'
 import { applyEntities, type Forecasts } from '../ha/map'
 import { sampleHouse } from './sample'
-import type { HouseState } from './types'
+import type { HouseAction, HouseState } from './types'
 
 export type UpdateHouse = (change: (draft: HouseState) => void) => void
+export type RunAction = (action: HouseAction) => void
 
 export type Link =
   | { status: 'sample' }
@@ -25,7 +26,7 @@ export type Link =
  * While connected, `update` also sends the change to Home Assistant (see ha/actions.ts),
  * and the new state comes back through the subscription.
  */
-export function useHouse(onError?: (message: string) => void): { house: HouseState; update: UpdateHouse; link: Link } {
+export function useHouse(onError?: (message: string) => void): { house: HouseState; update: UpdateHouse; run: RunAction; link: Link } {
   const [local, setLocal] = useState<HouseState>(() => structuredClone(sampleHouse))
   const [states, setStates] = useState<HassEntities | null>(null)
   const [forecasts, setForecasts] = useState<Forecasts>({})
@@ -81,8 +82,21 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
     })
   }, [])
 
+  /** Runs a scene or turns every light off. Without Home Assistant it only explains why nothing happened. */
+  const run = useCallback<RunAction>((action) => {
+    const c = liveConnection.current
+    if (!c) {
+      errorRef.current?.('Scenes run once Home Assistant is connected.')
+      return
+    }
+    const call = actionCall(action)
+    callService(c, call.domain, call.service, call.data, { entity_id: call.entityIds }).catch(() =>
+      errorRef.current?.("Home Assistant didn't accept that."),
+    )
+  }, [])
+
   return useMemo(() => {
-    if (!states) return { house: local, update, link: { status: conn } as Link }
+    if (!states) return { house: local, update, run, link: { status: conn } as Link }
     const { house, linked, total, unavailable } = applyEntities(local, states, new Date(), forecasts)
     live.current = { house, states }
     const entityList = () =>
@@ -90,6 +104,6 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
         .map((e) => `${e.entity_id}  ${String(e.attributes.friendly_name ?? '')}`.trimEnd())
         .sort()
         .join('\n')
-    return { house, update, link: { status: 'live', linked, total, unavailable, entityList } }
-  }, [local, states, forecasts, conn, update])
+    return { house, update, run, link: { status: 'live', linked, total, unavailable, entityList } }
+  }, [local, states, forecasts, conn, update, run])
 }
