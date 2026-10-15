@@ -1,7 +1,7 @@
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
-import type { HouseState } from '../data/types'
+import type { HouseState, PlayerCommand } from '../data/types'
 import { actionCall, serviceCalls } from './actions'
 import { entities } from './entities'
 import { applyEntities } from './map'
@@ -65,5 +65,20 @@ describe('actionCall', () => {
     expect(actionCall({ scene: { id: 'scene.lounge_lounge_vinyl', name: 'Vinyl', room: 'Lounge' } }))
       .toEqual({ domain: 'scene', service: 'turn_on', entityIds: ['scene.lounge_lounge_vinyl'] })
     expect(actionCall({ allLightsOff: true })).toEqual({ domain: 'light', service: 'turn_off', entityIds: ['all'] })
+  })
+})
+
+describe('player controls', () => {
+  const can = { pause: true, next: true, previous: true, volume: true, mute: true, power: true }
+  const player = { id: 'media_player.theater_tv', name: 'Theater TV', state: 'off' as const, muted: true, can }
+
+  it('maps each control to a media_player service', () => {
+    const call = (command: PlayerCommand) => actionCall({ player, command })
+    expect(call('play_pause')).toMatchObject({ service: 'media_play_pause' })
+    expect(call('next')).toMatchObject({ service: 'media_next_track' })
+    expect(call('previous')).toMatchObject({ service: 'media_previous_track' })
+    expect(call('mute')).toEqual({ domain: 'media_player', service: 'volume_mute', data: { is_volume_muted: false }, entityIds: [player.id] })
+    expect(call('power')).toMatchObject({ service: 'turn_on' })
+    expect(call({ volume: 0.4 })).toMatchObject({ service: 'volume_set', data: { volume_level: 0.4 } })
   })
 })

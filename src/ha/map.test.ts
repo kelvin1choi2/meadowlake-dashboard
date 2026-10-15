@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, pulseFrom, scenesFrom, shortTime } from './map'
+import { applyEntities, playersFrom, pulseFrom, scenesFrom, shortTime } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -255,5 +255,31 @@ describe('scenes', () => {
       { id: 'scene.master_bathroom_master_bathroom_tubbie', name: 'Tubbie', room: 'Bath' },
       { id: 'scene.entertaining_relax', name: 'Relax', room: 'Entertaining' },
     ])
+  })
+})
+
+describe('media players', () => {
+  it('lists Roon zones and screens first under dashboard names, then the rest, numbering repeats', () => {
+    const list = playersFrom(states(
+      entity('media_player.bathroom', 'idle', { friendly_name: 'Bathroom', supported_features: 4 | 8 }),
+      entity('media_player.theater_tv_2', 'on', { friendly_name: 'Theater TV', supported_features: 128 | 256 }),
+      entity(entities.media.screens[0].entity, 'off', { friendly_name: 'Theater TV' }),
+      entity(entities.media.roon[0].id, 'playing', {
+        friendly_name: '1 LOUNGE Linn Klimax', supported_features: 1 | 4 | 16 | 32, media_title: 'So What', media_artist: 'Miles Davis',
+        volume_level: 0.3, media_position: 30, media_duration: 120, entity_picture: '/api/media_player_proxy/x',
+      }),
+      entity('media_player.gone', 'unavailable'),
+    ))
+    expect(list.map((p) => [p.name, p.state])).toEqual([
+      [entities.media.roon[0].name, 'playing'],
+      ['Theater TV', 'off'],
+      ['Bathroom', 'idle'],
+      ['Theater TV (2)', 'idle'],
+    ])
+    expect(list[0]).toMatchObject({
+      title: 'So What', subtitle: 'Miles Davis', volume: 0.3, progress: 0.25, art: '/api/media_player_proxy/x',
+      can: { pause: true, next: true, previous: true, volume: true, mute: false, power: false },
+    })
+    expect(list[3].can.power).toBe(true)
   })
 })

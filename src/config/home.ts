@@ -4,3 +4,6 @@
 
 /** Roon's built-in "Displays" page (Roon → Settings → Displays). */
 export const roonDisplayUrl = 'http://192.168.4.41:9330/display/'
+
+/** The Roon ROCK server's own web page: status, storage, codecs, updates and restarts. */
+export const roonRockUrl = 'http://192.168.4.41/'

@@ -86,7 +86,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
   const run = useCallback<RunAction>((action) => {
     const c = liveConnection.current
     if (!c) {
-      errorRef.current?.('Scenes run once Home Assistant is connected.')
+      errorRef.current?.('This works once Home Assistant is connected.')
       return
     }
     const call = actionCall(action)
@@ -98,6 +98,9 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
   return useMemo(() => {
     if (!states) return { house: local, update, run, link: { status: conn } as Link }
     const { house, linked, total, unavailable } = applyEntities(local, states, new Date(), forecasts)
+    // Artwork comes as a path on the Home Assistant server.
+    const base = haConfig()?.url
+    for (const p of house.media.players) if (base && p.art?.startsWith('/')) p.art = base + p.art
     live.current = { house, states }
     const entityList = () =>
       Object.values(states)
