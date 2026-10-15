@@ -34,13 +34,14 @@ mode: queued
 triggers:
   - trigger: webhook
     webhook_id: PICK-A-LONG-RANDOM-ID
-    allowed_methods: [POST]
+    allowed_methods: [POST, GET]
     local_only: true
 actions:
   - variables:
       text: >-
         {{ (trigger.json.text if trigger.json is mapping and 'text' in trigger.json
-            else trigger.data.text | default('')) | string }}
+            else trigger.data.text if trigger.data is mapping and 'text' in trigger.data
+            else trigger.query.text | default('')) | string }}
       result: >-
         {{ 'failed' if text is search('fail|error|could not|unable|partial|abort', ignorecase=True) else 'ok' }}
       value: "{{ (result ~ ': ' ~ text)[:250] }}"
