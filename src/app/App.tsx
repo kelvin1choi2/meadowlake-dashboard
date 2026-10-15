@@ -13,9 +13,9 @@ import { Toast } from './Toast'
 export function App() {
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null)
   const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), [])
-  const { house, update, link } = useHouse(notify)
+  const { house, update, run, link } = useHouse(notify)
   const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
-  const props = { house, update, notify }
+  const props = { house, update, run, notify }
   const openCategory = categories.find((c) => c.id === open)
 
   return (
@@ -73,6 +73,11 @@ function linkLabel(link: Link): string {
     case 'sample': return 'Sample data'
     case 'connecting': return 'Connecting to Home Assistant…'
     case 'error': return "Can't reach Home Assistant · showing sample data"
-    case 'live': return link.linked === link.total ? 'Live' : `Live · ${link.linked} of ${link.total} linked, rest is sample`
+    case 'live': {
+      const off = link.unavailable.length
+      const sample = link.total - link.linked - off
+      const notes = [off && `${off} unavailable`, sample && `${sample} on sample data`].filter(Boolean)
+      return notes.length ? `Live · ${notes.join(', ')}` : 'Live'
+    }
   }
 }

@@ -56,6 +56,17 @@ export interface ScriptRun {
   status: 'ok' | 'late' | 'failed'
 }
 
+export interface Scene {
+  id: string
+  name: string
+  room: string
+  /** Position on the Scenes tile; scenes without one are only in the full list. */
+  favorite?: number
+}
+
+/** One-tap actions that don't change a value on screen, so they don't go through `update`. */
+export type HouseAction = { scene: Scene } | { allLightsOff: true }
+
 export interface HouseState {
   mode: 'home' | 'away' | 'night' | 'guests'
   climate: {
@@ -135,7 +146,7 @@ export interface HouseState {
     robovac: { state: string; battery: number; lastClean: string; next?: string; runWhenAway: boolean }
     upkeep: { label: string; due: string; soon?: boolean }[]
   }
-  scenes: { id: string; name: string; detail: string }[]
+  scenes: Scene[]
   /** Today's notable events, newest first. */
   pulse: { category: CategoryId; who: string; what: string; at: string }[]
 }

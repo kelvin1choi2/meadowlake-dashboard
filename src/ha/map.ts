@@ -92,14 +92,17 @@ export function applyEntities(
   states: HassEntities,
   now: Date = new Date(),
   forecasts: Forecasts = {},
-): { house: HouseState; linked: number; total: number } {
+): { house: HouseState; linked: number; total: number; unavailable: string[] } {
   const h = structuredClone(base)
   let linked = 0
   let total = 0
+  /** Names of entities Home Assistant has but reports as unavailable or unknown right now. */
+  const unavailable: string[] = []
   /** Looks up an entity and counts it toward "N of M linked". */
   const get = (id: string): HassEntity | undefined => {
     total++
     const e = states[id]
+    if (e && offline.has(e.state)) unavailable.push(String(e.attributes.friendly_name ?? id))
     if (!e || offline.has(e.state)) return undefined
     linked++
     return e
@@ -317,9 +320,37 @@ export function applyEntities(
   })
   if (leaks.length) h.safety.leaks = leaks
 
+  const found = scenesFrom(states)
+  for (const id of entities.scenes.favorites) {
+    total++
+    if (found.some((s) => s.id === id)) linked++
+  }
+  if (found.length) h.scenes = found
+
   if (linked) h.pulse = pulseFrom(states, now)
 
-  return { house: h, linked, total }
+  return { house: h, linked, total, unavailable }
+}
+
+/**
+ * Every scene in Home Assistant, ordered by the dashboard's rooms. A scene's state is
+ * when it last ran ("unknown" if never), so only "unavailable" means it can't be used.
+ * Hue scenes carry their room (group_name) and short name; others use their full name.
+ */
+export function scenesFrom(states: HassEntities): HouseState['scenes'] {
+  const order = entities.rooms.map((r) => ({ prefix: r.lights.replace(/^light\./, 'scene.'), name: r.name }))
+  const favorites: string[] = entities.scenes.favorites
+  return Object.values(states)
+    .filter((e) => e.entity_id.startsWith('scene.') && e.state !== 'unavailable')
+    .map((e) => {
+      const known = order.findIndex((r) => e.entity_id.startsWith(r.prefix))
+      const room = known >= 0 ? order[known].name : str(e.attributes.group_name) ?? 'Other'
+      const name = str(e.attributes.name) ?? String(e.attributes.friendly_name ?? e.entity_id)
+      const fav = favorites.indexOf(e.entity_id)
+      return { scene: { id: e.entity_id, name, room, ...(fav >= 0 ? { favorite: fav } : {}) }, rank: known >= 0 ? known : order.length }
+    })
+    .sort((a, b) => a.rank - b.rank || a.scene.room.localeCompare(b.scene.room) || a.scene.name.localeCompare(b.scene.name))
+    .map((s) => s.scene)
 }
 
 const jobs: Record<string, string> = { none: 'Running', wash: 'Washing', rinse: 'Rinsing', spin: 'Spinning', finish: 'Done' }

@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, pulseFrom, shortTime } from './map'
+import { applyEntities, pulseFrom, scenesFrom, shortTime } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -46,7 +46,8 @@ describe('applyEntities', () => {
   })
 
   it('skips unavailable entities instead of showing them', () => {
-    const { house, linked } = applyEntities(sampleHouse, states(entity(entities.appliances.waterHeater, 'unavailable')), now)
+    const { house, linked, unavailable } = applyEntities(sampleHouse, states(entity(entities.appliances.waterHeater, 'unavailable', { friendly_name: 'Electric Water Heater' })), now)
+    expect(unavailable).toEqual(['Electric Water Heater'])
     expect(house.appliances.waterHeater).toEqual(sampleHouse.appliances.waterHeater)
     expect(linked).toBe(0)
   })
@@ -234,5 +235,25 @@ describe('washer and leak sensors', () => {
     const { house } = applyEntities(sampleHouse, states(entity(l.moisture, 'on'), entity(l.battery, '87')), now)
     expect(house.safety.leaks).toEqual([{ name: l.name, wet: true, battery: 87 }])
     expect(pulseFrom(states(entity(l.moisture, 'on')), now)[0]).toMatchObject({ category: 'safety', what: 'wet!' })
+  })
+})
+
+describe('scenes', () => {
+  it('lists every scene by dashboard room, marks favorites in order and keeps never-run scenes', () => {
+    const list = scenesFrom(states(
+      entity('scene.kitchen_kitchen_bright_kitchen', 'unknown', { group_name: 'Kitchen', name: 'bright kitchen' }),
+      entity('scene.lounge_lounge_vinyl', '2026-10-15T20:00:00Z', { group_name: 'Lounge', name: 'Vinyl' }),
+      entity('scene.entertaining_relax', 'unknown', { group_name: 'Entertaining', name: 'Relax' }),
+      entity('scene.lounge_lounge_bright_lounge', 'unknown', { group_name: 'Lounge', name: 'Bright Lounge' }),
+      entity('scene.master_bathroom_master_bathroom_tubbie', 'unknown', { group_name: 'Master Bathroom', name: 'Tubbie' }),
+      entity('scene.theater_theater_glow', 'unavailable', { group_name: 'Theater', name: 'Glow' }),
+    ))
+    expect(list).toEqual([
+      { id: 'scene.lounge_lounge_bright_lounge', name: 'Bright Lounge', room: 'Lounge', favorite: 0 },
+      { id: 'scene.lounge_lounge_vinyl', name: 'Vinyl', room: 'Lounge', favorite: 1 },
+      { id: 'scene.kitchen_kitchen_bright_kitchen', name: 'bright kitchen', room: 'Kitchen', favorite: 4 },
+      { id: 'scene.master_bathroom_master_bathroom_tubbie', name: 'Tubbie', room: 'Bath' },
+      { id: 'scene.entertaining_relax', name: 'Relax', room: 'Entertaining' },
+    ])
   })
 })

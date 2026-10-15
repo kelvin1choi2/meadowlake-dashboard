@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import type { HouseState } from '../data/types'
-import { serviceCalls } from './actions'
+import { actionCall, serviceCalls } from './actions'
 import { entities } from './entities'
 import { applyEntities } from './map'
 
@@ -57,5 +57,13 @@ describe('serviceCalls', () => {
 
   it('sends nothing for things Home Assistant does not have yet', () => {
     expect(change((h) => { h.climate.setpointF += 1; h.safety.garage.open = true; h.mode = 'away' })).toEqual([])
+  })
+})
+
+describe('actionCall', () => {
+  it('turns on a scene and turns every light off', () => {
+    expect(actionCall({ scene: { id: 'scene.lounge_lounge_vinyl', name: 'Vinyl', room: 'Lounge' } }))
+      .toEqual({ domain: 'scene', service: 'turn_on', entityIds: ['scene.lounge_lounge_vinyl'] })
+    expect(actionCall({ allLightsOff: true })).toEqual({ domain: 'light', service: 'turn_off', entityIds: ['all'] })
   })
 })
