@@ -36,7 +36,13 @@ export function serviceCalls(before: HouseState, after: HouseState, states: Hass
 
   const thermostat = entities.climate.thermostat
   if (before.climate.setpointF !== after.climate.setpointF && has(thermostat)) {
-    calls.push({ domain: 'climate', service: 'set_temperature', data: { temperature: after.climate.setpointF }, entityIds: [thermostat] })
+    const a = states[thermostat].attributes
+    const delta = after.climate.setpointF - before.climate.setpointF
+    // In auto mode Ecobee has a low and a high target; move both so the gap between them holds.
+    const data = typeof a.temperature === 'number' || typeof a.target_temp_low !== 'number' || typeof a.target_temp_high !== 'number'
+      ? { temperature: after.climate.setpointF }
+      : { target_temp_low: a.target_temp_low + delta, target_temp_high: a.target_temp_high + delta }
+    calls.push({ domain: 'climate', service: 'set_temperature', data, entityIds: [thermostat] })
   }
 
   const heater = entities.appliances.waterHeater

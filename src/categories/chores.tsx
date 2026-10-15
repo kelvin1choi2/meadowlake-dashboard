@@ -24,7 +24,7 @@ export const chores: Category = {
     return (
       <>
         <Card color="var(--chores)" title="Robovac" chip={<Chip tone="neutral">{v.state}</Chip>}>
-          <KV rows={[['Battery', `${v.battery}%`], ['Last clean', v.lastClean], ['Next', v.next]]} />
+          <KV rows={[['Battery', `${v.battery}%`], ['Last clean', v.lastClean], ...(v.next ? [['Next', v.next] as [string, string]] : [])]} />
           <Toggle label="Run when everyone leaves" on={v.runWhenAway} onChange={(on) => update((h) => { h.chores.robovac.runWhenAway = on })} />
         </Card>
         <Card color="var(--chores)" title="Upkeep">

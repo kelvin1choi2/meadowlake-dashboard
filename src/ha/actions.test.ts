@@ -45,6 +45,16 @@ describe('serviceCalls', () => {
     ])
   })
 
+  it('moves both auto-mode targets when the set point changes', () => {
+    const auto = { ...states, [entities.climate.thermostat]: entity(entities.climate.thermostat, 'heat_cool', { target_temp_low: 68, target_temp_high: 76, hvac_action: 'heating' }) }
+    const before = applyEntities(sampleHouse, auto).house
+    const after = structuredClone(before)
+    after.climate.setpointF += 1
+    expect(serviceCalls(before, after, auto)).toEqual([
+      { domain: 'climate', service: 'set_temperature', data: { target_temp_low: 69, target_temp_high: 77 }, entityIds: [entities.climate.thermostat] },
+    ])
+  })
+
   it('sends nothing for things Home Assistant does not have yet', () => {
     expect(change((h) => { h.climate.setpointF += 1; h.safety.garage.open = true; h.mode = 'away' })).toEqual([])
   })

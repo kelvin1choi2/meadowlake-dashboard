@@ -1,4 +1,4 @@
-import { Card, Chip, Dot, Idea, KV, Toggle } from '../widgets'
+import { Card, Chip, Dot, Idea, KV } from '../widgets'
 import type { Category } from './types'
 
 export const safety: Category = {
@@ -18,7 +18,7 @@ export const safety: Category = {
       <div><Dot color={house.camerasArmed ? 'var(--good)' : 'var(--warn)'} />Cameras<span className="r">{house.camerasArmed ? 'Armed' : 'Off'}</span></div>
     </div>
   ),
-  Sheet: ({ house, update }) => {
+  Sheet: ({ house }) => {
     const g = house.safety.garage
     const stillOn = [
       ...house.rooms.filter((r) => r.lightsOn > 0).map((r) => `${r.name} lights`),
@@ -27,9 +27,8 @@ export const safety: Category = {
     return (
       <>
         <Card color="var(--safety)" title="Garage door" chip={<Chip tone={g.open ? 'warn' : 'good'}>{g.open ? 'Open' : 'Closed'}</Chip>}>
-          <KV rows={[['Last opened', g.lastOpened], ['Open for', g.openFor]]} />
-          <Toggle label="Open" on={g.open} onChange={(on) => update((h) => { h.safety.garage.open = on })} />
-          <Idea>Auto-close if left open 10 minutes after sunset.</Idea>
+          <KV rows={[[g.open ? 'Open since' : 'Closed since', g.since]]} />
+          <Idea>Opening and closing stays with the garage remote and Apple Home, so a stray tap here can't open it.</Idea>
         </Card>
         <Card color="var(--safety)" title="Leak detectors" chip={<Chip tone={house.safety.leaks.some((l) => l.wet) ? 'bad' : 'good'}>{house.safety.leaks.some((l) => l.wet) ? 'Wet' : 'Dry'}</Chip>}>
           <KV rows={house.safety.leaks.map((l): [string, string] => [l.name, `${l.wet ? 'Wet' : 'Dry'} · battery ${l.battery}%`])} />
