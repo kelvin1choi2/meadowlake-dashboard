@@ -57,6 +57,21 @@ function hourLabel(d: Date): string {
 
 const compass = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
 
+const hvacModes: Record<string, string> = { heat: 'Heat', cool: 'Cool', heat_cool: 'Auto', auto: 'Auto', off: 'Off', fan_only: 'Fan' }
+
+function round(n: number | undefined): number | undefined {
+  return n === undefined ? undefined : Math.round(n)
+}
+
+/** The set point people mean: the single target, or in auto mode the side that's active. */
+export function setpoint(t: HassEntity): number | undefined {
+  const single = num(t.attributes.temperature)
+  if (single !== undefined) return single
+  const low = num(t.attributes.target_temp_low)
+  const high = num(t.attributes.target_temp_high)
+  return t.attributes.hvac_action === 'cooling' ? high ?? low : low ?? high
+}
+
 function isGroup(e: HassEntity): boolean {
   const a = e.attributes
   return a.is_hue_group === true || Array.isArray(a.lights) || Array.isArray(a.entity_id)
@@ -96,24 +111,45 @@ export function applyEntities(
 
   const t = get(entities.climate.thermostat)
   if (t) {
-    h.climate.mode = label(t.state)
-    h.climate.currentF = num(t.attributes.current_temperature) ?? h.climate.currentF
-    h.climate.setpointF = num(t.attributes.temperature) ?? h.climate.setpointF
+    h.climate.mode = hvacModes[t.state] ?? label(t.state)
+    h.climate.currentF = round(num(t.attributes.current_temperature)) ?? h.climate.currentF
+    h.climate.setpointF = round(setpoint(t)) ?? h.climate.setpointF
     const action = str(t.attributes.hvac_action)
     if (action) h.climate.action = label(action)
-    h.climate.humidity = num(t.attributes.current_humidity) ?? h.climate.humidity
+    h.climate.humidity = round(num(t.attributes.current_humidity)) ?? h.climate.humidity
     const preset = str(t.attributes.preset_mode)
     if (preset) h.climate.comfort = label(preset)
+    h.climate.filterDays = undefined
   }
+  const comfort = get(entities.climate.comfort)
+  if (comfort) h.climate.comfort = label(comfort.state)
 
+  const sensorRoom = (sensor: string) => {
+    const temp = states[`sensor.${sensor}_sensor_temperature`]
+    const occ = states[`binary_sensor.${sensor}_sensor_occupancy`]
+    return {
+      tempF: temp && !offline.has(temp.state) ? round(num(temp.state)) : undefined,
+      occupied: occ?.state === 'on',
+    }
+  }
   const rooms = entities.rooms.flatMap((r) => {
     total++
     const lights = roomLights(states, r.lights)
-    if (!lights.length) return []
+    const sensed = r.sensor ? sensorRoom(r.sensor) : { tempF: undefined, occupied: false }
+    if (!lights.length && sensed.tempF === undefined) return []
     linked++
     const lightsOn = lights.filter((e) => e.state === 'on').length
-    return [{ id: r.id, name: r.name, occupied: false, lightsOn, lightsTotal: lights.length }]
+    return [{ id: r.id, name: r.name, ...sensed, lightsOn, lightsTotal: lights.length }]
   })
+  const listed = new Set(entities.rooms.map((r) => r.sensor))
+  for (const e of Object.values(states)) {
+    const sensor = /^sensor\.(.+)_sensor_temperature$/.exec(e.entity_id)?.[1]
+    if (!sensor || listed.has(sensor) || offline.has(e.state)) continue
+    total++
+    linked++
+    const name = String(e.attributes.friendly_name ?? sensor).replace(/ sensor temperature$/i, '')
+    rooms.push({ id: sensor, name, ...sensorRoom(sensor), lightsOn: 0, lightsTotal: 0 })
+  }
   if (rooms.length) h.rooms = rooms
 
   const w = get(entities.weather)
@@ -258,7 +294,17 @@ export function applyEntities(
   if (hot !== undefined) h.appliances.waterHeater.availablePct = Math.round(hot)
 
   const g = get(entities.safety.garage)
-  if (g) h.safety.garage.open = g.state !== 'closed'
+  if (g) h.safety.garage = { open: g.state !== 'closed', since: shortTime(new Date(g.last_changed)) }
+
+  const vac = get(entities.chores.vacuum)
+  if (vac) {
+    h.chores.robovac.state = label(vac.state)
+    h.chores.robovac.next = undefined
+  }
+  const battery = value(entities.chores.battery) ?? (vac && num(vac.attributes.battery_level))
+  if (battery !== undefined) h.chores.robovac.battery = Math.round(battery)
+  const minutes = value(entities.chores.cleaningTime)
+  if (minutes !== undefined) h.chores.robovac.lastClean = `${Math.round(minutes)} min`
   entities.safety.leaks.forEach((id, i) => {
     const s = get(id)
     if (s && h.safety.leaks[i]) h.safety.leaks[i].wet = s.state === 'on'
@@ -297,6 +343,8 @@ export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] 
     const group = Object.values(states).find((e) => e.entity_id.startsWith(r.lights) && isGroup(e))
     if (group) add(group.entity_id, 'inside', `${r.name} lights`, (e) => e.state)
   }
+  add(entities.safety.garage, 'safety', 'Garage', (e) => (e.state === 'closed' ? 'closed' : e.state))
+  add(entities.chores.vacuum, 'chores', 'Robovac', (e) => (e.state === 'docked' ? 'docked' : e.state))
   add(entities.irrigation.rainDelay, 'outside', 'Rachio', (e) => `rain delay ${e.state}`)
   add(entities.appliances.waterHeater, 'appliances', 'Water heater', (e) => `switched to ${label(e.state).toLowerCase()}`)
 

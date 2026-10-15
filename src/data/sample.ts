@@ -103,7 +103,7 @@ export const sampleHouse: HouseState = {
     waterHeater: { setpointF: 120, mode: 'Energy Saver', availablePct: 90, vacation: false },
   },
   safety: {
-    garage: { open: false, lastOpened: '7:42a', openFor: '1m 10s' },
+    garage: { open: false, since: '7:43a' },
     leaks: [
       { name: 'Water heater', wet: false, battery: 80 },
       { name: 'Laundry', wet: false, battery: 64 },

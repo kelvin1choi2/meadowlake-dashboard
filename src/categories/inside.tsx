@@ -42,7 +42,7 @@ export const inside: Category = {
   },
   Sheet: ({ house, update }) => (
     <>
-      <Card title="Ecobee thermostat" chip={<Chip tone="good">Heating {house.climate.action.toLowerCase()}</Chip>}>
+      <Card title="Ecobee thermostat" chip={<Chip tone="good">{house.climate.action}</Chip>}>
         <div className="therm">
           <button className="step" aria-label="Lower set point" onClick={() => update((h) => { h.climate.setpointF -= 1 })}>−</button>
           <div>
@@ -51,19 +51,25 @@ export const inside: Category = {
           </div>
           <button className="step" aria-label="Raise set point" onClick={() => update((h) => { h.climate.setpointF += 1 })}>+</button>
         </div>
-        <KV rows={[['Mode', house.climate.mode], ['Comfort setting', house.climate.comfort], ['Filter change', `${house.climate.filterDays} days`]]} />
+        <KV rows={[
+          ['Mode', house.climate.mode],
+          ['Comfort setting', house.climate.comfort],
+          ...(house.climate.filterDays === undefined ? [] : [['Filter change', `${house.climate.filterDays} days`] as [string, string]]),
+        ]} />
       </Card>
       {house.rooms.map((r, i) => (
         <Card key={r.id} title={r.name} color="var(--inside)" chip={<Chip tone={r.occupied ? 'good' : 'neutral'}>{r.occupied ? 'Occupied' : 'Empty'}</Chip>}>
           <div className="row">
             {r.tempF !== undefined && <div className="v num room-temp" style={{ color: tempColor(r.tempF) }}>{r.tempF}°</div>}
-            <KV rows={[['Lights', r.lightsOn ? `${r.lightsOn} of ${r.lightsTotal} on` : 'Off']]} />
+            {r.lightsTotal > 0 && <KV rows={[['Lights', r.lightsOn ? `${r.lightsOn} of ${r.lightsTotal} on` : 'Off']]} />}
           </div>
-          <Toggle
-            label="Hue lights"
-            on={r.lightsOn > 0}
-            onChange={(on) => update((h) => { h.rooms[i].lightsOn = on ? h.rooms[i].lightsTotal : 0 })}
-          />
+          {r.lightsTotal > 0 && (
+            <Toggle
+              label="Hue lights"
+              on={r.lightsOn > 0}
+              onChange={(on) => update((h) => { h.rooms[i].lightsOn = on ? h.rooms[i].lightsTotal : 0 })}
+            />
+          )}
           {r.fan !== undefined && (
             <Toggle label="Ceiling fan" on={r.fan} onChange={(on) => update((h) => { h.rooms[i].fan = on })} />
           )}

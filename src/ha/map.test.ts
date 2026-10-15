@@ -42,7 +42,7 @@ describe('applyEntities', () => {
     const { house } = applyEntities(sampleHouse, states(
       entity(entities.climate.thermostat, 'heat_cool', { current_temperature: 72, temperature: 70, hvac_action: 'cooling', current_humidity: 38 }),
     ), now)
-    expect(house.climate).toMatchObject({ mode: 'Heat cool', currentF: 72, setpointF: 70, action: 'Cooling', humidity: 38 })
+    expect(house.climate).toMatchObject({ mode: 'Auto', currentF: 72, setpointF: 70, action: 'Cooling', humidity: 38, filterDays: undefined })
   })
 
   it('skips unavailable entities instead of showing them', () => {
@@ -164,5 +164,39 @@ describe('plex', () => {
   it('shows the server as down when its sensor is unavailable', () => {
     const { house } = applyEntities(sampleHouse, states(entity('sensor.mini_plex', 'unavailable', { unit_of_measurement: 'watching' })), now)
     expect(house.media.plex).toMatchObject({ up: false, streams: [] })
+  })
+})
+
+describe('ecobee, garage and robovac', () => {
+  it('uses the active side of an auto-mode set point and the comfort setting', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity(entities.climate.thermostat, 'heat_cool', { current_temperature: 74.4, target_temp_low: 68, target_temp_high: 76, hvac_action: 'cooling' }),
+      entity(entities.climate.comfort, 'sleep'),
+    ), now)
+    expect(house.climate).toMatchObject({ currentF: 74, setpointF: 76, comfort: 'Sleep' })
+  })
+
+  it('adds Ecobee temperatures to rooms and makes rooms of unlisted sensors', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity('light.lounge_lamp_1', 'on'),
+      entity('sensor.lounge_sensor_temperature', '71.6'),
+      entity('binary_sensor.lounge_sensor_occupancy', 'on'),
+      entity('sensor.study_sensor_temperature', '69.2', { friendly_name: 'Study Sensor Temperature' }),
+    ), now)
+    expect(house.rooms).toEqual([
+      { id: 'lounge', name: 'Lounge', tempF: 72, occupied: true, lightsOn: 1, lightsTotal: 1 },
+      { id: 'study', name: 'Study', tempF: 69, occupied: false, lightsOn: 0, lightsTotal: 0 },
+    ])
+  })
+
+  it('reads the garage door and robovac', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity(entities.safety.garage, 'open', {}, new Date(2026, 9, 15, 14, 40)),
+      entity(entities.chores.vacuum, 'docked', { battery_level: 50 }),
+      entity(entities.chores.battery, '96'),
+      entity(entities.chores.cleaningTime, '38'),
+    ), now)
+    expect(house.safety.garage).toEqual({ open: true, since: '2:40p' })
+    expect(house.chores.robovac).toMatchObject({ state: 'Docked', battery: 96, lastClean: '38 min', next: undefined })
   })
 })

@@ -65,7 +65,7 @@ export interface HouseState {
     action: string
     humidity: number
     comfort: string
-    filterDays: number
+    filterDays?: number
   }
   rooms: Room[]
   weather: {
@@ -127,11 +127,12 @@ export interface HouseState {
     waterHeater: { setpointF: number; mode: string; availablePct: number; vacation: boolean }
   }
   safety: {
-    garage: { open: boolean; lastOpened: string; openFor: string }
+    /** `since` is when the door last opened or closed. */
+    garage: { open: boolean; since: string }
     leaks: { name: string; wet: boolean; battery: number }[]
   }
   chores: {
-    robovac: { state: string; battery: number; lastClean: string; next: string; runWhenAway: boolean }
+    robovac: { state: string; battery: number; lastClean: string; next?: string; runWhenAway: boolean }
     upkeep: { label: string; due: string; soon?: boolean }[]
   }
   scenes: { id: string; name: string; detail: string }[]

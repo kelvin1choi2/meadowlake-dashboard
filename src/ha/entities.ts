@@ -6,21 +6,25 @@
 
 export const entities = {
   climate: {
-    /** Ecobee isn't in Home Assistant yet; it needs pairing via HomeKit Device. */
-    thermostat: 'climate.ecobee',
+    /** Ecobee, paired through HomeKit Device. */
+    thermostat: 'climate.meadowlake',
+    comfort: 'select.meadowlake_current_mode',
   },
   /**
    * Rooms come from Hue: each room's lights share an ID prefix. The Hue room group
    * itself (e.g. light.lounge_lounge) is skipped when counting lights.
+   * `sensor` names an Ecobee room sensor (sensor.<name>_sensor_temperature and
+   * binary_sensor.<name>_sensor_occupancy). Ecobee sensors not listed here become
+   * rooms of their own, named from Home Assistant, so their names stay out of the repo.
    */
   rooms: [
-    { id: 'lounge', name: 'Lounge', lights: 'light.lounge_' },
+    { id: 'lounge', name: 'Lounge', lights: 'light.lounge_', sensor: 'lounge' },
     { id: 'kitchen', name: 'Kitchen', lights: 'light.kitchen_' },
     { id: 'theater', name: 'Theater', lights: 'light.theater_' },
     { id: 'hallway', name: 'Hallway', lights: 'light.hallway_' },
-    { id: 'master-suite', name: 'Master', lights: 'light.master_suite_' },
+    { id: 'master-suite', name: 'Master', lights: 'light.master_suite_', sensor: 'master' },
     { id: 'master-bath', name: 'Bath', lights: 'light.master_bathroom_' },
-  ],
+  ] as { id: string; name: string; lights: string; sensor?: string }[],
   weather: 'weather.forecast_home',
   sun: 'sun.sun',
   cameras: {
@@ -64,9 +68,14 @@ export const entities = {
     waterHeater: 'water_heater.electric_water_heater',
     hotWaterPct: 'sensor.electric_water_heater_electric_water_heater_available_hot_water',
   },
+  chores: {
+    vacuum: 'vacuum.meadowlake_robovac',
+    battery: 'sensor.meadowlake_robovac_battery',
+    cleaningTime: 'sensor.meadowlake_robovac_cleaning_time',
+  },
   safety: {
-    /** eHome garage and leak sensors aren't in Home Assistant yet. */
-    garage: 'cover.garage_door',
+    /** eHome garage, paired through HomeKit Device. The leak sensors aren't in Home Assistant yet. */
+    garage: 'cover.garage_pod_bay_doors_garage_door',
     leaks: ['binary_sensor.leak_water_heater', 'binary_sensor.leak_laundry'],
   },
 }
