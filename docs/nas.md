@@ -19,11 +19,11 @@ unzip it on your computer, and upload the **contents** (`index.html`, `assets/`,
 
 ## 3. Create the website in Web Station
 
-1. Open **Web Station → Web Service Portal → Create**.
-2. Choose **Create service portal**, then the **Static website** service. Nginx is fine.
-3. Portal type **Port-based**, HTTP port **8080**. Leave HTTPS off.
-4. Document root: `web/meadowlake`.
-5. Save, then open `http://<NAS address>:8080` in a browser. On the tablet, use
+1. Open **Web Station → Web Service Portal → Create** and choose **Virtual host**.
+   (Not Default server: that's the NAS's main site on port 80 and serves the whole `web` folder.)
+2. **Port-based**, HTTP port **8080**. Leave HTTPS off.
+3. Document root: `web/meadowlake`. HTTP back-end server: **Nginx**. PHP: **Not configured**.
+4. Save, then open `http://<NAS address>:8080` in a browser. On the tablet, use
    **Add to Home Screen** for the full-screen app.
 
 Plain http is deliberate. The Roon display card only loads on an http page, and the site
