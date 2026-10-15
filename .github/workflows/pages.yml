@@ -1,6 +1,6 @@
 name: Demo site
 
-# Publishes the sample-data build to GitHub Pages on every push to main.
+# Publishes the sample-data-only demo build to GitHub Pages on every push to main.
 # One-time setup: repo Settings → Pages → Source: "GitHub Actions".
 on:
   push:
@@ -26,7 +26,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Demo build: sample data only, no Home Assistant settings screen.
       - run: npm run build
+        env:
+          VITE_DEMO: '1'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

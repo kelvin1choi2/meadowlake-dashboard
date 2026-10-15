@@ -1,7 +1,9 @@
 import { useCallback, useState, type CSSProperties } from 'react'
 import { categories } from '../categories'
 import type { CategoryId } from '../data/types'
-import { useHouse } from '../data/useHouse'
+import { useHouse, type Link } from '../data/useHouse'
+import { liveAllowed } from '../ha/connection'
+import { Settings } from '../ha/Settings'
 import { Chip, Icon } from '../widgets'
 import { Clock } from './Clock'
 import { Rail } from './Rail'
@@ -9,8 +11,8 @@ import { Sheet } from './Sheet'
 import { Toast } from './Toast'
 
 export function App() {
-  const { house, update, source } = useHouse()
-  const [open, setOpen] = useState<CategoryId | null>(null)
+  const { house, update, link } = useHouse()
+  const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null)
   const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), [])
   const props = { house, update, notify }
@@ -20,7 +22,8 @@ export function App() {
     <div className="wrap">
       <header className="top">
         <Clock />
-        {source === 'sample' && <span className="sample">Sample data</span>}
+        <span className={`sample ${link.status}`}>{linkLabel(link)}</span>
+        {liveAllowed && <button className="gear" onClick={() => setOpen('settings')}>Settings</button>}
       </header>
 
       <Rail house={house} update={update} />
@@ -59,7 +62,17 @@ export function App() {
           <openCategory.Sheet {...props} />
         </Sheet>
       )}
+      {open === 'settings' && <Settings link={link} onClose={() => setOpen(null)} />}
       {toast && <Toast key={toast.id} text={toast.text} onDone={() => setToast(null)} />}
     </div>
   )
+}
+
+function linkLabel(link: Link): string {
+  switch (link.status) {
+    case 'sample': return 'Sample data'
+    case 'connecting': return 'Connecting to Home Assistant…'
+    case 'error': return "Can't reach Home Assistant · showing sample data"
+    case 'live': return link.linked === link.total ? 'Live' : `Live · ${link.linked} of ${link.total} linked, rest is sample`
+  }
 }
