@@ -150,3 +150,19 @@ describe('pulseFrom', () => {
     expect(pulseFrom({}, now)).toEqual([{ category: 'inside', who: 'House', what: 'quiet so far today', at: '3:00p' }])
   })
 })
+
+describe('plex', () => {
+  it('finds the Plex server sensor by its unit and lists its streams', () => {
+    const { house } = applyEntities(sampleHouse, states(entity('sensor.mini_plex', '1', {
+      unit_of_measurement: 'watching',
+      friendly_name: 'Mini Plex',
+      'someone - Theater AppleTV': 'Shōgun - S01E04 - The Eightfold Fence',
+    })), now)
+    expect(house.media.plex).toEqual({ up: true, streams: [{ client: 'Theater AppleTV', title: 'Shōgun - S01E04 - The Eightfold Fence' }], addedThisWeek: undefined })
+  })
+
+  it('shows the server as down when its sensor is unavailable', () => {
+    const { house } = applyEntities(sampleHouse, states(entity('sensor.mini_plex', 'unavailable', { unit_of_measurement: 'watching' })), now)
+    expect(house.media.plex).toMatchObject({ up: false, streams: [] })
+  })
+})
