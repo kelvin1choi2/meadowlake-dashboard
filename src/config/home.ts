@@ -7,3 +7,9 @@ export const roonDisplayUrl = 'http://192.168.4.41:9330/display/'
 
 /** The Roon ROCK server's own web page: status, storage, codecs, updates and restarts. */
 export const roonRockUrl = 'http://192.168.4.41/'
+
+/** Curbside pickup days (0 = Sunday). */
+export const pickups = [
+  { day: 2, what: 'Garbage, lawn waste, recycling' },
+  { day: 5, what: 'Garbage' },
+]
