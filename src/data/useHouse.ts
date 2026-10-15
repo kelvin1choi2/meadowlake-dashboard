@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Connection, HassEntities } from 'home-assistant-js-websocket'
 import { callService } from 'home-assistant-js-websocket'
 import { serviceCalls } from '../ha/actions'
-import { connectToHA, haConfig, watchEntities } from '../ha/connection'
-import { applyEntities } from '../ha/map'
+import { connectToHA, haConfig, watchEntities, watchForecast } from '../ha/connection'
+import { entities } from '../ha/entities'
+import { applyEntities, type Forecasts } from '../ha/map'
 import { sampleHouse } from './sample'
 import type { HouseState } from './types'
 
@@ -27,6 +28,7 @@ export type Link =
 export function useHouse(onError?: (message: string) => void): { house: HouseState; update: UpdateHouse; link: Link } {
   const [local, setLocal] = useState<HouseState>(() => structuredClone(sampleHouse))
   const [states, setStates] = useState<HassEntities | null>(null)
+  const [forecasts, setForecasts] = useState<Forecasts>({})
   const [conn, setConn] = useState<'sample' | 'connecting' | 'error'>(() => (haConfig() ? 'connecting' : 'sample'))
   const liveConnection = useRef<Connection | null>(null)
   const live = useRef<{ house: HouseState; states: HassEntities } | null>(null)
@@ -37,20 +39,24 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
     const cfg = haConfig()
     if (!cfg) return
     let connection: Connection | undefined
-    let unsubscribe: (() => void) | undefined
+    const unsubscribers: (() => void)[] = []
     let cancelled = false
     connectToHA(cfg.url, cfg.token).then(
       (c) => {
         if (cancelled) return c.close()
         connection = c
-        unsubscribe = watchEntities(c, setStates)
+        unsubscribers.push(
+          watchEntities(c, setStates),
+          watchForecast(c, entities.weather, 'hourly', (hourly) => setForecasts((f) => ({ ...f, hourly }))),
+          watchForecast(c, entities.weather, 'daily', (daily) => setForecasts((f) => ({ ...f, daily }))),
+        )
         liveConnection.current = c
       },
       () => { if (!cancelled) setConn('error') },
     )
     return () => {
       cancelled = true
-      unsubscribe?.()
+      unsubscribers.forEach((u) => u())
       connection?.close()
       liveConnection.current = null
     }
@@ -77,7 +83,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
 
   return useMemo(() => {
     if (!states) return { house: local, update, link: { status: conn } as Link }
-    const { house, linked, total } = applyEntities(local, states)
+    const { house, linked, total } = applyEntities(local, states, new Date(), forecasts)
     live.current = { house, states }
     const entityList = () =>
       Object.values(states)
@@ -85,5 +91,5 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
         .sort()
         .join('\n')
     return { house, update, link: { status: 'live', linked, total, entityList } }
-  }, [local, states, conn, update])
+  }, [local, states, forecasts, conn, update])
 }
