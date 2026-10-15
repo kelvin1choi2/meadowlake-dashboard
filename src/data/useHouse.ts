@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Connection, HassEntities } from 'home-assistant-js-websocket'
 import { callService } from 'home-assistant-js-websocket'
 import { actionCall, serviceCalls } from '../ha/actions'
-import { connectToHA, haConfig, watchEntities, watchForecast } from '../ha/connection'
+import { roonRockUrl } from '../config/home'
+import { connectToHA, haConfig, liveAllowed, watchEntities, watchForecast } from '../ha/connection'
 import { entities } from '../ha/entities'
 import { applyEntities, type Forecasts } from '../ha/map'
+import { useRock } from '../rock/useRock'
 import { withPickups } from './pickups'
 import { sampleHouse } from './sample'
 import type { HouseAction, HouseState } from './types'
@@ -36,6 +38,8 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
   const live = useRef<{ house: HouseState; states: HassEntities } | null>(null)
   const errorRef = useRef(onError)
   errorRef.current = onError
+  // The ROCK is polled straight from the home network, never from the public demo.
+  const { rock, send: sendRock } = useRock(liveAllowed ? roonRockUrl : null)
 
   useEffect(() => {
     const cfg = haConfig()
@@ -83,8 +87,16 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
     })
   }, [])
 
-  /** Runs a scene or turns every light off. Without Home Assistant it only explains why nothing happened. */
+  /**
+   * Runs a scene, a player command, all lights off, or a ROCK command.
+   * Without Home Assistant (or, for the ROCK, off the home dashboard) it only explains why nothing happened.
+   */
   const run = useCallback<RunAction>((action) => {
+    if ('rock' in action) {
+      if (!liveAllowed) return errorRef.current?.('This works on the dashboard at home.')
+      sendRock(action.rock).catch(() => errorRef.current?.("The ROCK didn't accept that."))
+      return
+    }
     const c = liveConnection.current
     if (!c) {
       errorRef.current?.('This works once Home Assistant is connected.')
@@ -94,14 +106,15 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
     callService(c, call.domain, call.service, call.data, { entity_id: call.entityIds }).catch(() =>
       errorRef.current?.("Home Assistant didn't accept that."),
     )
-  }, [])
+  }, [sendRock])
 
   return useMemo(() => {
-    if (!states) return { house: withPickups(local, new Date()), update, run, link: { status: conn } as Link }
-    const { house, linked, total, unavailable } = applyEntities(local, states, new Date(), forecasts)
+    const base = rock ? { ...local, media: { ...local.media, rock } } : local
+    if (!states) return { house: withPickups(base, new Date()), update, run, link: { status: conn } as Link }
+    const { house, linked, total, unavailable } = applyEntities(base, states, new Date(), forecasts)
     // Artwork comes as a path on the Home Assistant server.
-    const base = haConfig()?.url
-    for (const p of house.media.players) if (base && p.art?.startsWith('/')) p.art = base + p.art
+    const haUrl = haConfig()?.url
+    for (const p of house.media.players) if (haUrl && p.art?.startsWith('/')) p.art = haUrl + p.art
     live.current = { house, states }
     const entityList = () =>
       Object.values(states)
@@ -109,5 +122,5 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
         .sort()
         .join('\n')
     return { house: withPickups(house, new Date()), update, run, link: { status: 'live', linked, total, unavailable, entityList } }
-  }, [local, states, forecasts, conn, update, run])
+  }, [local, rock, states, forecasts, conn, update, run])
 }

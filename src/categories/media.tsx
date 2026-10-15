@@ -1,5 +1,9 @@
 import { roonDisplayUrl, roonRockUrl } from '../config/home'
+import type { HouseState } from '../data/types'
+import type { RunAction } from '../data/useHouse'
+import { duration } from '../rock/rock'
 import { Bar, Card, Chip, Dot, KV, Toggle } from '../widgets'
+import { ConfirmButton } from '../widgets/ConfirmButton'
 import { canEmbed } from '../widgets/embed'
 import { PlayerBar } from '../widgets/PlayerBar'
 import type { Category } from './types'
@@ -20,6 +24,87 @@ function EmbedCard({ title, url, frameTitle }: { title: string; url: string; fra
           <p>This appears here when the dashboard runs on your home network.</p>
         </div>
       )}
+    </Card>
+  )
+}
+
+/** The Roon ROCK server: its status, disks and network, with the restart and power buttons from its own page. */
+function RockCard({ rock, run }: { rock: HouseState['media']['rock']; run: RunAction }) {
+  const up = rock.status === 'up' ? rock : null
+  const chip =
+    rock.status === 'checking' ? <Chip tone="neutral">Checking</Chip>
+    : !up ? <Chip tone="bad">Not answering</Chip>
+    : up.roon === 'running' ? <Chip tone="good">Roon Server running</Chip>
+    : up.roon === 'missing-codecs' ? <Chip tone="warn">Missing codecs</Chip>
+    : <Chip tone="bad">Roon Server stopped</Chip>
+  const busy = !up
+  return (
+    <Card wide color="var(--media)" title="Roon ROCK" chip={chip}>
+      <div className="rock">
+        {up ? (
+          <KV
+            rows={[
+              ['Roon Server', up.roonVersion],
+              ['Running for', up.roon === 'stopped' ? 'Stopped' : duration(up.roonUptime)],
+              ['Roon OS', up.os],
+              ['ROCK up for', duration(up.uptime)],
+              ...(up.ip ? [['Address', `${up.ip}${up.dhcp === undefined ? '' : up.dhcp ? ' · DHCP' : ' · static'}`] as [string, string]] : []),
+              ...(up.gateway ? [['Gateway · DNS', `${up.gateway} · ${up.dns ?? '—'}`] as [string, string]] : []),
+              ...(up.cd ? [['CD drive', up.cd.label] as [string, string]] : []),
+            ]}
+          />
+        ) : (
+          <p className="rock-note">
+            {rock.status === 'checking'
+              ? 'Checking the ROCK…'
+              : "The ROCK isn't answering. It may be restarting or powered off, or this dashboard isn't on the home network."}
+          </p>
+        )}
+        <div className="rock-side">
+          {up?.disk && (
+            <div className="rock-disk">
+              <div className="lbl">Data disk · {up.disk.used} of {up.disk.total} GB</div>
+              <Bar value={up.disk.used / up.disk.total} color="var(--media)" />
+            </div>
+          )}
+          {up?.music && (
+            <div className="rock-disk">
+              {up.music === 'not mounted' ? (
+                <div className="lbl">Music drive · not mounted</div>
+              ) : (
+                <>
+                  <div className="lbl">Music drive · {up.music.used} of {up.music.total} GB</div>
+                  <Bar value={up.music.used / up.music.total} color="var(--media)" />
+                </>
+              )}
+            </div>
+          )}
+          <div className="rock-actions">
+            <ConfirmButton disabled={busy} confirm="Tap again to restart" onConfirm={() => run({ rock: 'restartRoon' })}>
+              {up?.roon === 'stopped' ? 'Start Roon Server' : 'Restart Roon Server'}
+            </ConfirmButton>
+            {up?.roon !== 'stopped' && (
+              <ConfirmButton disabled={busy} confirm="Tap again to stop" onConfirm={() => run({ rock: 'stopRoon' })}>
+                Stop Roon Server
+              </ConfirmButton>
+            )}
+            {up?.cd?.canEject && (
+              <ConfirmButton confirm="Tap again to eject" onConfirm={() => run({ rock: 'eject' })}>
+                Eject CD
+              </ConfirmButton>
+            )}
+            <ConfirmButton disabled={busy} confirm="Tap again to reboot" onConfirm={() => run({ rock: 'reboot' })}>
+              Reboot ROCK
+            </ConfirmButton>
+            <ConfirmButton danger disabled={busy} confirm="Tap again: needs the power button to come back" onConfirm={() => run({ rock: 'powerOff' })}>
+              Power off
+            </ConfirmButton>
+          </div>
+          <a className="rock-more" href={roonRockUrl} target="_blank" rel="noreferrer">
+            Updates, network settings and reset are on the ROCK's own page
+          </a>
+        </div>
+      </div>
     </Card>
   )
 }
@@ -99,7 +184,7 @@ export const media: Category = {
           <Toggle key={s.id} label={s.name} on={s.on} onChange={(on) => update((h) => { h.media.screens[i].on = on })} />
         ))}
       </Card>
-      <EmbedCard title="Roon ROCK" url={roonRockUrl} frameTitle="Roon ROCK server page" />
+      <RockCard rock={house.media.rock} run={run} />
     </>
   ),
 }

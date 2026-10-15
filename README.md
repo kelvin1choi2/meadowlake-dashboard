@@ -49,6 +49,10 @@ While connected, controls act on the house: room lights, TVs and Apple TVs, wate
 vacation mode, Blink arming, and the thermostat once it's linked (`src/ha/actions.ts`). The
 garage door is deliberately not controllable from the dashboard.
 
+The Media sheet's Roon ROCK card reads the ROCK's own status API (`src/rock/`) straight from
+the home network and offers its restart, stop, reboot and power-off buttons, each needing a
+second tap. The public demo never calls it.
+
 ## Safety
 
 The public demo can't see or control the house:
