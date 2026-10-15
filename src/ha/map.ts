@@ -227,6 +227,26 @@ export function applyEntities(
   })
   if (screens.length) h.media.screens = screens
 
+  // The Plex server sensor is named after the server, so find it by its unit instead.
+  // Its attributes are one entry per stream: "user - device": "title".
+  total++
+  const plex = Object.values(states).find(
+    (e) => e.entity_id.startsWith('sensor.') && String(e.attributes.unit_of_measurement).toLowerCase() === 'watching',
+  )
+  if (plex) {
+    linked++
+    const meta = new Set(['unit_of_measurement', 'friendly_name', 'icon', 'device_class', 'state_class'])
+    h.media.plex = {
+      up: !offline.has(plex.state),
+      streams: offline.has(plex.state)
+        ? []
+        : Object.entries(plex.attributes)
+            .filter(([k, v]) => !meta.has(k) && typeof v === 'string')
+            .map(([k, v]) => ({ client: k.split(' - ').at(-1) ?? k, title: v as string })),
+      addedThisWeek: undefined,
+    }
+  }
+
   const wh = get(entities.appliances.waterHeater)
   if (wh) {
     h.appliances.waterHeater.mode = label(wh.state)

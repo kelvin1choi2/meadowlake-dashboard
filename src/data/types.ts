@@ -96,8 +96,9 @@ export interface HouseState {
     roon: RoonZone[]
     plex: {
       up: boolean
-      streams: { client: string; title: string; transcoding: boolean }[]
-      addedThisWeek: number
+      /** Transcoding and new titles come from sample data only; Home Assistant doesn't report them. */
+      streams: { client: string; title: string; transcoding?: boolean }[]
+      addedThisWeek?: number
     }
     screens: Screen[]
   }

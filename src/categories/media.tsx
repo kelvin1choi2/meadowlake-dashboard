@@ -75,8 +75,13 @@ export const media: Category = {
       <Card color="var(--media)" title="Plex" chip={<Chip tone={house.media.plex.up ? 'good' : 'bad'}>{house.media.plex.up ? 'Server up' : 'Server down'}</Chip>}>
         <KV
           rows={[
-            ...house.media.plex.streams.flatMap((s): [string, string][] => [['Now streaming', s.client], ['Title', s.title], ['Transcoding', s.transcoding ? 'Yes' : 'No']]),
-            ['Added this week', `${house.media.plex.addedThisWeek} titles`],
+            ...house.media.plex.streams.flatMap((s): [string, string][] => [
+              ['Now streaming', s.client],
+              ['Title', s.title],
+              ...(s.transcoding === undefined ? [] : [['Transcoding', s.transcoding ? 'Yes' : 'No'] as [string, string]]),
+            ]),
+            ...(house.media.plex.streams.length ? [] : [['Now streaming', 'Nothing'] as [string, string]]),
+            ...(house.media.plex.addedThisWeek === undefined ? [] : [['Added this week', `${house.media.plex.addedThisWeek} titles`] as [string, string]]),
           ]}
         />
       </Card>
