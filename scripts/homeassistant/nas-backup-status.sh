@@ -13,6 +13,7 @@
 #   DSM_PASS=<password>
 #
 # Always exits 0 and prints JSON; on trouble that's {"error": "..."}.
+# DSM_URL may be https with DSM's own self-signed certificate (-k), since it stays on the home network.
 set -u
 conf="${1:-/config/nas/dsm.conf}"
 say_error() { jq -cn --arg m "$1" '{error: $m}'; exit 0; }
@@ -22,11 +23,26 @@ say_error() { jq -cn --arg m "$1" '{error: $m}'; exit 0; }
 api="${DSM_URL%/}/webapi/entry.cgi"
 session=MeadowlakeHA
 
-sid=$(curl -sS -m 10 "$api" -d api=SYNO.API.Auth -d version=6 -d method=login -d session=$session -d format=sid \
-  --data-urlencode "account=$DSM_USER" --data-urlencode "passwd=$DSM_PASS" 2>/dev/null | jq -r '.data.sid // empty' 2>/dev/null)
-[ -n "$sid" ] || say_error "Couldn't sign in to DSM at $DSM_URL"
+# A failed sign-in takes DSM ~20s to answer; everything stays under shell_command's 60s limit.
+login=$(curl -sSk -m 30 "$api" -d api=SYNO.API.Auth -d version=6 -d method=login -d session=$session -d format=sid \
+  --data-urlencode "account=$DSM_USER" --data-urlencode "passwd=$DSM_PASS" 2>&1)
+sid=$(jq -r '.data.sid // empty' 2>/dev/null <<<"$login")
+if [ -z "$sid" ]; then
+  code=$(jq -r '.error.code // empty' 2>/dev/null <<<"$login")
+  case "$code" in
+    400) why="wrong user name or password" ;;
+    401) why="the account is disabled" ;;
+    402) why="the account isn't an administrator" ;;
+    403|404|406) why="two-factor sign-in is on for the account" ;;
+    407) why="DSM has blocked Home Assistant's address (Control Panel → Security → Protection)" ;;
+    408|409|410) why="the account's password has expired or must be changed" ;;
+    "") why="no answer from DSM: ${login:0:120}" ;;
+    *) why="DSM error $code" ;;
+  esac
+  say_error "Couldn't sign in to DSM at $DSM_URL: $why"
+fi
 
-call() { curl -sS -m 10 "$api" --data-urlencode "_sid=$sid" "$@" 2>/dev/null; }
+call() { curl -sSk -m 8 "$api" --data-urlencode "_sid=$sid" "$@" 2>/dev/null; }
 json_or_empty() { jq -ce . 2>/dev/null <<<"$1" || echo '{}'; }
 
 abb=$(json_or_empty "$(call -d api=SYNO.ActiveBackup.Task -d version=1 -d method=list \

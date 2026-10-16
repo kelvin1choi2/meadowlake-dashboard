@@ -17,9 +17,12 @@ NAS notification ──► HA webhook automation (steps 2–3) ──┴─► i
 
 Until the helpers exist, the dashboard shows sample tasks.
 
+Each step says where it happens: **Home Assistant** steps are in its web page
+(the address you open it with, menu down the left side); **Synology** steps are in DSM's web page.
+
 ## 1. Home Assistant: three text helpers
 
-Settings → Devices & services → Helpers → Create helper → Text. Create three, each with
+In Home Assistant, Settings → Devices & services → Helpers → Create helper → Text. Create three, each with
 **Maximum length 255**:
 
 | Name             | Entity ID                     |
@@ -30,7 +33,7 @@ Settings → Devices & services → Helpers → Create helper → Text. Create t
 
 ## 2. Home Assistant: the webhook automation
 
-Settings → Automations & scenes → Create automation → Create new → ⋮ → Edit in YAML, paste
+In Home Assistant, Settings → Automations & scenes → Create automation → Create new → ⋮ → Edit in YAML, paste
 this, and replace `PICK-A-LONG-RANDOM-ID` with a long random string of your own (it acts as
 a password for the webhook, so don't reuse anything and don't commit it):
 
@@ -73,7 +76,7 @@ actions:
 
 ## 3. Synology: send notifications to the webhook
 
-DSM → Control Panel → Notification → **Push Service** → Application Webhooks →
+In DSM, Control Panel → Notification → **Push Service** → Application Webhooks →
 **Manage Webhooks** → Add (on newer DSM it's a **Webhooks** tab), provider **Custom**:
 
 - **Provider tab:** URL = the address you open Home Assistant with (as in the browser's
@@ -99,31 +102,29 @@ If your DSM has no Webhooks tab, the same URL and body work as a custom **SMS pr
 
 ## 4. Synology: an account for Home Assistant to ask with
 
-Control Panel → User & Group → Create: a user such as `ha-backups` with a long random
+In DSM, Control Panel → User & Group → Create: a user such as `ha-backups` with a long random
 password, in the **administrators** group (Active Backup and Cloud Sync only answer to
 admins). Two-factor sign-in has to be off for this account, so if Security → Account
 enforces it for administrators, the check can't sign in.
 
 ## 5. Home Assistant: the script that asks the NAS
 
-Install the **Terminal & SSH** add-on (Settings → Add-ons → Add-on store), open its web UI,
-and run:
+In Home Assistant (not DSM): Settings → **Add-ons** (called **Apps** on newer versions) →
+**Add-on store** → search **Terminal & SSH** → Install. Then Start, turn on **Show in
+sidebar** and click **Open web UI**. In the terminal that opens, run:
 
 ```sh
 cd /homeassistant 2>/dev/null || cd /config
 mkdir -p nas
 curl -fsSL https://raw.githubusercontent.com/kelvin1choi2/meadowlake-dashboard/main/scripts/homeassistant/nas-backup-status.sh -o nas/nas-backup-status.sh
-cat > nas/dsm.conf    # paste the three lines below, press Enter, then Ctrl-D
-chmod 600 nas/dsm.conf
 ```
 
-The three lines, with your NAS address (the one you open DSM with, on port 5000) and the
-account from step 4. They stay on Home Assistant; never put them in the repo:
+Then save your NAS address and the account from step 4 (DSM's address, on port 5000) by
+pasting this line; it asks three questions and doesn't show the password. The file stays on
+Home Assistant; never put it in the repo:
 
 ```sh
-DSM_URL=http://NAS-ADDRESS:5000
-DSM_USER=ha-backups
-DSM_PASS='the password'
+read -p "NAS address (just the IP): " h; read -p "DSM user: " u; read -sp "DSM password: " p; echo; printf 'DSM_URL=http://%s:5000\nDSM_USER=%s\nDSM_PASS=%q\n' "$h" "$u" "$p" > nas/dsm.conf; chmod 600 nas/dsm.conf
 ```
 
 Try it: `bash nas/nas-backup-status.sh nas/dsm.conf` should print a line like
@@ -131,15 +132,17 @@ Try it: `bash nas/nas-backup-status.sh nas/dsm.conf` should print a line like
 The output has no passwords in it, so it's safe to paste into the project thread if the
 task names aren't there.
 
-Then add this to `configuration.yaml` (`nano configuration.yaml` in the same terminal) and
-restart Home Assistant (Developer tools → YAML → Check configuration, then Restart):
+Then tell Home Assistant about it by pasting this in the same terminal (it adds a
+`shell_command` entry to `configuration.yaml`, or says so if you already have one to add it to
+by hand):
 
-```yaml
-shell_command:
-  nas_backup_status: bash /config/nas/nas-backup-status.sh
+```sh
+grep -q '^shell_command:' configuration.yaml && echo "Add nas_backup_status under your existing shell_command:" || printf '\nshell_command:\n  nas_backup_status: bash /config/nas/nas-backup-status.sh\n' >> configuration.yaml
 ```
 
-Then Settings → Automations & scenes → Scripts → Add script → ⋮ → Edit in YAML, paste this
+and restart Home Assistant (Developer tools → YAML → Check configuration, then Restart).
+
+Then, back in Home Assistant, Settings → Automations & scenes → Scripts → Add script → ⋮ → Edit in YAML, paste this
 and save. Keep the alias: the dashboard looks for `script.nas_refresh_backups`.
 
 ```yaml
