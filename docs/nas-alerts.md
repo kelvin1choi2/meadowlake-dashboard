@@ -117,11 +117,10 @@ sidebar** and click **Open web UI**. In the terminal that opens, run:
 cd /homeassistant 2>/dev/null || cd /config
 mkdir -p nas
 curl -fsSL https://raw.githubusercontent.com/kelvin1choi2/meadowlake-dashboard/main/scripts/homeassistant/nas-backup-status.sh -o nas/nas-backup-status.sh
-cat > nas/dsm.conf    # paste the three lines below, press Enter, then Ctrl-D
-chmod 600 nas/dsm.conf
 ```
 
-The three lines, with your NAS address (the one you open DSM with, on port 5000) and the
+Then run `nano nas/dsm.conf`, type or paste the three lines below, press Ctrl-O, Enter to
+save and Ctrl-X to leave, and run `chmod 600 nas/dsm.conf`. The three lines, with your NAS address (the one you open DSM with, on port 5000) and the
 account from step 4. They stay on Home Assistant; never put them in the repo:
 
 ```sh
