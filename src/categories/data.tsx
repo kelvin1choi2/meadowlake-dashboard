@@ -1,4 +1,3 @@
-import { cardApp } from '../apps/AppButton'
 import { Bar, Card, Chip, Dot, KV, Ring } from '../widgets'
 import type { NasTask, NasVolume } from '../data/types'
 import type { Category } from './types'
@@ -78,7 +77,7 @@ export const data: Category = {
             </table>
           </div>
         </Card>
-        <Card color="var(--data)" title={n.model} link={cardApp('dsm')} chip={<Chip tone="good">{n.raid}</Chip>}>
+        <Card color="var(--data)" title={n.model} chip={<Chip tone="good">{n.raid}</Chip>}>
           <Bar value={sumTB(n.volumes, 'usedTB') / (sumTB(n.volumes, 'totalTB') || 1)} />
           <KV rows={[...n.volumes.map((v): [string, string] => [v.name, `${v.usedTB} / ${v.totalTB} TB${v.status ? ` · ${v.status}` : ''}`]), ['CPU / RAM', `${n.cpuPct}% / ${n.ramPct}%`], ['Uptime', `${n.uptimeDays} days`], ['DSM', n.dsm]]} />
         </Card>

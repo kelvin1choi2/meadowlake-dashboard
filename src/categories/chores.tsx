@@ -1,4 +1,3 @@
-import { cardApp } from '../apps/AppButton'
 import { Card, Chip, Dot, KV, Toggle } from '../widgets'
 import type { Category } from './types'
 
@@ -26,7 +25,7 @@ export const chores: Category = {
     const v = house.chores.robovac
     return (
       <>
-        <Card color="var(--chores)" title="Robovac" link={cardApp('smartlife')} chip={<Chip tone="neutral">{v.state}</Chip>}>
+        <Card color="var(--chores)" title="Robovac" chip={<Chip tone="neutral">{v.state}</Chip>}>
           <KV rows={[['Battery', `${v.battery}%`], ['Last clean', v.lastClean], ...(v.next ? [['Next', v.next] as [string, string]] : [])]} />
           <Toggle label="Run when everyone leaves" on={v.runWhenAway} onChange={(on) => update((h) => { h.chores.robovac.runWhenAway = on })} />
         </Card>

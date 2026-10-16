@@ -1,4 +1,3 @@
-import { cardApp } from '../apps/AppButton'
 import { Bar, Card, Chip, Dot, Idea, KV, Toggle } from '../widgets'
 import type { Category } from './types'
 
@@ -31,16 +30,16 @@ export const appliances: Category = {
     const a = house.appliances
     return (
       <>
-        <Card color="var(--appliances)" title="Samsung washer" link={cardApp('smartthings')} chip={<Chip tone="neutral">{a.washer.state}</Chip>}>
+        <Card color="var(--appliances)" title="Samsung washer" chip={<Chip tone="neutral">{a.washer.state}</Chip>}>
           <Bar value={a.washer.progress} />
           <KV rows={[['Cycle', a.washer.cycle], ['Done at', a.washer.doneAt]]} />
           <Idea>Announce on Alexa when done, then remind again after 30 minutes.</Idea>
         </Card>
-        <Card color="var(--appliances)" title="LG ThinQ range" link={cardApp('thinq')} chip={<Chip tone="neutral">{a.range.oven}</Chip>}>
+        <Card color="var(--appliances)" title="LG ThinQ range" chip={<Chip tone="neutral">{a.range.oven}</Chip>}>
           <KV rows={[['Oven', a.range.oven], ['Cooktop', a.range.cooktop], ['Last used', a.range.lastUsed]]} />
           <Idea>Preheat timer shows here, and an alert fires if the oven is on in Away mode.</Idea>
         </Card>
-        <Card color="var(--appliances)" title="Rheem water heater" link={cardApp('econet')} chip={<Chip tone="good">Ready</Chip>}>
+        <Card color="var(--appliances)" title="Rheem water heater" chip={<Chip tone="good">Ready</Chip>}>
           <KV rows={[['Set point', `${a.waterHeater.setpointF}°F`], ['Mode', a.waterHeater.mode], ['Hot water available', `~${a.waterHeater.availablePct}%`]]} />
           <Toggle label="Vacation mode" on={a.waterHeater.vacation} onChange={(on) => update((h) => { h.appliances.waterHeater.vacation = on })} />
         </Card>
