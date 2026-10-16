@@ -23,7 +23,7 @@ say_error() { jq -cn --arg m "$1" '{error: $m}'; exit 0; }
 api="${DSM_URL%/}/webapi/entry.cgi"
 session=MeadowlakeHA
 
-login=$(curl -sSk -m 10 "$api" -d api=SYNO.API.Auth -d version=6 -d method=login -d session=$session -d format=sid \
+login=$(curl -sSk -m 30 "$api" -d api=SYNO.API.Auth -d version=6 -d method=login -d session=$session -d format=sid \
   --data-urlencode "account=$DSM_USER" --data-urlencode "passwd=$DSM_PASS" 2>&1)
 sid=$(jq -r '.data.sid // empty' 2>/dev/null <<<"$login")
 if [ -z "$sid" ]; then
@@ -41,12 +41,13 @@ if [ -z "$sid" ]; then
   say_error "Couldn't sign in to DSM at $DSM_URL: $why"
 fi
 
-call() { curl -sSk -m 10 "$api" --data-urlencode "_sid=$sid" "$@" 2>/dev/null; }
+call() { curl -sSk -m 8 "$api" --data-urlencode "_sid=$sid" "$@" 2>/dev/null; }
 json_or_empty() { jq -ce . 2>/dev/null <<<"$1" || echo '{}'; }
 
 abb=$(json_or_empty "$(call -d api=SYNO.ActiveBackup.Task -d version=1 -d method=list \
   -d load_status=true -d load_result=true -d load_devices=false -d load_versions=false --data-urlencode 'filter={}')")
 cloud=$(json_or_empty "$(call -d api=SYNO.CloudSync -d version=1 -d method=list_conn -d is_tray=false -d group_by=group_by_user)")
+# A failed sign-in takes DSM ~20s to answer; the rest stays under shell_command's 60s limit.
 call -d api=SYNO.API.Auth -d version=6 -d method=logout -d session=$session >/dev/null
 
 # $abb: SYNO.ActiveBackup.Task list. $cloud: SYNO.CloudSync list_conn. $now: unix time.
