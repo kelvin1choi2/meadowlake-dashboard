@@ -168,6 +168,7 @@ th { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: 
 .result.failed { color: var(--bad); }
 .result.waiting { color: var(--muted); }
 td .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.checked { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
 
 /* Failure alerts, above the rail */
 .alerts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
