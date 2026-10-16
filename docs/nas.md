@@ -29,7 +29,23 @@ unzip it on your computer, and upload the **contents** (`index.html`, `assets/`,
 Plain http is deliberate. The Roon display card only loads on an http page, and the site
 never leaves the home network. Don't forward port 8080 on the router.
 
-## 4. Optional: update automatically
+## 4. Pass the Roon display through the NAS
+
+The dashboard loads the Roon display from its own host on port 9330, so the browser keeps the
+display's settings (zone, "start automatically") between sessions. Loaded straight from the
+ROCK, Safari and Brave treat that storage as third-party and drop it, and Roon sees a new
+display every time.
+
+1. **Control Panel → Login Portal → Advanced → Reverse Proxy → Create.**
+2. Source: HTTP, hostname `*`, port `9330`.
+3. Destination: HTTP, the ROCK's address, port `9330`.
+4. **Custom Header → Create → WebSocket**, then Save.
+5. Open `http://<NAS address>:9330/display/`: it should show the Roon display. In Roon, pick
+   the zone for this display once more and it stays.
+
+Don't forward port 9330 on the router either.
+
+## 5. Optional: update automatically
 
 Every merge to `main` publishes a new build. To have the NAS pick it up by itself:
 
