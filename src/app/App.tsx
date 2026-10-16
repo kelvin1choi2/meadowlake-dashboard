@@ -10,6 +10,7 @@ import { Rail } from './Rail'
 import { PlayerBar } from '../widgets/PlayerBar'
 import { Alerts } from './Alerts'
 import { Sheet } from './Sheet'
+import { themes, type Theme } from './theme'
 import { views, type View } from './view'
 
 export interface AppProps {
@@ -20,9 +21,11 @@ export interface AppProps {
   notify: (message: string) => void
   view: View
   onView: (view: View) => void
+  theme: Theme
+  onTheme: (theme: Theme) => void
 }
 
-export function App({ house, update, run, link, notify, view, onView }: AppProps) {
+export function App({ house, update, run, link, notify, view, onView, theme, onTheme }: AppProps) {
   const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
   const props = { house, update, run, notify }
   const openCategory = categories.find((c) => c.id === open)
@@ -35,6 +38,11 @@ export function App({ house, update, run, link, notify, view, onView }: AppProps
         <div className="views" role="group" aria-label="Screen layout">
           {views.map((v) => (
             <button key={v.id} className="view-btn" aria-pressed={view === v.id} onClick={() => onView(v.id)}>{v.label}</button>
+          ))}
+        </div>
+        <div className="views" role="group" aria-label="Colors">
+          {themes.map((t) => (
+            <button key={t.id} className="view-btn" aria-pressed={theme === t.id} onClick={() => onTheme(t.id)}>{t.label}</button>
           ))}
         </div>
         {liveAllowed && <button className="gear" onClick={() => setOpen('settings')}>Settings</button>}
