@@ -3,6 +3,7 @@ import { useHouse } from '../data/useHouse'
 import { Saver } from '../saver/Saver'
 import { useStageFit } from '../widgets/useStageFit'
 import { App } from './App'
+import { useTheme } from './theme'
 import { Toast } from './Toast'
 import { loadView, saveView, type View } from './view'
 
@@ -12,6 +13,7 @@ export function Root() {
   const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), [])
   const live = useHouse(notify)
   const [view, setView] = useState(loadView)
+  const [theme, setTheme] = useTheme()
   // Where the screensaver goes back to when it's dismissed.
   const [back, setBack] = useState<View>(() => (view === 'saver' ? 'standard' : view))
 
@@ -25,7 +27,7 @@ export function Root() {
 
   const page = (
     <>
-      <App {...live} notify={notify} view={view} onView={choose} />
+      <App {...live} notify={notify} view={view} onView={choose} theme={theme} onTheme={setTheme} />
       {toast && <Toast key={toast.id} text={toast.text} onDone={() => setToast(null)} />}
     </>
   )

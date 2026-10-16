@@ -1,4 +1,5 @@
-/* Meadowlake design tokens: the "Pastel" style Kelvin picked from the mockup.
+/* Meadowlake design tokens: the "Pastel" style Kelvin picked from the mockup, plus its dark
+   counterpart "Slate" below.
    Every color in the app comes from here. Category hues are named after their tile. */
 :root {
   color-scheme: light;
@@ -11,6 +12,9 @@
   --fg: #2a2f45;
   --muted: #686e8c;
   --faint: #a0a6bd;
+  /* What hues are mixed into for tiles and chips, and the icon stroke on a hue circle */
+  --paper: #ffffff;
+  --on-hue: #ffffff;
 
   /* Category hues */
   --inside: #ee8798;
@@ -51,4 +55,47 @@
   /* Shape */
   --radius-tile: 30px;
   --radius-card: 18px;
+}
+
+/* Slate: the dark palette, chosen by src/app/theme.ts. Same hues, dusted down so nothing glows,
+   and tiles mix them into a dark paper instead of white. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #161a23;
+  --surface: #1f2430;
+  --surface-2: #282e3c;
+  --line: #313849;
+  --fg: #e3e6ef;
+  --muted: #9aa1b8;
+  --faint: #646b82;
+  --paper: #1b1f29;
+  --on-hue: #1b1f29;
+
+  --inside: #d98e9b;
+  --outside: #7fb89d;
+  --media: #b39ad3;
+  --data: #7fb4c4;
+  --appliances: #d6aa72;
+  --safety: #8ea6d8;
+  --chores: #a69ad0;
+  --scenes: #cdb872;
+
+  --tone-sun: #d9bf6a;
+  --tone-amber: #d29a5e;
+  --tone-peach: #d8a78c;
+  --tone-coral: #d48c80;
+  --tone-rose: #d391ad;
+  --tone-violet: #a491d4;
+  --tone-indigo: #8a95d6;
+  --tone-blue: #82aad4;
+  --tone-teal: #78b4b4;
+  --tone-mint: #84bf9c;
+  --tone-dusk: #8f97b5;
+
+  --good: #7fbf9b;
+  --warn: #d6a35e;
+  --bad: #e08a96;
+
+  --tint: 24%;
 }

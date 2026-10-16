@@ -52,7 +52,7 @@ button { font: inherit; color: inherit; }
   --c: var(--muted);
   position: relative;
   border: 1px solid transparent;
-  background: color-mix(in oklab, var(--c) var(--tint), #fff);
+  background: color-mix(in oklab, var(--c) var(--tint), var(--paper));
   border-radius: var(--radius-tile);
   padding: 20px;
   display: flex;
@@ -60,16 +60,16 @@ button { font: inherit; color: inherit; }
   gap: 14px;
   min-height: 210px;
   min-width: 0;
-  --surface-2: rgba(255, 255, 255, 0.6);
+  --surface-2: color-mix(in srgb, var(--paper) 60%, transparent);
 }
 .tile.w2 { grid-column: span 2; }
 .tile.tappable { cursor: pointer; transition: transform 0.18s ease, border-color 0.18s; }
-.tile.tappable:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--c) 60%, #fff); }
+.tile.tappable:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--c) 60%, var(--paper)); }
 .th { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .th h2 { font-size: 22px; font-weight: 700; }
 .th .chip { margin-left: auto; }
 .ico { width: 34px; height: 34px; border-radius: 50%; background: var(--c); display: grid; place-items: center; flex: none; }
-.ico svg { width: 19px; height: 19px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ico svg { width: 19px; height: 19px; stroke: var(--on-hue); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
 .chip.good { color: var(--good); }
 .chip.warn { color: var(--warn); }
@@ -82,7 +82,7 @@ button { font: inherit; color: inherit; }
 .stat .v, .v { font-family: var(--display); font-weight: 700; font-size: 28px; line-height: 1.05; }
 .stat .v small { font-size: 14px; color: var(--muted); font-weight: 500; }
 .rooms { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-.room { border-radius: 14px; padding: 8px 10px; background: color-mix(in oklab, var(--tc) 30%, #fff); min-width: 0; }
+.room { border-radius: 14px; padding: 8px 10px; background: color-mix(in oklab, var(--tc) 30%, var(--paper)); min-width: 0; }
 .room .n { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .room .v { font-size: 20px; }
 .room .v small { font-size: 12px; color: var(--muted); font-weight: 500; }
@@ -136,7 +136,7 @@ button { font: inherit; color: inherit; }
 .sb .playerbar { grid-column: 1 / -1; margin-top: 0; border-radius: var(--radius-card); }
 
 /* Sheet */
-.scrim { position: fixed; inset: 0; background: rgba(243, 245, 251, 0.7); backdrop-filter: blur(6px); z-index: 10; display: flex; justify-content: center; align-items: flex-end; }
+.scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(6px); z-index: 10; display: flex; justify-content: center; align-items: flex-end; }
 .sheet { --c: var(--muted); width: min(1100px, 100%); max-height: 92%; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-bottom: 0; border-radius: 28px 28px 0 0; animation: up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes up { from { transform: translateY(40px); opacity: 0.4; } to { transform: none; opacity: 1; } }
 .sh {
@@ -180,12 +180,12 @@ td .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .cam span { background: var(--surface); padding: 2px 8px; border-radius: 6px; }
 .nights { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px; }
 .nights span { aspect-ratio: 1; border-radius: 4px; }
-.nights .ok { background: color-mix(in oklab, var(--good) 65%, #fff); }
+.nights .ok { background: color-mix(in oklab, var(--good) 65%, var(--paper)); }
 .nights .miss { background: var(--bad); }
 .tog { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; }
 .sw { width: 44px; height: 26px; border-radius: 99px; border: 0; background: var(--surface-2); position: relative; cursor: pointer; flex: none; box-shadow: inset 0 0 0 1px var(--line); }
 .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--faint); transition: transform 0.15s, background 0.15s; }
-.sw[aria-checked='true'] { background: color-mix(in oklab, var(--c) 40%, #fff); }
+.sw[aria-checked='true'] { background: color-mix(in oklab, var(--c) 40%, var(--paper)); }
 .sw[aria-checked='true']::after { transform: translateX(18px); background: var(--c); }
 .therm { display: flex; align-items: center; gap: 14px; }
 .therm .v { font-weight: 800; font-size: 46px; line-height: 1; }
