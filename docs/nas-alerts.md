@@ -119,14 +119,12 @@ mkdir -p nas
 curl -fsSL https://raw.githubusercontent.com/kelvin1choi2/meadowlake-dashboard/main/scripts/homeassistant/nas-backup-status.sh -o nas/nas-backup-status.sh
 ```
 
-Then run `nano nas/dsm.conf`, type or paste the three lines below, press Ctrl-O, Enter to
-save and Ctrl-X to leave, and run `chmod 600 nas/dsm.conf`. The three lines, with your NAS address (the one you open DSM with, on port 5000) and the
-account from step 4. They stay on Home Assistant; never put them in the repo:
+Then save your NAS address and the account from step 4 (DSM's address, on port 5000) by
+pasting this line; it asks three questions and doesn't show the password. The file stays on
+Home Assistant; never put it in the repo:
 
 ```sh
-DSM_URL=http://NAS-ADDRESS:5000
-DSM_USER=ha-backups
-DSM_PASS='the password'
+read -p "NAS address (just the IP): " h; read -p "DSM user: " u; read -sp "DSM password: " p; echo; printf 'DSM_URL=http://%s:5000\nDSM_USER=%s\nDSM_PASS=%q\n' "$h" "$u" "$p" > nas/dsm.conf; chmod 600 nas/dsm.conf
 ```
 
 Try it: `bash nas/nas-backup-status.sh nas/dsm.conf` should print a line like
