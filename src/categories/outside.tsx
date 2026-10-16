@@ -1,9 +1,11 @@
+import { cardApp } from '../apps/AppButton'
 import { Card, Chip, Dot, Idea, KV, Sparkline, Toggle } from '../widgets'
 import type { Category } from './types'
 
 export const outside: Category = {
   id: 'outside',
   name: 'Outside',
+  apps: ['rachio', 'blink'],
   wide: true,
   status: (h) => (h.camerasArmed ? { tone: 'good', label: 'Cameras armed' } : { tone: 'warn', label: 'Cameras off' }),
   Tile: ({ house }) => {
@@ -38,7 +40,7 @@ export const outside: Category = {
         <Card wide title="Next 12 hours" chip={<Chip tone="neutral">{w.rainNote}</Chip>}>
           <Sparkline points={w.hourly.map((p) => ({ label: p.label, value: p.tempF }))} color="var(--outside)" label="Hourly temperature forecast" />
         </Card>
-        <Card wide color="var(--safety)" title="Blink cameras" chip={<Chip tone={house.camerasArmed ? 'good' : 'warn'}>{house.camerasArmed ? 'Armed' : 'Off'}</Chip>}>
+        <Card wide color="var(--safety)" title="Blink cameras" link={cardApp('blink')} chip={<Chip tone={house.camerasArmed ? 'good' : 'warn'}>{house.camerasArmed ? 'Armed' : 'Off'}</Chip>}>
           <div className="cams">
             {house.cameras.map((c) => (
               <div key={c.name} className="cam"><span>{c.name} · {c.lastMotion ? `Motion ${c.lastMotion}` : 'No motion today'}</span></div>
@@ -46,7 +48,7 @@ export const outside: Category = {
           </div>
           <Toggle label="Arm system" on={house.camerasArmed} onChange={(on) => update((h) => { h.camerasArmed = on })} />
         </Card>
-        <Card color="var(--outside)" title="Rachio" chip={<Chip tone="neutral">Rain skip {ir.rainSkip ? 'on' : 'off'}</Chip>}>
+        <Card color="var(--outside)" title="Rachio" link={cardApp('rachio')} chip={<Chip tone="neutral">Rain skip {ir.rainSkip ? 'on' : 'off'}</Chip>}>
           <KV rows={[...ir.zones.map((z): [string, string] => [z.name, `${z.next} · ${z.minutes}m`]), ['Rain, last 48h', `${ir.rain48hIn.toFixed(2)} in`]]} />
           <Idea>Should I water? {shouldWater ? 'Yes. It has been dry.' : 'No. Recent rain or rain skip is on.'}</Idea>
         </Card>

@@ -1,3 +1,4 @@
+import { cardApp } from '../apps/AppButton'
 import { roonDisplayUrl, roonRockUrl } from '../config/home'
 import type { HouseState } from '../data/types'
 import type { RunAction } from '../data/useHouse'
@@ -120,6 +121,7 @@ function RockCard({ rock, run }: RockProps) {
 export const media: Category = {
   id: 'media',
   name: 'Media',
+  apps: ['roon', 'plex'],
   wide: true,
   status: (h) => {
     const n = h.media.roon.filter((z) => z.state === 'playing').length
@@ -157,7 +159,7 @@ export const media: Category = {
     <>
       <EmbedCard title="Roon display" url={roonDisplayUrl(window.location.href)} frameTitle="Roon now playing display" />
       <PlayerBar players={house.media.players} run={run} />
-      <Card wide color="var(--media)" title="Roon zones">
+      <Card wide color="var(--media)" title="Roon zones" link={cardApp('roon')}>
         <div className="tw">
           <table>
             <thead><tr><th>Zone</th><th>State</th><th>Playing</th><th>Volume</th></tr></thead>
@@ -174,7 +176,7 @@ export const media: Category = {
           </table>
         </div>
       </Card>
-      <Card color="var(--media)" title="Plex" chip={<Chip tone={house.media.plex.up ? 'good' : 'bad'}>{house.media.plex.up ? 'Server up' : 'Server down'}</Chip>}>
+      <Card color="var(--media)" title="Plex" link={cardApp('plex')} chip={<Chip tone={house.media.plex.up ? 'good' : 'bad'}>{house.media.plex.up ? 'Server up' : 'Server down'}</Chip>}>
         <KV
           rows={[
             ...house.media.plex.streams.flatMap((s): [string, string][] => [

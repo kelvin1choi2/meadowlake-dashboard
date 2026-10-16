@@ -130,12 +130,15 @@ export function Card({
   chip,
   wide,
   color,
+  link,
   children,
 }: {
   title: ReactNode
   chip?: ReactNode
   wide?: boolean
   color?: string
+  /** A button out to the app or web page for what this card shows. */
+  link?: ReactNode
   children: ReactNode
 }) {
   return (
@@ -143,6 +146,7 @@ export function Card({
       <h3>
         {title}
         {chip}
+        {link}
       </h3>
       {children}
     </section>
@@ -164,4 +168,22 @@ export function KV({ rows }: { rows: [string, ReactNode][] }) {
 
 export function Idea({ children }: { children: ReactNode }) {
   return <p className="idea">{children}</p>
+}
+
+/** Round two-letter badge for an app. `color` is a CSS value, usually a category token. */
+export function AppMark({ mark, color }: { mark: string; color: string }) {
+  return <span className="appmark" style={{ '--ac': color } as CSSProperties} aria-hidden="true">{mark}</span>
+}
+
+/** A link out to an app or its web page. `compact` shows just the badge. */
+export function AppLink({ href, name, mark, color, compact, big }: { href: string; name: string; mark: string; color: string; compact?: boolean; big?: boolean }) {
+  return (
+    <a className={`applink${compact ? ' compact' : ''}${big ? ' big' : ''}`} href={href} target="_blank" rel="noreferrer"
+      aria-label={`Open ${name}`} title={`Open ${name}`}
+      onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <AppMark mark={mark} color={color} />
+      {!compact && <span className="an">{name}</span>}
+      {!compact && !big && <span className="arrow" aria-hidden="true">↗</span>}
+    </a>
+  )
 }

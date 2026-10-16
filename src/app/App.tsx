@@ -12,6 +12,8 @@ import { Alerts } from './Alerts'
 import { Sheet } from './Sheet'
 import { themes, type Theme } from './theme'
 import { views, type View } from './view'
+import { AppButton } from '../apps/AppButton'
+import { apps, linkStyle, type AppId } from '../apps/apps'
 
 export interface AppProps {
   house: HouseState
@@ -63,7 +65,12 @@ export function App({ house, update, run, link, notify, view, onView, theme, onT
                 {status && <Chip tone={status.tone}>{status.label}</Chip>}
               </div>
               <c.Tile {...props} />
-              {c.Sheet && <span className="more">Tap for everything</span>}
+              {linkStyle === 'd' && c.apps ? (
+                <div className="tile-foot">
+                  {c.Sheet && <span className="more">Tap for everything</span>}
+                  <span className="tile-apps">{c.apps.map((id) => <AppButton key={id} id={id} />)}</span>
+                </div>
+              ) : c.Sheet && <span className="more">Tap for everything</span>}
             </>
           )
           const className = `tile${c.full ? ' w4' : c.wide ? ' w2' : ''}`
@@ -78,12 +85,21 @@ export function App({ house, update, run, link, notify, view, onView, theme, onT
             <section key={c.id} className={className} style={style} aria-label={c.name}>{body}</section>
           )
         })}
+        {linkStyle === 'b' && (
+          <section className="tile w4 apps-tile" aria-label="Apps">
+            <div className="th"><h2>Apps</h2><span className="lbl">Opens the app on iPad, the web page elsewhere</span></div>
+            <div className="app-grid">
+              {(Object.keys(apps) as AppId[]).map((id) => <AppButton key={id} id={id} big />)}
+            </div>
+          </section>
+        )}
       </main>
 
       <PlayerBar players={house.media.players} run={run} />
 
       {openCategory?.Sheet && (
-        <Sheet id={openCategory.id} title={openCategory.name} onClose={() => setOpen(null)}>
+        <Sheet id={openCategory.id} title={openCategory.name} onClose={() => setOpen(null)}
+          apps={linkStyle === 'c' && openCategory.apps ? openCategory.apps.map((id) => <AppButton key={id} id={id} />) : undefined}>
           <openCategory.Sheet {...props} />
         </Sheet>
       )}

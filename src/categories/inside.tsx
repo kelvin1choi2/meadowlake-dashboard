@@ -1,3 +1,4 @@
+import { cardApp } from '../apps/AppButton'
 import type { CSSProperties } from 'react'
 import { Card, Chip, KV, Toggle } from '../widgets'
 import { tempColor } from '../widgets/geometry'
@@ -7,6 +8,7 @@ export const inside: Category = {
   id: 'inside',
   name: 'Inside',
   wide: true,
+  apps: ['ecobee', 'hue'],
   status: () => ({ tone: 'good', label: 'Comfortable' }),
   Tile: ({ house }) => {
     const lightsOn = house.rooms.reduce((n, r) => n + r.lightsOn, 0)
@@ -42,7 +44,7 @@ export const inside: Category = {
   },
   Sheet: ({ house, update }) => (
     <>
-      <Card title="Ecobee thermostat" chip={<Chip tone="good">{house.climate.action}</Chip>}>
+      <Card title="Ecobee thermostat" link={cardApp('ecobee')} chip={<Chip tone="good">{house.climate.action}</Chip>}>
         <div className="therm">
           <button className="step" aria-label="Lower set point" onClick={() => update((h) => { h.climate.setpointF -= 1 })}>−</button>
           <div>
@@ -58,7 +60,7 @@ export const inside: Category = {
         ]} />
       </Card>
       {house.rooms.map((r, i) => (
-        <Card key={r.id} title={r.name} color="var(--inside)" chip={<Chip tone={r.occupied ? 'good' : 'neutral'}>{r.occupied ? 'Occupied' : 'Empty'}</Chip>}>
+        <Card key={r.id} title={r.name} color="var(--inside)" link={r.lightsTotal > 0 ? cardApp('hue') : undefined} chip={<Chip tone={r.occupied ? 'good' : 'neutral'}>{r.occupied ? 'Occupied' : 'Empty'}</Chip>}>
           <div className="row">
             {r.tempF !== undefined && <div className="v num room-temp" style={{ color: tempColor(r.tempF) }}>{r.tempF}°</div>}
             {r.lightsTotal > 0 && <KV rows={[['Lights', r.lightsOn ? `${r.lightsOn} of ${r.lightsTotal} on` : 'Off']]} />}

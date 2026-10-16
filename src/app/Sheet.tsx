@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { CategoryId } from '../data/types'
 import { Icon } from '../widgets'
 
-export function Sheet({ id, title, onClose, children }: { id?: CategoryId; title: string; onClose: () => void; children: ReactNode }) {
+export function Sheet({ id, title, onClose, apps, children }: { id?: CategoryId; title: string; onClose: () => void; apps?: ReactNode; children: ReactNode }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
@@ -21,6 +21,7 @@ export function Sheet({ id, title, onClose, children }: { id?: CategoryId; title
         <div className="sh">
           {id && <Icon id={id} />}
           <h2>{title}</h2>
+          {apps && <div className="sh-apps"><span className="lbl">Open in</span>{apps}</div>}
           <button ref={closeRef} className="x" onClick={onClose}>Close</button>
         </div>
         <div className="sb">{children}</div>

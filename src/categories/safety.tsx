@@ -1,9 +1,11 @@
+import { cardApp } from '../apps/AppButton'
 import { Card, Chip, Dot, Idea, KV } from '../widgets'
 import type { Category } from './types'
 
 export const safety: Category = {
   id: 'safety',
   name: 'Safety',
+  apps: ['blink', 'smartthings'],
   status: (h) => {
     if (h.safety.leaks.some((l) => l.wet)) return { tone: 'bad', label: 'Leak!' }
     if (h.safety.garage.open) return { tone: 'warn', label: 'Garage open' }
@@ -30,7 +32,7 @@ export const safety: Category = {
           <KV rows={[[g.open ? 'Open since' : 'Closed since', g.since]]} />
           <Idea>Opening and closing stays with the garage remote and Apple Home, so a stray tap here can't open it.</Idea>
         </Card>
-        <Card color="var(--safety)" title="Leak detectors" chip={<Chip tone={house.safety.leaks.some((l) => l.wet) ? 'bad' : 'good'}>{house.safety.leaks.some((l) => l.wet) ? 'Wet' : 'Dry'}</Chip>}>
+        <Card color="var(--safety)" title="Leak detectors" link={cardApp('smartthings')} chip={<Chip tone={house.safety.leaks.some((l) => l.wet) ? 'bad' : 'good'}>{house.safety.leaks.some((l) => l.wet) ? 'Wet' : 'Dry'}</Chip>}>
           <KV rows={house.safety.leaks.map((l): [string, string] => [l.name, l.battery === undefined ? (l.wet ? 'Wet' : 'Dry') : `${l.wet ? 'Wet' : 'Dry'} · battery ${l.battery}%`])} />
           <Idea>A leak turns the whole panel red and announces on every Alexa.</Idea>
         </Card>
