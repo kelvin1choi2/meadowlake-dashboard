@@ -4,7 +4,8 @@ import type { CategoryId, HouseState } from '../data/types'
 import type { Link, RunAction, UpdateHouse } from '../data/useHouse'
 import { liveAllowed } from '../ha/connection'
 import { Settings } from '../ha/Settings'
-import { Chip, Icon } from '../widgets'
+import { AppLink, Chip, Icon } from '../widgets'
+import { appHref, apps } from '../apps/apps'
 import { Clock } from './Clock'
 import { Rail } from './Rail'
 import { PlayerBar } from '../widgets/PlayerBar'
@@ -83,7 +84,12 @@ export function App({ house, update, run, link, notify, view, onView, theme, onT
       <PlayerBar players={house.media.players} run={run} />
 
       {openCategory?.Sheet && (
-        <Sheet id={openCategory.id} title={openCategory.name} onClose={() => setOpen(null)}>
+        <Sheet id={openCategory.id} title={openCategory.name} onClose={() => setOpen(null)}
+          apps={(openCategory.apps ?? []).flatMap((id) => {
+            const href = appHref(id, window.location.href, link.status === 'live' ? link.haUrl : undefined)
+            const a = apps[id]
+            return href ? [<AppLink key={id} href={href} name={a.name} mark={a.mark} color={`var(--${a.hue})`} />] : []
+          })}>
           <openCategory.Sheet {...props} />
         </Sheet>
       )}

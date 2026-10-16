@@ -17,7 +17,7 @@ export type RunAction = (action: HouseAction) => void
 export type Link =
   | { status: 'sample' }
   | { status: 'connecting' }
-  | { status: 'live'; linked: number; total: number; unavailable: string[]; onSample: string[]; entityList: () => string }
+  | { status: 'live'; haUrl: string; linked: number; total: number; unavailable: string[]; onSample: string[]; entityList: () => string }
   | { status: 'error' }
 
 /**
@@ -121,6 +121,6 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
         .map((e) => `${e.entity_id}  ${String(e.attributes.friendly_name ?? '')}`.trimEnd())
         .sort()
         .join('\n')
-    return { house: withPickups(house, new Date()), update, run, link: { status: 'live', linked, total, unavailable, onSample, entityList } }
+    return { house: withPickups(house, new Date()), update, run, link: { status: 'live', haUrl: haUrl ?? '', linked, total, unavailable, onSample, entityList } }
   }, [local, rock, states, forecasts, conn, update, run])
 }

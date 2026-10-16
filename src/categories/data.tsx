@@ -15,6 +15,7 @@ const taskResult = (t: NasTask) => (t.ok === null ? 'Waiting' : t.ok ? 'OK' : 'F
 export const data: Category = {
   id: 'data',
   name: 'Data',
+  apps: ['dsm', 'eero'],
   full: true,
   status: (h) => {
     const failed = h.nas.tasks.filter((t) => t.ok === false).length

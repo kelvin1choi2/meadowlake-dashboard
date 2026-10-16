@@ -6,6 +6,7 @@ import type { Category } from './types'
 export const inside: Category = {
   id: 'inside',
   name: 'Inside',
+  apps: ['ecobee', 'hue'],
   wide: true,
   status: () => ({ tone: 'good', label: 'Comfortable' }),
   Tile: ({ house }) => {

@@ -268,3 +268,22 @@ a.chip.link { text-decoration: none; }
 .views { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; }
 .view-btn { border: 0; background: none; border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
 .view-btn[aria-pressed='true'] { background: var(--surface-2); color: var(--fg); }
+
+/* Each sheet's header: links out to the apps for that category */
+.sh-apps { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: 12px; }
+.sh-apps .lbl { margin-right: 2px; }
+@media (max-width: 760px) {
+  .sh { flex-wrap: wrap; }
+  .sh-apps { order: 1; flex-basis: 100%; margin-left: 0; }
+}
+.applink {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--fg); text-decoration: none;
+  font-size: 12.5px; font-weight: 600; white-space: nowrap;
+}
+.applink:hover { border-color: var(--muted); }
+.applink .arrow { color: var(--muted); font-size: 11px; }
+.appmark {
+  display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--ac); color: var(--on-hue); font: 700 10.5px/1 var(--body); letter-spacing: 0.02em;
+}

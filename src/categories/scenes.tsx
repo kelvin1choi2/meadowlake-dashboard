@@ -35,6 +35,7 @@ function AllOff({ run, notify }: { run: RunAction; notify: (m: string) => void }
 export const scenes: Category = {
   id: 'scenes',
   name: 'Scenes',
+  apps: ['ha'],
   wide: true,
   status: () => null,
   Tile: ({ house, run, notify }) => {

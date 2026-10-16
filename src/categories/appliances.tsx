@@ -4,6 +4,7 @@ import type { Category } from './types'
 export const appliances: Category = {
   id: 'appliances',
   name: 'Appliances',
+  apps: ['smartthings', 'thinq', 'econet'],
   status: (h) => (h.appliances.washer.minutesLeft > 0 ? { tone: 'neutral', label: 'Washer running' } : null),
   Tile: ({ house }) => {
     const a = house.appliances

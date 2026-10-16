@@ -165,3 +165,14 @@ export function KV({ rows }: { rows: [string, ReactNode][] }) {
 export function Idea({ children }: { children: ReactNode }) {
   return <p className="idea">{children}</p>
 }
+
+/** A pill linking out to an app or web page, with a round two-letter badge. */
+export function AppLink({ href, name, mark, color }: { href: string; name: string; mark: string; color: string }) {
+  return (
+    <a className="applink" href={href} target="_blank" rel="noreferrer" aria-label={`Open ${name}`}>
+      <span className="appmark" style={{ '--ac': color } as CSSProperties} aria-hidden="true">{mark}</span>
+      <span>{name}</span>
+      <span className="arrow" aria-hidden="true">↗</span>
+    </a>
+  )
+}

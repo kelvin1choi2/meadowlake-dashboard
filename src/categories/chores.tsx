@@ -4,6 +4,7 @@ import type { Category } from './types'
 export const chores: Category = {
   id: 'chores',
   name: 'Chores',
+  apps: ['smartlife'],
   wide: true,
   status: (h) => {
     const soon = h.chores.upkeep.filter((u) => u.soon).length

@@ -4,6 +4,7 @@ import type { Category } from './types'
 export const outside: Category = {
   id: 'outside',
   name: 'Outside',
+  apps: ['rachio', 'blink'],
   wide: true,
   status: (h) => (h.camerasArmed ? { tone: 'good', label: 'Cameras armed' } : { tone: 'warn', label: 'Cameras off' }),
   Tile: ({ house }) => {
