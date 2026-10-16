@@ -1,16 +1,26 @@
 import { Bar, Card, Chip, Dot, KV, Ring } from '../widgets'
-import type { NasTask } from '../data/types'
+import type { NasTask, NasVolume } from '../data/types'
 import type { Category } from './types'
 
 const taskColor = (t: NasTask) => (t.ok === null ? 'var(--faint)' : t.ok ? 'var(--good)' : 'var(--bad)')
+/** A volume this full turns amber and is named in the tile's chip. */
+const NEARLY_FULL = 0.85
+const usedShare = (v: NasVolume) => (v.totalTB ? v.usedTB / v.totalTB : 0)
+const nearlyFull = (v: NasVolume) => usedShare(v) >= NEARLY_FULL
+const freeTB = (v: NasVolume) => Math.max(0, v.totalTB - v.usedTB).toFixed(1)
+const sumTB = (vs: NasVolume[], k: 'usedTB' | 'totalTB') => Math.round(vs.reduce((a, v) => a + v[k], 0) * 10) / 10
+
 const taskResult = (t: NasTask) => (t.ok === null ? 'Waiting' : t.ok ? 'OK' : 'Failed')
 
 export const data: Category = {
   id: 'data',
   name: 'Data',
+  full: true,
   status: (h) => {
     const failed = h.nas.tasks.filter((t) => t.ok === false).length
     if (failed) return { tone: 'bad', label: failed > 1 ? `${failed} tasks failed` : 'Backup failed' }
+    const full = h.nas.volumes.filter(nearlyFull)
+    if (full.length) return { tone: 'warn', label: full.length > 1 ? `${full.length} volumes almost full` : `${full[0].name} almost full` }
     const late = h.scripts.filter((s) => s.status !== 'ok').length
     return late ? { tone: 'warn', label: `${late} script${late > 1 ? 's' : ''} late` } : { tone: 'good', label: 'All good' }
   },
@@ -18,21 +28,32 @@ export const data: Category = {
     const n = house.nas
     const ok = house.scripts.filter((s) => s.status === 'ok').length
     return (
-      <>
-        <div className="row">
-          <Ring value={n.usedTB / n.totalTB} color="var(--data)" />
-          <div className="list grow">
-            <div>Volume 1<span className="r num">{n.usedTB} / {n.totalTB} TB</span></div>
-            <div>RAID<span className="r">{n.raid}</span></div>
-          </div>
+      <div className="vols">
+        <div className="vol-rings">
+          {n.volumes.map((v) => (
+            <div key={v.name}>
+              <Ring value={usedShare(v)} color={nearlyFull(v) ? 'var(--warn)' : 'var(--data)'} />
+              <b>{v.name}</b>
+              <span className="num">{v.usedTB} / {v.totalTB} TB</span>
+            </div>
+          ))}
         </div>
-        <div className="list">
+        <div className="vol-free">
+          {n.volumes.map((v) => (
+            <div key={v.name}>
+              <span className="lbl">{v.name} free</span>
+              <span className={`v${nearlyFull(v) ? ' low' : ''}`}>{freeTB(v)}<small> TB</small></span>
+              <span className="sub">of {v.totalTB} TB</span>
+            </div>
+          ))}
+        </div>
+        <div className="list vol-tasks">
           {n.tasks.map((t) => (
             <div key={t.name}><Dot color={taskColor(t)} />{t.name}<span className="r">{t.ok === false ? 'Failed' : t.when}</span></div>
           ))}
           <div><Dot color={ok === house.scripts.length ? 'var(--good)' : 'var(--warn)'} />Windows scripts<span className="r">{ok} of {house.scripts.length} on time</span></div>
         </div>
-      </>
+      </div>
     )
   },
   Sheet: ({ house }) => {
@@ -56,8 +77,8 @@ export const data: Category = {
           </div>
         </Card>
         <Card color="var(--data)" title={n.model} chip={<Chip tone="good">{n.raid}</Chip>}>
-          <Bar value={n.usedTB / n.totalTB} />
-          <KV rows={[['Volume 1 (SHR)', `${n.usedTB} / ${n.totalTB} TB`], ['CPU / RAM', `${n.cpuPct}% / ${n.ramPct}%`], ['Uptime', `${n.uptimeDays} days`], ['DSM', n.dsm]]} />
+          <Bar value={sumTB(n.volumes, 'usedTB') / (sumTB(n.volumes, 'totalTB') || 1)} />
+          <KV rows={[...n.volumes.map((v): [string, string] => [v.name, `${v.usedTB} / ${v.totalTB} TB${v.status ? ` · ${v.status}` : ''}`]), ['CPU / RAM', `${n.cpuPct}% / ${n.ramPct}%`], ['Uptime', `${n.uptimeDays} days`], ['DSM', n.dsm]]} />
         </Card>
         <Card color="var(--data)" title="Drives">
           <div className="tw">

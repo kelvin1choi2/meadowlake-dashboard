@@ -58,7 +58,7 @@ export function App({ house, update, run, link, notify, view, onView }: AppProps
               {c.Sheet && <span className="more">Tap for everything</span>}
             </>
           )
-          const className = `tile${c.wide ? ' w2' : ''}`
+          const className = `tile${c.full ? ' w4' : c.wide ? ' w2' : ''}`
           return c.Sheet ? (
             <div key={c.id} role="button" tabIndex={0} className={`${className} tappable`} style={style}
               aria-label={`Open ${c.name}`}

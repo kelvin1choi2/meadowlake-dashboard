@@ -61,6 +61,15 @@ export interface Player {
 
 export type PlayerCommand = 'play_pause' | 'next' | 'previous' | 'mute' | 'power' | { volume: number }
 
+/** A Synology storage volume. */
+export interface NasVolume {
+  name: string
+  usedTB: number
+  totalTB: number
+  /** As DSM reports it, e.g. Normal or Degraded. */
+  status?: string
+}
+
 export interface Drive {
   bay: number
   tempC: number
@@ -181,8 +190,7 @@ export interface HouseState {
   nas: {
     model: string
     dsm: string
-    usedTB: number
-    totalTB: number
+    volumes: NasVolume[]
     raid: string
     cpuPct: number
     ramPct: number

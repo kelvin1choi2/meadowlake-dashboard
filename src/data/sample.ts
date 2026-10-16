@@ -92,8 +92,11 @@ export const sampleHouse: HouseState = {
   nas: {
     model: 'Synology DS1513+',
     dsm: '7.1.1',
-    usedTB: 10.4,
-    totalTB: 14.5,
+    volumes: [
+      { name: 'Volume 1', usedTB: 6.2, totalTB: 8.7, status: 'Normal' },
+      { name: 'Volume 2', usedTB: 2.9, totalTB: 3.6, status: 'Normal' },
+      { name: 'Volume 3', usedTB: 1.6, totalTB: 1.8, status: 'Normal' },
+    ],
     raid: 'Healthy',
     cpuPct: 9,
     ramPct: 41,

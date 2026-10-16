@@ -63,14 +63,16 @@ describe('applyEntities', () => {
     expect(house.media.screens).toEqual([{ id: tv.id, name: tv.name, tv: true, on: true }])
   })
 
-  it('adds up NAS volumes from used space and percent used', () => {
+  it('lists each NAS volume with its size worked out from used space and percent used', () => {
     const [v1, v2] = entities.nas.volumes
     const { house } = applyEntities(sampleHouse, states(
-      entity(v1.usedTB, '4.0'), entity(v1.usedPct, '50'),
+      entity(v1.usedTB, '4.0'), entity(v1.usedPct, '50'), entity(v1.status, 'normal'),
       entity(v2.usedTB, '1.0'), entity(v2.usedPct, '25'),
     ), now)
-    expect(house.nas.usedTB).toBe(5)
-    expect(house.nas.totalTB).toBe(12)
+    expect(house.nas.volumes).toEqual([
+      { name: 'Volume 1', usedTB: 4, totalTB: 8, status: 'Normal' },
+      { name: 'Volume 2', usedTB: 1, totalTB: 4, status: undefined },
+    ])
   })
 
   it('shows camera motion as now, a time today, or nothing', () => {

@@ -51,8 +51,10 @@ export const entities = {
   },
   nas: {
     volumes: [1, 2, 3].map((n) => ({
+      name: `Volume ${n}`,
       usedTB: `sensor.choi_vault_volume_${n}_used_space`,
       usedPct: `sensor.choi_vault_volume_${n}_volume_used`,
+      status: `sensor.choi_vault_volume_${n}_status`,
     })),
     volumeStatus: 'sensor.choi_vault_volume_1_status',
     cpuPct: 'sensor.choi_vault_cpu_utilization_total',

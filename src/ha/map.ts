@@ -216,21 +216,20 @@ export function applyEntities(
   const rain = get(entities.irrigation.rainDelay)
   if (rain) h.irrigation.rainSkip = rain.state === 'on'
 
-  let used = 0
-  let size = 0
-  let volumesFound = 0
-  for (const v of entities.nas.volumes) {
-    const tb = value(v.usedTB)
+  // DSM reports used space and percent used; the size is worked out from the two.
+  const volumes = entities.nas.volumes.flatMap((v) => {
+    const used = value(v.usedTB)
     const pct = value(v.usedPct)
-    if (tb === undefined || !pct) continue
-    used += tb
-    size += tb / (pct / 100)
-    volumesFound++
-  }
-  if (volumesFound) {
-    h.nas.usedTB = Math.round(used * 10) / 10
-    h.nas.totalTB = Math.round(size * 10) / 10
-  }
+    if (used === undefined || !pct) return []
+    const status = get(v.status)
+    return [{
+      name: v.name,
+      usedTB: Math.round(used * 10) / 10,
+      totalTB: Math.round((used / (pct / 100)) * 10) / 10,
+      status: status ? label(status.state) : undefined,
+    }]
+  })
+  if (volumes.length) h.nas.volumes = volumes
   const vol = get(entities.nas.volumeStatus)
   if (vol) h.nas.raid = label(vol.state)
   h.nas.cpuPct = value(entities.nas.cpuPct) ?? h.nas.cpuPct
