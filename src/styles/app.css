@@ -241,3 +241,8 @@ a.chip.link { text-decoration: none; }
 .rock-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .rock-note { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
 .rock-more { display: block; margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+/* Screen layout toggle, in the header */
+.views { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; }
+.view-btn { border: 0; background: none; border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+.view-btn[aria-pressed='true'] { background: var(--surface-2); color: var(--fg); }

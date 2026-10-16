@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ringDash, sparkGeometry, tempColor } from './geometry'
+import { burnInShift, fitStage, ringDash, sparkGeometry, tempColor } from './geometry'
 
 describe('ringDash', () => {
   it('fills the matching share of the circle', () => {
@@ -29,5 +29,41 @@ describe('sparkGeometry', () => {
   it('handles a flat series without dividing by zero', () => {
     const g = sparkGeometry([60, 60])
     expect(Number.isFinite(g.y(60))).toBe(true)
+  })
+})
+
+describe('fitStage', () => {
+  it('fills a window of the same shape exactly', () => {
+    expect(fitStage(3840, 2160, 1920, 1080)).toEqual({ scale: 2, x: 0, y: 0 })
+  })
+
+  it('letterboxes a wider window and centers the stage', () => {
+    const f = fitStage(2560, 1080, 1920, 1080)
+    expect(f.scale).toBe(1)
+    expect(f.x).toBe(320)
+    expect(f.y).toBe(0)
+  })
+
+  it('shrinks to fit a taller window', () => {
+    const f = fitStage(1280, 1024, 1920, 1080)
+    expect(f.scale).toBeCloseTo(2 / 3)
+    expect(f.y).toBeCloseTo(152)
+  })
+})
+
+describe('burnInShift', () => {
+  it('starts centered and moves one step each period', () => {
+    expect(burnInShift(0)).toEqual({ x: 0, y: 0 })
+    expect(burnInShift(2)).toEqual({ x: 0, y: 0 })
+    expect(burnInShift(3)).toEqual({ x: 4, y: 0 })
+  })
+
+  it('stays within one step of center and loops', () => {
+    for (let m = 0; m < 200; m++) {
+      const { x, y } = burnInShift(m)
+      expect(Math.abs(x)).toBeLessThanOrEqual(4)
+      expect(Math.abs(y)).toBeLessThanOrEqual(4)
+    }
+    expect(burnInShift(27)).toEqual(burnInShift(0))
   })
 })

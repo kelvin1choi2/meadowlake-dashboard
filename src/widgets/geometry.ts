@@ -43,3 +43,19 @@ export function sparkGeometry(values: number[], width = 560, height = 120): Spar
   const areaPoints = `${pad.l},${base} ${linePoints} ${x(values.length - 1).toFixed(1)},${base}`
   return { width, height, left: pad.l, right: width - pad.r, x, y, gridLines, linePoints, areaPoints }
 }
+
+/** Scales a fixed-size stage to fit a window without cropping, centered with letterbox bars. */
+export function fitStage(viewW: number, viewH: number, stageW: number, stageH: number): { scale: number; x: number; y: number } {
+  const scale = Math.min(viewW / stageW, viewH / stageH)
+  return { scale, x: (viewW - stageW * scale) / 2, y: (viewH - stageH * scale) / 2 }
+}
+
+/**
+ * A small offset that walks around a square, one step per period, so a screen left on all day
+ * never holds the same edges on the same OLED pixels.
+ */
+export function burnInShift(minutes: number, step = 4, periodMinutes = 3): { x: number; y: number } {
+  const path = [[0, 0], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]]
+  const [x, y] = path[Math.floor(minutes / periodMinutes) % path.length]
+  return { x: x * step, y: y * step }
+}
