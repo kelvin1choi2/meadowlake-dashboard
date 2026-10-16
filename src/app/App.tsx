@@ -99,7 +99,7 @@ export function linkLabel(link: Link): string {
     case 'error': return "Can't reach Home Assistant · showing sample data"
     case 'live': {
       const off = link.unavailable.length
-      const sample = link.total - link.linked - off
+      const sample = link.onSample.length
       const notes = [off && `${off} unavailable`, sample && `${sample} on sample data`].filter(Boolean)
       return notes.length ? `Live · ${notes.join(', ')}` : 'Live'
     }

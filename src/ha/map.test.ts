@@ -38,6 +38,18 @@ describe('applyEntities', () => {
     expect(linked).toBe(2)
   })
 
+  it('names what is missing from Home Assistant, and counts a room whose bulbs are all off at the wall as unavailable', () => {
+    const { onSample, unavailable, total, linked } = applyEntities(sampleHouse, states(
+      entity('light.kitchen_kitchen_1', 'unavailable'),
+      entity('light.kitchen_kitchen_2', 'unavailable'),
+    ), now)
+    expect(unavailable).toContain('Kitchen lights')
+    expect(onSample).not.toContainEqual(expect.stringContaining('Kitchen'))
+    expect(onSample).toContain(entities.chores.vacuum)
+    expect(onSample).toContain('Plex server (a sensor counting "Watching")')
+    expect(onSample.length).toBe(total - linked - unavailable.length)
+  })
+
   it('reads the thermostat when it is linked', () => {
     const { house } = applyEntities(sampleHouse, states(
       entity(entities.climate.thermostat, 'heat_cool', { current_temperature: 72, temperature: 70, hvac_action: 'cooling', current_humidity: 38 }),
