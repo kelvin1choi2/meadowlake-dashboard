@@ -1,5 +1,5 @@
 /* Meadowlake design tokens: the "Pastel" style Kelvin picked from the mockup, plus its dark
-   counterpart "Slate" below.
+   counterpart "Ink" below.
    Every color in the app comes from here. Category hues are named after their tile. */
 :root {
   color-scheme: light;
@@ -62,40 +62,40 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #161a23;
-  --surface: #1f2430;
-  --surface-2: #282e3c;
-  --line: #313849;
-  --fg: #e3e6ef;
-  --muted: #9aa1b8;
-  --faint: #646b82;
-  --paper: #1b1f29;
-  --on-hue: #1b1f29;
+  --bg: #0f131c;
+  --surface: #171c28;
+  --surface-2: #1f2533;
+  --line: #283042;
+  --fg: #dfe3ec;
+  --muted: #8c94aa;
+  --faint: #5a6177;
+  --paper: #121722;
+  --on-hue: #121722;
 
-  --inside: #d98e9b;
-  --outside: #7fb89d;
-  --media: #b39ad3;
-  --data: #7fb4c4;
-  --appliances: #d6aa72;
-  --safety: #8ea6d8;
-  --chores: #a69ad0;
-  --scenes: #cdb872;
+  --inside: #c27e8c;
+  --outside: #6fa58d;
+  --media: #9f86c2;
+  --data: #6ea2b3;
+  --appliances: #c39a66;
+  --safety: #7d95c6;
+  --chores: #968ac0;
+  --scenes: #b8a565;
 
-  --tone-sun: #d9bf6a;
-  --tone-amber: #d29a5e;
-  --tone-peach: #d8a78c;
-  --tone-coral: #d48c80;
-  --tone-rose: #d391ad;
-  --tone-violet: #a491d4;
-  --tone-indigo: #8a95d6;
-  --tone-blue: #82aad4;
-  --tone-teal: #78b4b4;
-  --tone-mint: #84bf9c;
-  --tone-dusk: #8f97b5;
+  --tone-sun: #c4ad62;
+  --tone-amber: #bf8c58;
+  --tone-peach: #c49883;
+  --tone-coral: #c08075;
+  --tone-rose: #bf849e;
+  --tone-violet: #9584c2;
+  --tone-indigo: #7e88c4;
+  --tone-blue: #769bc2;
+  --tone-teal: #6ea4a4;
+  --tone-mint: #78ae8f;
+  --tone-dusk: #8189a6;
 
-  --good: #7fbf9b;
-  --warn: #d6a35e;
-  --bad: #e08a96;
+  --good: #74ad8e;
+  --warn: #c79a5a;
+  --bad: #d07e8b;
 
-  --tint: 24%;
+  --tint: 22%;
 }
