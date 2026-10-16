@@ -14,6 +14,8 @@ export interface Category {
   name: string
   /** Spans two grid columns on tablet and desktop. */
   wide?: boolean
+  /** Spans the whole row on every screen size. */
+  full?: boolean
   /** The pill in the tile's corner; null hides it. */
   status: (house: HouseState) => { tone: Tone; label: string } | null
   Tile: FC<CategoryProps>

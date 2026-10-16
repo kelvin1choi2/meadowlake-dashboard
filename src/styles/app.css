@@ -63,6 +63,7 @@ button { font: inherit; color: inherit; }
   --surface-2: color-mix(in srgb, var(--paper) 60%, transparent);
 }
 .tile.w2 { grid-column: span 2; }
+.tile.w4 { grid-column: 1 / -1; }
 .tile.tappable { cursor: pointer; transition: transform 0.18s ease, border-color 0.18s; }
 .tile.tappable:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--c) 60%, var(--paper)); }
 .th { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
@@ -199,12 +200,33 @@ a.chip.link { text-decoration: none; }
 .spark .axis { font-size: 11px; fill: var(--muted); font-family: var(--mono); }
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 12px 18px; border-radius: 16px; z-index: 20; max-width: min(560px, calc(100% - 32px)); font-size: 14px; }
 
+/* Data tile: NAS volumes as rings and free space, with the task list beside them */
+.vols { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(240px, 320px); gap: 16px 28px; align-items: center; }
+.vol-rings { display: flex; gap: 18px; }
+.vol-rings > div { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; }
+.vol-rings .ring { margin-bottom: 4px; }
+.vol-rings .num { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.vol-free { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.vol-free > div { background: var(--surface-2); border-radius: 16px; padding: 10px 14px; display: flex; flex-direction: column; min-width: 0; }
+.vol-free .v { font-size: 34px; }
+.vol-free .v.low { color: var(--warn); }
+.vol-free .v small { font-size: 14px; color: inherit; }
+.vol-free .sub { font-size: 12px; color: var(--muted); }
+
 @media (max-width: 960px) {
+  .vols { grid-template-columns: auto minmax(0, 1fr); }
+  .vol-tasks { grid-column: 1 / -1; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rail { grid-template-columns: minmax(0, 1fr); }
   .rooms { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
+  .vols { grid-template-columns: minmax(0, 1fr); }
+  .vol-rings { justify-content: space-around; }
+  .vol-free { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .vol-free > div { padding: 8px 10px; }
+  .vol-free .v { font-size: 24px; }
+  .vol-free .sub { font-size: 11px; }
   .grid { grid-template-columns: minmax(0, 1fr); }
   .tile.w2 { grid-column: auto; }
   .clock .t { font-size: 36px; }
