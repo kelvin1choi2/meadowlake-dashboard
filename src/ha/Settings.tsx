@@ -57,6 +57,9 @@ export function Settings({ link, onClose }: { link: Link; onClose: () => void })
             ...(link.status === 'live' && link.unavailable.length
               ? [['Unavailable right now', link.unavailable.join(', ')] as [string, string]]
               : []),
+            ...(link.status === 'live' && link.onSample.length
+              ? [['Not in Home Assistant, on sample data', link.onSample.join(', ')] as [string, string]]
+              : []),
           ]} />
         )}
         <form className="form" onSubmit={(e) => { e.preventDefault(); void connect() }}>

@@ -92,16 +92,19 @@ export function applyEntities(
   states: HassEntities,
   now: Date = new Date(),
   forecasts: Forecasts = {},
-): { house: HouseState; linked: number; total: number; unavailable: string[] } {
+): { house: HouseState; linked: number; total: number; unavailable: string[]; onSample: string[] } {
   const h = structuredClone(base)
   let linked = 0
   let total = 0
   /** Names of entities Home Assistant has but reports as unavailable or unknown right now. */
   const unavailable: string[] = []
+  /** What the dashboard looked for and Home Assistant doesn't have, so it stays on sample data. */
+  const onSample: string[] = []
   /** Looks up an entity and counts it toward "N of M linked". */
   const get = (id: string): HassEntity | undefined => {
     total++
     const e = states[id]
+    if (!e) onSample.push(id)
     if (e && offline.has(e.state)) unavailable.push(String(e.attributes.friendly_name ?? id))
     if (!e || offline.has(e.state)) return undefined
     linked++
@@ -139,7 +142,13 @@ export function applyEntities(
     total++
     const lights = roomLights(states, r.lights)
     const sensed = r.sensor ? sensorRoom(r.sensor) : { tempF: undefined, occupied: false }
-    if (!lights.length && sensed.tempF === undefined) return []
+    if (!lights.length && sensed.tempF === undefined) {
+      // Bulbs that are off at the wall show as unavailable rather than missing.
+      const known = Object.values(states).some((e) => e.entity_id.startsWith(r.lights) && !isGroup(e))
+      if (known) unavailable.push(`${r.name} lights`)
+      else onSample.push(`${r.name} room (${r.lights}*)`)
+      return []
+    }
     linked++
     const lightsOn = lights.filter((e) => e.state === 'on').length
     return [{ id: r.id, name: r.name, ...sensed, lightsOn, lightsTotal: lights.length }]
@@ -281,6 +290,7 @@ export function applyEntities(
   const plex = Object.values(states).find(
     (e) => e.entity_id.startsWith('sensor.') && String(e.attributes.unit_of_measurement).toLowerCase() === 'watching',
   )
+  if (!plex) onSample.push('Plex server (a sensor counting "Watching")')
   if (plex) {
     linked++
     const meta = new Set(['unit_of_measurement', 'friendly_name', 'icon', 'device_class', 'state_class'])
@@ -332,12 +342,13 @@ export function applyEntities(
   for (const id of entities.scenes.favorites) {
     total++
     if (found.some((s) => s.id === id)) linked++
+    else onSample.push(id)
   }
   if (found.length) h.scenes = found
 
   if (linked) h.pulse = pulseFrom(states, now)
 
-  return { house: h, linked, total, unavailable }
+  return { house: h, linked, total, unavailable, onSample }
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

@@ -17,7 +17,7 @@ export type RunAction = (action: HouseAction) => void
 export type Link =
   | { status: 'sample' }
   | { status: 'connecting' }
-  | { status: 'live'; linked: number; total: number; unavailable: string[]; entityList: () => string }
+  | { status: 'live'; linked: number; total: number; unavailable: string[]; onSample: string[]; entityList: () => string }
   | { status: 'error' }
 
 /**
@@ -111,7 +111,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
   return useMemo(() => {
     const base = rock ? { ...local, media: { ...local.media, rock } } : local
     if (!states) return { house: withPickups(base, new Date()), update, run, link: { status: conn } as Link }
-    const { house, linked, total, unavailable } = applyEntities(base, states, new Date(), forecasts)
+    const { house, linked, total, unavailable, onSample } = applyEntities(base, states, new Date(), forecasts)
     // Artwork comes as a path on the Home Assistant server.
     const haUrl = haConfig()?.url
     for (const p of house.media.players) if (haUrl && p.art?.startsWith('/')) p.art = haUrl + p.art
@@ -121,6 +121,6 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
         .map((e) => `${e.entity_id}  ${String(e.attributes.friendly_name ?? '')}`.trimEnd())
         .sort()
         .join('\n')
-    return { house: withPickups(house, new Date()), update, run, link: { status: 'live', linked, total, unavailable, entityList } }
+    return { house: withPickups(house, new Date()), update, run, link: { status: 'live', linked, total, unavailable, onSample, entityList } }
   }, [local, rock, states, forecasts, conn, update, run])
 }
