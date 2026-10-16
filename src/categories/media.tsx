@@ -2,7 +2,7 @@ import { roonDisplayUrl, roonRockUrl } from '../config/home'
 import type { HouseState } from '../data/types'
 import type { RunAction } from '../data/useHouse'
 import { duration } from '../rock/rock'
-import { Bar, Card, Chip, Dot, KV, Toggle } from '../widgets'
+import { Bar, Card, Chip, Dot, KV, Ring, Toggle } from '../widgets'
 import { ConfirmButton } from '../widgets/ConfirmButton'
 import { canEmbed } from '../widgets/embed'
 import { PlayerBar } from '../widgets/PlayerBar'
@@ -28,83 +28,91 @@ function EmbedCard({ title, url, frameTitle }: { title: string; url: string; fra
   )
 }
 
-/** The Roon ROCK server: its status, disks and network, with the restart and power buttons from its own page. */
-function RockCard({ rock, run }: { rock: HouseState['media']['rock']; run: RunAction }) {
+type RockProps = { rock: HouseState['media']['rock']; run: RunAction }
+
+function rockChip(rock: RockProps['rock']) {
+  if (rock.status === 'checking') return <Chip tone="neutral">Checking</Chip>
+  if (rock.status !== 'up') return <Chip tone="bad">Not answering</Chip>
+  if (rock.roon === 'running') return <Chip tone="good">Roon Server running</Chip>
+  if (rock.roon === 'missing-codecs') return <Chip tone="warn">Missing codecs</Chip>
+  return <Chip tone="bad">Roon Server stopped</Chip>
+}
+
+/** "2.73 (build 1700)" → ["2.73", "(build 1700)"] */
+const splitVersion = (v: string) => [v.split(' ')[0], v.slice(v.indexOf(' ') + 1 || v.length)]
+
+/** The Roon ROCK server at a glance, with the restart and power buttons from its own page. */
+function RockCard({ rock, run }: RockProps) {
   const up = rock.status === 'up' ? rock : null
-  const chip =
-    rock.status === 'checking' ? <Chip tone="neutral">Checking</Chip>
-    : !up ? <Chip tone="bad">Not answering</Chip>
-    : up.roon === 'running' ? <Chip tone="good">Roon Server running</Chip>
-    : up.roon === 'missing-codecs' ? <Chip tone="warn">Missing codecs</Chip>
-    : <Chip tone="bad">Roon Server stopped</Chip>
-  const busy = !up
+  const [roonV, roonBuild] = splitVersion(up?.roonVersion ?? '')
   return (
-    <Card wide color="var(--media)" title="Roon ROCK" chip={chip}>
-      <div className="rock">
-        {up ? (
-          <KV
-            rows={[
-              ['Roon Server', up.roonVersion],
-              ['Running for', up.roon === 'stopped' ? 'Stopped' : duration(up.roonUptime)],
-              ['Roon OS', up.os],
-              ['ROCK up for', duration(up.uptime)],
-              ...(up.ip ? [['Address', `${up.ip}${up.dhcp === undefined ? '' : up.dhcp ? ' · DHCP' : ' · static'}`] as [string, string]] : []),
-              ...(up.gateway ? [['Gateway · DNS', `${up.gateway} · ${up.dns ?? '—'}`] as [string, string]] : []),
-              ...(up.cd ? [['CD drive', up.cd.label] as [string, string]] : []),
-            ]}
-          />
-        ) : (
-          <p className="rock-note">
-            {rock.status === 'checking'
-              ? 'Checking the ROCK…'
-              : "The ROCK isn't answering. It may be restarting or powered off, or this dashboard isn't on the home network."}
-          </p>
-        )}
-        <div className="rock-side">
-          {up?.disk && (
-            <div className="rock-disk">
-              <div className="lbl">Data disk · {up.disk.used} of {up.disk.total} GB</div>
-              <Bar value={up.disk.used / up.disk.total} color="var(--media)" />
-            </div>
-          )}
-          {up?.music && (
-            <div className="rock-disk">
-              {up.music === 'not mounted' ? (
-                <div className="lbl">Music drive · not mounted</div>
-              ) : (
-                <>
-                  <div className="lbl">Music drive · {up.music.used} of {up.music.total} GB</div>
-                  <Bar value={up.music.used / up.music.total} color="var(--media)" />
-                </>
-              )}
-            </div>
-          )}
-          <div className="rock-actions">
-            <ConfirmButton disabled={busy} confirm="Tap again to restart" onConfirm={() => run({ rock: 'restartRoon' })}>
-              {up?.roon === 'stopped' ? 'Start Roon Server' : 'Restart Roon Server'}
-            </ConfirmButton>
-            {up?.roon !== 'stopped' && (
-              <ConfirmButton disabled={busy} confirm="Tap again to stop" onConfirm={() => run({ rock: 'stopRoon' })}>
-                Stop Roon Server
-              </ConfirmButton>
-            )}
-            {up?.cd?.canEject && (
-              <ConfirmButton confirm="Tap again to eject" onConfirm={() => run({ rock: 'eject' })}>
-                Eject CD
-              </ConfirmButton>
-            )}
-            <ConfirmButton disabled={busy} confirm="Tap again to reboot" onConfirm={() => run({ rock: 'reboot' })}>
-              Reboot ROCK
-            </ConfirmButton>
-            <ConfirmButton danger disabled={busy} confirm="Tap again: needs the power button to come back" onConfirm={() => run({ rock: 'powerOff' })}>
-              Power off
-            </ConfirmButton>
+    <Card wide color="var(--media)" title="Roon ROCK" chip={rockChip(rock)}>
+      {up ? (
+        <div className="rock-stats">
+          <div className="stat">
+            <div className="lbl">Roon Server</div>
+            <div className="v">{roonV}</div>
+            <span className="sub">{roonBuild}</span>
           </div>
-          <a className="rock-more" href={roonRockUrl} target="_blank" rel="noreferrer">
-            Updates, network settings and reset are on the ROCK's own page
-          </a>
+          <div className="stat">
+            <div className="lbl">Running for</div>
+            <div className="v">{up.roon === 'stopped' ? 'Stopped' : duration(up.roonUptime)}</div>
+            <span className="sub">ROCK up {duration(up.uptime)}</span>
+          </div>
+          {up.disk && (
+            <div className="stat rock-ring">
+              <Ring value={up.disk.used / up.disk.total} color="var(--media)" />
+              <div>
+                <div className="lbl">Data disk</div>
+                <span className="sub">{up.disk.used} of {up.disk.total} GB</span>
+                {up.music && (
+                  <span className="sub">
+                    Music drive {up.music === 'not mounted' ? 'not mounted' : `${up.music.used} of ${up.music.total} GB`}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="stat">
+            <div className="lbl">Address</div>
+            <div className="v rock-ip">{up.ip ?? '—'}</div>
+            <span className="sub">
+              {up.dhcp === undefined ? '' : up.dhcp ? 'DHCP · ' : 'Static · '}Roon OS {up.os}
+            </span>
+            {up.cd && <span className="sub">CD: {up.cd.label}</span>}
+          </div>
         </div>
+      ) : (
+        <p className="rock-note">
+          {rock.status === 'checking'
+            ? 'Checking the ROCK…'
+            : "The ROCK isn't answering. It may be restarting or powered off, or this dashboard isn't on the home network."}
+        </p>
+      )}
+      <div className="rock-actions">
+        <ConfirmButton disabled={!up} confirm="Tap again to restart" onConfirm={() => run({ rock: 'restartRoon' })}>
+          {up?.roon === 'stopped' ? 'Start Roon Server' : 'Restart Roon Server'}
+        </ConfirmButton>
+        {up?.roon !== 'stopped' && (
+          <ConfirmButton disabled={!up} confirm="Tap again to stop" onConfirm={() => run({ rock: 'stopRoon' })}>
+            Stop Roon Server
+          </ConfirmButton>
+        )}
+        {up?.cd?.canEject && (
+          <ConfirmButton confirm="Tap again to eject" onConfirm={() => run({ rock: 'eject' })}>
+            Eject CD
+          </ConfirmButton>
+        )}
+        <ConfirmButton disabled={!up} confirm="Tap again to reboot" onConfirm={() => run({ rock: 'reboot' })}>
+          Reboot ROCK
+        </ConfirmButton>
+        <ConfirmButton danger disabled={!up} confirm="Tap again: needs the power button to come back" onConfirm={() => run({ rock: 'powerOff' })}>
+          Power off
+        </ConfirmButton>
       </div>
+      <a className="rock-more" href={roonRockUrl} target="_blank" rel="noreferrer">
+        Updates, network settings and reset are on the ROCK's own page
+      </a>
     </Card>
   )
 }
