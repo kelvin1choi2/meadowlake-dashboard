@@ -3,24 +3,33 @@ import { Clock } from '../app/Clock'
 import { linkLabel } from '../app/App'
 import { categories } from '../categories'
 import type { HouseState } from '../data/types'
-import { useHouse } from '../data/useHouse'
+import type { Link, RunAction, UpdateHouse } from '../data/useHouse'
 import { Bar, Chip, Dot, Icon } from '../widgets'
-import { burnInShift, fitStage } from '../widgets/geometry'
+import { burnInShift } from '../widgets/geometry'
+import { useStageFit } from '../widgets/useStageFit'
 import { nextSpotlight, spotlightPlan, type Slot } from './spotlight'
 
-// The 10-foot view (open the dashboard with ?tv). Built for a 1920×1080 stage and scaled to
-// whatever screen it lands on. It is display-only: one tile at a time is shown large and the
+// The screensaver: a 21:9 stage (2580×1080, exactly 3440×1440 on an ultrawide at 4/3 scale)
+// fitted to whatever screen it's on. Display-only: one tile at a time is shown large and the
 // spotlight moves on by itself, with weather, what's playing and the house pulse alongside.
+// A click or any key goes back to the dashboard.
 
-const STAGE = { w: 1920, h: 1080 }
+const STAGE = { w: 2580, h: 1080 }
 /** Scenes are buttons, which mean nothing on a screen nobody touches. */
 const shown = categories.filter((c) => c.id !== 'scenes')
 const noop = () => {}
 
-export function TvApp() {
-  const { house, update, run, link } = useHouse()
+export interface SaverProps {
+  house: HouseState
+  update: UpdateHouse
+  run: RunAction
+  link: Link
+  onExit: () => void
+}
+
+export function Saver({ house, update, run, link, onExit }: SaverProps) {
   const now = useMinute()
-  const fit = useStageFit()
+  const { ref, fit } = useStageFit(STAGE.w, STAGE.h)
 
   const plan = spotlightPlan(shown.map((c) => ({ id: c.id, tone: c.status(house)?.tone ?? null })))
   const planRef = useRef(plan)
@@ -31,6 +40,11 @@ export function TvApp() {
     const t = setTimeout(() => setSlot(nextSpotlight(planRef.current, slot.id)), slot.seconds * 1000)
     return () => clearTimeout(t)
   }, [slot])
+
+  useEffect(() => {
+    window.addEventListener('keydown', onExit)
+    return () => window.removeEventListener('keydown', onExit)
+  }, [onExit])
 
   const hero = shown.find((c) => c.id === slot?.id) ?? shown[0]
   const status = hero.status(house)
@@ -44,51 +58,54 @@ export function TvApp() {
   }
 
   return (
-    <div className={`tv${night ? ' night' : ''}`}>
-      <div className="tv-stage" style={stage}>
-        <header className="tv-top">
+    <div className={`stage-frame saver${night ? ' night' : ''}`} onClick={onExit}>
+      <div ref={ref} className="sv-stage" style={stage}>
+        <header className="sv-top">
           <Clock />
-          <span className="tv-mode">{house.mode[0].toUpperCase() + house.mode.slice(1)}</span>
+          <span className="sv-mode">{house.mode[0].toUpperCase() + house.mode.slice(1)}</span>
           <span className={`sample ${link.status}`}>{linkLabel(link)}</span>
         </header>
 
-        <main className="tv-main">
-          <section key={hero.id} className="tile tv-hero" style={{ '--c': `var(--${hero.id})` } as CSSProperties} aria-label={hero.name} inert>
+        <main className="sv-main">
+          <section key={hero.id} className="tile sv-hero" style={{ '--c': `var(--${hero.id})` } as CSSProperties} aria-label={hero.name} inert>
             <div className="th">
               <Icon id={hero.id} />
               <h2>{hero.name}</h2>
               {status && <Chip tone={status.tone}>{status.label}</Chip>}
             </div>
-            <div className="tv-zoom">
+            <div className="sv-zoom">
               <hero.Tile house={house} update={update} run={run} notify={noop} />
             </div>
           </section>
 
-          <aside className="tv-side">
-            <Failures house={house} />
+          <div className="sv-side">
             <Weather house={house} />
             <NowPlaying house={house} />
+          </div>
+          <div className="sv-side">
+            <Failures house={house} />
             <Pulse house={house} />
-          </aside>
+          </div>
         </main>
 
-        <nav className="tv-strip" aria-label="Rotation">
+        <nav className="sv-strip" aria-label="Rotation">
           {shown.map((c) => {
             const s = c.status(house)
             const active = c.id === hero.id
             return (
-              <div key={c.id} className={`tv-chip${active ? ' on' : ''}`} style={{ '--c': `var(--${c.id})` } as CSSProperties}>
+              <div key={c.id} className={`sv-chip${active ? ' on' : ''}`} style={{ '--c': `var(--${c.id})` } as CSSProperties}>
                 <Icon id={c.id} />
                 <div>
                   <b>{c.name}</b>
                   {s && <span className={`tone ${s.tone}`}>{s.label}</span>}
                 </div>
-                {active && slot && <i key={`${c.id}-${slot.seconds}`} className="tv-timer" style={{ animationDuration: `${slot.seconds}s` }} />}
+                {active && slot && <i key={`${c.id}-${slot.seconds}`} className="sv-timer" style={{ animationDuration: `${slot.seconds}s` }} />}
               </div>
             )
           })}
         </nav>
       </div>
+      <p className="sv-hint">Click or press any key to go back</p>
     </div>
   )
 }
@@ -108,9 +125,9 @@ function Failures({ house }: { house: HouseState }) {
 function Weather({ house }: { house: HouseState }) {
   const w = house.weather
   return (
-    <section className="tv-card" style={{ '--c': 'var(--outside)' } as CSSProperties}>
-      <div className="tv-wx">
-        <span className="tv-big num">{w.tempF}°</span>
+    <section className="sv-card" style={{ '--c': 'var(--outside)' } as CSSProperties}>
+      <div className="sv-wx">
+        <span className="sv-big num">{w.tempF}°</span>
         <div>
           <b>{w.condition}</b>
           <span className="muted">H {w.high}° · L {w.low}° · feels {w.feelsF}°</span>
@@ -128,10 +145,10 @@ function Weather({ house }: { house: HouseState }) {
 function NowPlaying({ house }: { house: HouseState }) {
   const playing = house.media.players.filter((p) => p.state === 'playing').slice(0, 2)
   return (
-    <section className="tv-card" style={{ '--c': 'var(--media)' } as CSSProperties}>
+    <section className="sv-card" style={{ '--c': 'var(--media)' } as CSSProperties}>
       <div className="lbl">Now playing</div>
       {playing.length ? playing.map((p) => (
-        <div key={p.id} className="tv-np">
+        <div key={p.id} className="sv-np">
           {p.art ? <img className="pb-art" src={p.art} alt="" /> : <div className="pb-art" />}
           <div className="pb-meta">
             <b>{p.title ?? p.name}</b>
@@ -146,10 +163,10 @@ function NowPlaying({ house }: { house: HouseState }) {
 
 function Pulse({ house }: { house: HouseState }) {
   return (
-    <section className="tv-card tv-pulse">
+    <section className="sv-card sv-pulse">
       <div className="lbl">Pulse</div>
-      {house.pulse.slice(0, 5).map((e, i) => (
-        <div key={`${i}-${e.who}`} className="tv-ev">
+      {house.pulse.slice(0, 8).map((e, i) => (
+        <div key={`${i}-${e.who}`} className="sv-ev">
           <Dot color={`var(--${e.category})`} />
           <span><b>{e.who}</b> {e.what}</span>
           <span className="num muted">{e.at}</span>
@@ -166,15 +183,4 @@ function useMinute(): Date {
     return () => clearInterval(t)
   }, [])
   return now
-}
-
-function useStageFit() {
-  const measure = () => fitStage(window.innerWidth, window.innerHeight, STAGE.w, STAGE.h)
-  const [fit, setFit] = useState(measure)
-  useEffect(() => {
-    const onResize = () => setFit(measure())
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  return fit
 }

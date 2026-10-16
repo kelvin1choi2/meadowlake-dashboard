@@ -229,3 +229,8 @@ a.chip.link { text-decoration: none; }
 .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .btn:disabled { opacity: 0.6; cursor: default; }
 .entity-list { font-family: var(--mono); font-size: 12px; width: 100%; min-height: 220px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: var(--bg); color: var(--fg); resize: vertical; }
+
+/* Screen layout toggle, in the header */
+.views { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; }
+.view-btn { border: 0; background: none; border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+.view-btn[aria-pressed='true'] { background: var(--surface-2); color: var(--fg); }
