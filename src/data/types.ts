@@ -97,7 +97,38 @@ export interface Scene {
 }
 
 /** One-tap actions that don't change a value on screen, so they don't go through `update`. */
-export type HouseAction = { scene: Scene } | { allLightsOff: true } | { player: Player; command: PlayerCommand }
+/** The Roon ROCK server box: what its own web page shows. */
+export type Rock =
+  | { status: 'checking' }
+  | { status: 'unreachable' }
+  | {
+      status: 'up'
+      model: string
+      os: string
+      roon: 'running' | 'missing-codecs' | 'stopped'
+      roonVersion: string
+      /** Seconds. */
+      roonUptime?: number
+      uptime?: number
+      /** The ROCK's own data disk, in GB. */
+      disk?: { used: number; total: number }
+      /** An internal music drive, when one is fitted. */
+      music?: { used: number; total: number } | 'not mounted'
+      ip?: string
+      dhcp?: boolean
+      gateway?: string
+      dns?: string
+      /** Undefined when there's no CD drive. */
+      cd?: { label: string; canEject: boolean }
+    }
+
+export type RockCommand = 'restartRoon' | 'stopRoon' | 'reboot' | 'powerOff' | 'eject'
+
+export type HouseAction =
+  | { scene: Scene }
+  | { allLightsOff: true }
+  | { player: Player; command: PlayerCommand }
+  | { rock: RockCommand }
 
 export interface HouseState {
   mode: 'home' | 'away' | 'night' | 'guests'
@@ -145,6 +176,7 @@ export interface HouseState {
     }
     screens: Screen[]
     players: Player[]
+    rock: Rock
   }
   nas: {
     model: string

@@ -59,7 +59,7 @@ export function serviceCalls(before: HouseState, after: HouseState, states: Hass
 }
 
 /** The service call for a one-tap action: a scene, all lights off, or a media player control. */
-export function actionCall(action: HouseAction): ServiceCall {
+export function actionCall(action: Exclude<HouseAction, { rock: unknown }>): ServiceCall {
   if ('scene' in action) return { domain: 'scene', service: 'turn_on', entityIds: [action.scene.id] }
   if ('player' in action) {
     const { player, command } = action
