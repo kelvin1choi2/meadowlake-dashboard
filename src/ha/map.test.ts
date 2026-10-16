@@ -50,6 +50,18 @@ describe('applyEntities', () => {
     expect(onSample.length).toBe(total - linked - unavailable.length)
   })
 
+  it('counts a TV that is off the network as off, and an unwritten NAS helper as no report yet', () => {
+    const tv = entities.media.screens.find((s) => s.id === 'guest-tv')!
+    const [task] = entities.nas.tasks
+    const { house, unavailable } = applyEntities(sampleHouse, states(
+      entity(tv.entity, 'unavailable', { friendly_name: 'Samsung 6 Series (43)' }),
+      entity(task.entity, 'unknown', { friendly_name: 'NAS Roon backup' }),
+    ), now)
+    expect(unavailable).toEqual([])
+    expect(house.media.screens).toContainEqual({ id: 'guest-tv', name: tv.name, tv: true, on: false })
+    expect(house.nas.tasks[0]).toMatchObject({ name: task.name, ok: null, when: 'No report yet' })
+  })
+
   it('reads the thermostat when it is linked', () => {
     const { house } = applyEntities(sampleHouse, states(
       entity(entities.climate.thermostat, 'heat_cool', { current_temperature: 72, temperature: 70, hvac_action: 'cooling', current_humidity: 38 }),

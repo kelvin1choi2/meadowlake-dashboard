@@ -110,6 +110,14 @@ export function applyEntities(
     linked++
     return e
   }
+  /** Like get, but an unavailable or unknown state still counts as linked and is returned. */
+  const getAny = (id: string): HassEntity | undefined => {
+    total++
+    const e = states[id]
+    if (!e) onSample.push(id)
+    else linked++
+    return e
+  }
   const value = (id: string) => {
     const e = get(id)
     return e && num(e.state)
@@ -252,7 +260,8 @@ export function applyEntities(
   if (drives.length) h.nas.drives = drives
 
   const tasks = entities.nas.tasks.flatMap((t) => {
-    const e = get(t.entity)
+    // A helper the NAS hasn't written to yet reads "unknown": that's "No report yet", not a fault.
+    const e = getAny(t.entity)
     return e ? [nasTask(t, e, now)] : []
   })
   if (tasks.length) h.nas.tasks = tasks
@@ -276,8 +285,9 @@ export function applyEntities(
   if (zones.length) h.media.roon = zones
 
   const screens = entities.media.screens.flatMap((s) => {
-    const p = get(s.entity)
-    return p ? [{ id: s.id, name: s.name, tv: s.tv, on: p.state !== 'off' && p.state !== 'standby' }] : []
+    // Some TVs (the SmartThings Samsung) drop off the network when switched off.
+    const p = getAny(s.entity)
+    return p ? [{ id: s.id, name: s.name, tv: s.tv, on: !['off', 'standby', ...offline].includes(p.state) }] : []
   })
   if (screens.length) h.media.screens = screens
 
