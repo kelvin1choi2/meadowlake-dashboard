@@ -321,6 +321,20 @@ describe('NAS tasks', () => {
     expect(nasTask(t, entity(t.entity, 'ok', {}, new Date(2026, 9, 14, 2, 5)), now)).toMatchObject({ ok: true, when: 'Oct 14 2:05a' })
   })
 
+  it('uses the run time when Home Assistant asked the NAS itself', () => {
+    const ran = new Date(2026, 9, 15, 2, 40)
+    const e = entity(t.entity, `failed @${ran.getTime() / 1000}: Only partly backed up · 2 errors`, {}, new Date(2026, 9, 15, 7, 0))
+    expect(nasTask(t, e, now)).toMatchObject({ ok: false, when: 'Today 2:40a', detail: 'Only partly backed up · 2 errors' })
+    expect(nasTask(t, entity(t.entity, 'ok @0: Up to date', {}, new Date(2026, 9, 14, 9, 0)), now)).toMatchObject({ ok: true, when: 'Oct 14 9:00a' })
+  })
+
+  it('says when the NAS was last asked', () => {
+    const script = entity(entities.nas.refresh, 'off', { last_triggered: new Date(2026, 9, 15, 7, 2).toISOString() })
+    const { house, onSample } = applyEntities(sampleHouse, states(entity(t.entity, 'ok: done'), script), now)
+    expect(house.nas.tasksChecked).toBe('Today 7:02a')
+    expect(onSample).not.toContain(entities.nas.refresh)
+  })
+
   it('waits for a first report and replaces the sample tasks once any helper exists', () => {
     expect(nasTask(t, entity(t.entity, ''), now)).toMatchObject({ ok: null, when: 'No report yet' })
     const { house } = applyEntities(sampleHouse, states(entity(t.entity, 'ok: done')), now)

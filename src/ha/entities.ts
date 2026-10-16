@@ -63,8 +63,10 @@ export const entities = {
      * Backup and sync tasks. Home Assistant's Synology integration doesn't report these,
      * so the NAS sends its notifications to a Home Assistant webhook automation that keeps
      * each task's last result in a text helper as "ok: <message>" or "failed: <message>"
-     * (see docs/nas-alerts.md).
+     * (see docs/nas-alerts.md). The `refresh` script asks the NAS directly and writes the
+     * same helpers; the dashboard runs it whenever it opens, so they're current.
      */
+    refresh: 'script.nas_refresh_backups',
     tasks: [
       { name: 'RoonBackupSMB', app: 'Active Backup', entity: 'input_text.nas_roon_backup' },
       { name: 'Photos2SMB_Backup', app: 'Active Backup', entity: 'input_text.nas_photos_backup' },

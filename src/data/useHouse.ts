@@ -11,6 +11,23 @@ import { withPickups } from './pickups'
 import { sampleHouse } from './sample'
 import type { HouseAction, HouseState } from './types'
 
+/**
+ * Asks Home Assistant to fetch the NAS backup results now (docs/nas-alerts.md), so they're
+ * current whenever the dashboard is opened, reloaded or brought back on screen. Quietly
+ * does nothing if that script isn't set up.
+ */
+function refreshWhenOpened(c: Connection): () => void {
+  let last = 0
+  const refresh = () => {
+    if (document.visibilityState !== 'visible' || Date.now() - last < 60_000) return
+    last = Date.now()
+    callService(c, 'script', 'turn_on', undefined, { entity_id: entities.nas.refresh }).catch(() => {})
+  }
+  refresh()
+  document.addEventListener('visibilitychange', refresh)
+  return () => document.removeEventListener('visibilitychange', refresh)
+}
+
 export type UpdateHouse = (change: (draft: HouseState) => void) => void
 export type RunAction = (action: HouseAction) => void
 
@@ -57,6 +74,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
           watchForecast(c, entities.weather, 'daily', (daily) => setForecasts((f) => ({ ...f, daily }))),
         )
         liveConnection.current = c
+        unsubscribers.push(refreshWhenOpened(c))
       },
       () => { if (!cancelled) setConn('error') },
     )

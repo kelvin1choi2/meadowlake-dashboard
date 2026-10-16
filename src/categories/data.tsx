@@ -65,7 +65,7 @@ export const data: Category = {
           chip={<Chip tone={n.tasks.some((t) => t.ok === false) ? 'bad' : 'good'}>{n.tasks.some((t) => t.ok === false) ? 'Needs attention' : 'All OK'}</Chip>}>
           <div className="tw">
             <table>
-              <thead><tr><th>Task</th><th>App</th><th>Last report</th><th>Result</th></tr></thead>
+              <thead><tr><th>Task</th><th>App</th><th>Last run</th><th>Result</th></tr></thead>
               <tbody>
                 {n.tasks.map((t) => (
                   <tr key={t.name}>
@@ -76,6 +76,7 @@ export const data: Category = {
               </tbody>
             </table>
           </div>
+          {n.tasksChecked && <p className="checked">Checked with the NAS {n.tasksChecked}</p>}
         </Card>
         <Card color="var(--data)" title={n.model} chip={<Chip tone="good">{n.raid}</Chip>}>
           <Bar value={sumTB(n.volumes, 'usedTB') / (sumTB(n.volumes, 'totalTB') || 1)} />

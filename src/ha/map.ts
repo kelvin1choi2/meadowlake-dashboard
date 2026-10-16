@@ -265,6 +265,9 @@ export function applyEntities(
     return e ? [nasTask(t, e, now)] : []
   })
   if (tasks.length) h.nas.tasks = tasks
+  // When Home Assistant last asked the NAS for its task results (see docs/nas-alerts.md).
+  const checked = str(states[entities.nas.refresh]?.attributes.last_triggered)
+  if (checked && tasks.length) h.nas.tasksChecked = dayTime(new Date(checked), now)
 
   const zones = entities.media.roon.flatMap((z) => {
     const p = get(z.id)
@@ -369,17 +372,22 @@ function dayTime(d: Date, now: Date): string {
   return `${day} ${shortTime(d)}`
 }
 
-/** A task's last result from its text helper: "ok: <message>" or "failed: <message>". */
+/**
+ * A task's last result from its text helper: "ok: <message>" or "failed: <message>", as the
+ * NAS notification sends it, or "ok @<unix time>: <message>" when Home Assistant asked the
+ * NAS itself and knows when the task ran. Without a time, the report's time is the run's.
+ */
 export function nasTask(t: { name: string; app: string; entity: string }, e: HassEntity, now: Date): HouseState['nas']['tasks'][number] {
-  const m = /^(ok|failed)\b:?\s*(.*)$/is.exec(e.state.trim())
+  const m = /^(ok|failed)\b(?:\s*@(\d+))?:?\s*(.*)$/is.exec(e.state.trim())
   const reportId = `${e.entity_id}@${e.last_changed}`
   if (!m) return { name: t.name, app: t.app, ok: null, when: 'No report yet', reportId }
+  const ran = m[2] && Number(m[2]) > 0 ? new Date(Number(m[2]) * 1000) : new Date(e.last_changed)
   return {
     name: t.name,
     app: t.app,
     ok: m[1].toLowerCase() === 'ok',
-    when: dayTime(new Date(e.last_changed), now),
-    ...(m[2] ? { detail: m[2] } : {}),
+    when: dayTime(ran, now),
+    ...(m[3] ? { detail: m[3] } : {}),
     reportId,
   }
 }

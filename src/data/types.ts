@@ -204,6 +204,8 @@ export interface HouseState {
     lastMiss: string | null
     /** Backup and sync tasks to watch, shown first and alerted on when they fail. */
     tasks: NasTask[]
+    /** When Home Assistant last asked the NAS for these results, e.g. "Today 7:02a". */
+    tasksChecked?: string
   }
   scripts: ScriptRun[]
   macMini: { uptimeDays: number; services: { name: string; up: boolean }[] }
