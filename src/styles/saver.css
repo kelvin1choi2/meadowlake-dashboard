@@ -1,0 +1,77 @@
+/* Fixed-size stages scaled to the screen: the 16:10 view and the screensaver. */
+.stage-frame { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+.wall-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; padding: 28px 32px;
+  display: flex; flex-direction: column; justify-content: center; }
+.wall-stage .wrap { max-width: none; width: 100%; }
+
+/* Screensaver: a 2580×1080 (21:9) stage, read from across the room. Type is roughly twice the
+   tablet's; the spotlight tile reuses the tablet tile, zoomed. */
+.saver { cursor: none; transition: filter 2s; }
+.saver.night { filter: brightness(0.55); }
+.sv-hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); margin: 0; font-size: 18px;
+  color: var(--muted); animation: sv-hint 6s forwards; pointer-events: none; }
+@keyframes sv-hint { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+.sv-stage {
+  position: absolute; top: 0; left: 0; transform-origin: 0 0;
+  padding: 54px 72px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 28px;
+  font-size: 24px;
+}
+
+.sv-top { display: flex; align-items: baseline; gap: 28px; }
+.sv-top .clock .t { font-size: 96px; }
+.sv-top .clock .d { font-size: 32px; }
+.sv-mode { font-size: 22px; font-weight: 600; padding: 6px 20px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.sv-top .sample { font-size: 20px; }
+
+.sv-main { display: grid; grid-template-columns: minmax(0, 1fr) 560px 560px; gap: 28px; min-height: 0; }
+
+.tile.sv-hero { min-height: 0; padding: 36px 40px; gap: 26px; overflow: hidden; animation: sv-in 0.8s ease; }
+.sv-hero .th h2 { font-size: 52px; }
+.sv-hero .th .ico { width: 64px; height: 64px; }
+.sv-hero .th .ico svg { width: 34px; height: 34px; }
+.sv-hero .th .chip { font-size: 22px; padding: 6px 18px; border-width: 2px; }
+.sv-zoom { zoom: 2.4; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+@keyframes sv-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+.sv-side { display: flex; flex-direction: column; gap: 20px; min-height: 0; overflow: hidden; }
+.sv-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-tile); padding: 22px 26px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sv-side .alert b { font-size: 24px; }
+.sv-side .alert span { font-size: 18px; }
+.sv-wx { display: flex; align-items: center; gap: 20px; }
+.sv-wx > div { display: flex; flex-direction: column; }
+.sv-wx b { font-family: var(--display); font-size: 30px; }
+.sv-wx .muted { font-size: 20px; }
+.sv-big { font-family: var(--display); font-weight: 800; font-size: 84px; line-height: 1; color: color-mix(in oklab, var(--c) 70%, var(--fg)); }
+.sv-card .fc .d { font-size: 17px; padding: 8px 0; }
+.sv-card .fc .d b { font-size: 22px; }
+.sv-card .fc .d span { display: block; font-size: 17px; }
+.sv-side .lbl { font-size: 16px; }
+.sv-np { display: flex; gap: 18px; align-items: center; min-width: 0; }
+.sv-np .pb-art { width: 92px; height: 92px; border-radius: 18px; }
+.sv-np .pb-meta b { font-family: var(--display); font-size: 30px; }
+.sv-np .pb-meta span { font-size: 20px; }
+.sv-np .bar { --surface-2: var(--line); margin-top: 8px; }
+.sv-pulse { flex: 1; min-height: 0; overflow: hidden; }
+.sv-ev { display: flex; align-items: center; gap: 12px; font-size: 20px; color: var(--muted); min-width: 0; }
+.sv-ev > span:nth-child(2) { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sv-ev b { color: var(--fg); font-weight: 600; }
+.sv-ev .dot { width: 12px; height: 12px; }
+
+.sv-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 14px; }
+.sv-chip { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 22px;
+  background: var(--surface); border: 2px solid transparent; min-width: 0; transition: background 0.6s, border-color 0.6s; }
+.sv-chip.on { background: color-mix(in oklab, var(--c) var(--tint), #fff); border-color: var(--c); }
+.sv-chip > div { display: flex; flex-direction: column; min-width: 0; }
+.sv-chip b { font-family: var(--display); font-size: 22px; }
+.sv-chip .tone { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.sv-chip .tone.warn { color: var(--warn); }
+.sv-chip .tone.bad { color: var(--bad); }
+.sv-chip .tone.good { color: var(--good); }
+.sv-timer { position: absolute; left: 0; bottom: 0; height: 5px; width: 100%; background: var(--c); transform-origin: 0 50%; animation: sv-timer linear forwards; }
+@keyframes sv-timer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tile.sv-hero, .sv-timer { animation: none; }
+  .sv-chip { transition: none; }
+  .sv-hint { animation-duration: 0.01s; animation-delay: 4s; }
+}

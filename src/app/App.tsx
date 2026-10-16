@@ -1,7 +1,7 @@
-import { useCallback, useState, type CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { categories } from '../categories'
-import type { CategoryId } from '../data/types'
-import { useHouse, type Link } from '../data/useHouse'
+import type { CategoryId, HouseState } from '../data/types'
+import type { Link, RunAction, UpdateHouse } from '../data/useHouse'
 import { liveAllowed } from '../ha/connection'
 import { Settings } from '../ha/Settings'
 import { Chip, Icon } from '../widgets'
@@ -10,12 +10,19 @@ import { Rail } from './Rail'
 import { PlayerBar } from '../widgets/PlayerBar'
 import { Alerts } from './Alerts'
 import { Sheet } from './Sheet'
-import { Toast } from './Toast'
+import { views, type View } from './view'
 
-export function App() {
-  const [toast, setToast] = useState<{ id: number; text: string } | null>(null)
-  const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), [])
-  const { house, update, run, link } = useHouse(notify)
+export interface AppProps {
+  house: HouseState
+  update: UpdateHouse
+  run: RunAction
+  link: Link
+  notify: (message: string) => void
+  view: View
+  onView: (view: View) => void
+}
+
+export function App({ house, update, run, link, notify, view, onView }: AppProps) {
   const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
   const props = { house, update, run, notify }
   const openCategory = categories.find((c) => c.id === open)
@@ -25,6 +32,11 @@ export function App() {
       <header className="top">
         <Clock />
         <span className={`sample ${link.status}`}>{linkLabel(link)}</span>
+        <div className="views" role="group" aria-label="Screen layout">
+          {views.map((v) => (
+            <button key={v.id} className="view-btn" aria-pressed={view === v.id} onClick={() => onView(v.id)}>{v.label}</button>
+          ))}
+        </div>
         {liveAllowed && <button className="gear" onClick={() => setOpen('settings')}>Settings</button>}
       </header>
 
@@ -68,12 +80,11 @@ export function App() {
         </Sheet>
       )}
       {open === 'settings' && <Settings link={link} onClose={() => setOpen(null)} />}
-      {toast && <Toast key={toast.id} text={toast.text} onDone={() => setToast(null)} />}
     </div>
   )
 }
 
-function linkLabel(link: Link): string {
+export function linkLabel(link: Link): string {
   switch (link.status) {
     case 'sample': return 'Sample data'
     case 'connecting': return 'Connecting to Home Assistant…'
