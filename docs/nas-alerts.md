@@ -132,13 +132,15 @@ Try it: `bash nas/nas-backup-status.sh nas/dsm.conf` should print a line like
 The output has no passwords in it, so it's safe to paste into the project thread if the
 task names aren't there.
 
-Then add this to `configuration.yaml` (`nano configuration.yaml` in the same terminal) and
-restart Home Assistant (Developer tools → YAML → Check configuration, then Restart):
+Then tell Home Assistant about it by pasting this in the same terminal (it adds a
+`shell_command` entry to `configuration.yaml`, or says so if you already have one to add it to
+by hand):
 
-```yaml
-shell_command:
-  nas_backup_status: bash /config/nas/nas-backup-status.sh
+```sh
+grep -q '^shell_command:' configuration.yaml && echo "Add nas_backup_status under your existing shell_command:" || printf '\nshell_command:\n  nas_backup_status: bash /config/nas/nas-backup-status.sh\n' >> configuration.yaml
 ```
+
+and restart Home Assistant (Developer tools → YAML → Check configuration, then Restart).
 
 Then, back in Home Assistant, Settings → Automations & scenes → Scripts → Add script → ⋮ → Edit in YAML, paste this
 and save. Keep the alias: the dashboard looks for `script.nas_refresh_backups`.
