@@ -7,6 +7,7 @@ import { connectToHA, haConfig, liveAllowed, watchEntities, watchForecast } from
 import { entities } from '../ha/entities'
 import { applyEntities, type Forecasts } from '../ha/map'
 import { fetchHistory } from '../ha/history'
+import { fetchSceneUse, rankByUse } from '../ha/sceneUse'
 import { sampleHistory } from './history'
 import { useRock } from '../rock/useRock'
 import { withPickups } from './pickups'
@@ -52,6 +53,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
   const [local, setLocal] = useState<HouseState>(() => structuredClone(sampleHouse))
   const [states, setStates] = useState<HassEntities | null>(null)
   const [forecasts, setForecasts] = useState<Forecasts>({})
+  const [sceneUses, setSceneUses] = useState<Record<string, number> | null>(null)
   const [conn, setConn] = useState<'sample' | 'connecting' | 'error'>(() => (haConfig() ? 'connecting' : 'sample'))
   const liveConnection = useRef<Connection | null>(null)
   const live = useRef<{ house: HouseState; states: HassEntities } | null>(null)
@@ -87,6 +89,18 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
       liveConnection.current = null
     }
   }, [])
+
+  // How often each scene ran lately, so the Scenes tile leads with the most used. Counted
+  // again every hour, and whenever scenes are added or removed.
+  const sceneKey = states ? Object.keys(states).filter((id) => id.startsWith('scene.')).sort().join(',') : ''
+  useEffect(() => {
+    const c = liveConnection.current
+    if (!c || !sceneKey) return
+    const count = () => fetchSceneUse(c, sceneKey.split(',')).then(setSceneUses, () => {})
+    count()
+    const id = setInterval(count, 3600_000)
+    return () => clearInterval(id)
+  }, [sceneKey])
 
   const update = useCallback<UpdateHouse>((change) => {
     const c = liveConnection.current
@@ -142,6 +156,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
     const base = rock ? { ...local, media: { ...local.media, rock } } : local
     if (!states) return { house: withPickups(base, new Date()), update, run, history, link: { status: conn } as Link }
     const { house, linked, total, unavailable, onSample } = applyEntities(base, states, new Date(), forecasts)
+    if (sceneUses) house.scenes = rankByUse(house.scenes, sceneUses)
     // Artwork comes as a path on the Home Assistant server.
     const haUrl = haConfig()?.url
     for (const p of [...house.media.players, ...house.media.roon]) if (haUrl && p.art?.startsWith('/')) p.art = haUrl + p.art
@@ -152,5 +167,5 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
         .sort()
         .join('\n')
     return { house: withPickups(house, new Date()), update, run, history, link: { status: 'live', haUrl: haUrl ?? '', linked, total, unavailable, onSample, entityList } }
-  }, [local, rock, states, forecasts, conn, update, run, history])
+  }, [local, rock, states, forecasts, sceneUses, conn, update, run, history])
 }
