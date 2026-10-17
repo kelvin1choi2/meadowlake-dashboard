@@ -39,6 +39,14 @@
   --tone-mint: #6fcf97;
   --tone-dusk: #8d97bd;
 
+  /* Light preset buttons: roughly what each preset looks like */
+  --preset-relax: #f2b46a;
+  --preset-read: #f4dc9a;
+  --preset-daylight: #cfe3f7;
+  --preset-sunset: #f08a5d;
+  --preset-ocean: #4fa3d9;
+  --preset-forest: #5cb27a;
+
   /* Status, separate from category color */
   --good: #2f9168;
   --warn: #b97a22;
@@ -92,6 +100,13 @@
   --tone-teal: #6ea4a4;
   --tone-mint: #78ae8f;
   --tone-dusk: #8189a6;
+
+  --preset-relax: #c49660;
+  --preset-read: #c4b27e;
+  --preset-daylight: #9fb3c6;
+  --preset-sunset: #c07a5c;
+  --preset-ocean: #5f8fb3;
+  --preset-forest: #6a9a78;
 
   --good: #74ad8e;
   --warn: #c79a5a;

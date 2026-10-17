@@ -96,6 +96,62 @@ function NowPlayingCard({ zones }: { zones: RoonZone[] }) {
   )
 }
 
+/**
+ * Roon zones with hand-off: move what's playing to another zone, play another zone in sync
+ * with it, or split a group up again.
+ */
+function ZonesCard({ zones, run, notify }: { zones: RoonZone[]; run: RunAction; notify: (m: string) => void }) {
+  const others = (z: RoonZone) => zones.filter((o) => o.id && o.id !== z.id)
+  const pick = (z: RoonZone, verb: 'move' | 'group', to: string) => {
+    const target = zones.find((o) => o.id === to)
+    if (!z.id || !target?.id) return
+    if (verb === 'move') {
+      run({ roon: { transfer: { from: z.id, to: target.id } } })
+      notify(`Moving ${z.name} to ${target.name}`)
+    } else {
+      const members = [...zones.filter((o) => o.id && z.groupedWith?.includes(o.name)).map((o) => o.id!), target.id]
+      run({ roon: { group: { leader: z.id, members } } })
+      notify(`${target.name} joins ${z.name}`)
+    }
+  }
+  return (
+    <Card wide color="var(--media)" title="Roon zones">
+      <div className="tw">
+        <table className="zones">
+          <thead><tr><th>Zone</th><th>State</th><th>Playing</th><th>Volume</th><th>Hand off</th></tr></thead>
+          <tbody>
+            {zones.map((z) => (
+              <tr key={z.name}>
+                <td>{z.name}{z.groupedWith?.length ? <div className="sub">With {z.groupedWith.join(', ')}</div> : null}</td>
+                <td>{z.state[0].toUpperCase() + z.state.slice(1)}</td>
+                <td>{z.track ? `${z.track} · ${z.artist}` : '—'}</td>
+                <td className="num">{z.volume ?? '—'}</td>
+                <td>
+                  {z.id && z.state !== 'idle' && others(z).length > 0 && (
+                    <div className="handoff">
+                      <select aria-label={`Move ${z.name} to another zone`} value="" onChange={(e) => pick(z, 'move', e.target.value)}>
+                        <option value="">Move to…</option>
+                        {others(z).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                      </select>
+                      <select aria-label={`Play another zone with ${z.name}`} value="" onChange={(e) => pick(z, 'group', e.target.value)}>
+                        <option value="">Add zone…</option>
+                        {others(z).filter((o) => !z.groupedWith?.includes(o.name)).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {z.id && z.groupedWith?.length ? (
+                    <button className="btn sm" onClick={() => { run({ roon: { ungroup: z.id! } }); notify(`${z.name} plays on its own`) }}>Ungroup</button>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  )
+}
+
 type RockProps = { rock: HouseState['media']['rock']; run: RunAction }
 
 function rockChip(rock: RockProps['rock']) {
@@ -222,27 +278,11 @@ export const media: Category = {
       </>
     )
   },
-  Sheet: ({ house, update, run }) => (
+  Sheet: ({ house, update, run, notify }) => (
     <>
       <NowPlayingCard zones={house.media.roon} />
       <PlayerBar players={house.media.players} run={run} />
-      <Card wide color="var(--media)" title="Roon zones">
-        <div className="tw">
-          <table>
-            <thead><tr><th>Zone</th><th>State</th><th>Playing</th><th>Volume</th></tr></thead>
-            <tbody>
-              {house.media.roon.map((z) => (
-                <tr key={z.name}>
-                  <td>{z.name}</td>
-                  <td>{z.state[0].toUpperCase() + z.state.slice(1)}</td>
-                  <td>{z.track ? `${z.track} · ${z.artist}` : '—'}</td>
-                  <td className="num">{z.volume ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <ZonesCard zones={house.media.roon} run={run} notify={notify} />
       <Card color="var(--media)" title="Plex" chip={<Chip tone={house.media.plex.up ? 'good' : 'bad'}>{house.media.plex.up ? 'Server up' : 'Server down'}</Chip>}>
         <KV
           rows={[
@@ -255,6 +295,11 @@ export const media: Category = {
             ...(house.media.plex.addedThisWeek === undefined ? [] : [['Added this week', `${house.media.plex.addedThisWeek} titles`] as [string, string]]),
           ]}
         />
+        {house.media.plex.streams.filter((s) => s.player).map((s) => (
+          <button key={s.player} className="btn" onClick={() => { run({ plexToggle: s.player! }); notify(`${s.paused ? 'Resuming' : 'Pausing'} ${s.title}`) }}>
+            {s.paused ? 'Resume' : 'Pause'} on {s.client}
+          </button>
+        ))}
       </Card>
       <Card color="var(--media)" title="Screens">
         {house.media.screens.map((s, i) => (

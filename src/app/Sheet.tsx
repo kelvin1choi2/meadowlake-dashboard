@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { CategoryId } from '../data/types'
 import { Icon } from '../widgets'
 
-export function Sheet({ id, title, onClose, apps, children }: { id?: CategoryId; title: string; onClose: () => void; apps?: ReactNode[]; children: ReactNode }) {
+export function Sheet({ id, title, onClose, apps, small, children }: { id?: CategoryId; title: string; onClose: () => void; apps?: ReactNode[]; small?: boolean; children: ReactNode }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
@@ -17,7 +17,7 @@ export function Sheet({ id, title, onClose, apps, children }: { id?: CategoryId;
 
   return (
     <div className="scrim" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={title} style={id ? ({ '--c': `var(--${id})` } as CSSProperties) : undefined}>
+      <div className={`sheet${small ? ' small' : ''}`} role="dialog" aria-modal="true" aria-label={title} style={id ? ({ '--c': `var(--${id})` } as CSSProperties) : undefined}>
         <div className="sh">
           {id && <Icon id={id} />}
           <h2>{title}</h2>

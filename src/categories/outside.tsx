@@ -30,7 +30,7 @@ export const outside: Category = {
       </>
     )
   },
-  Sheet: ({ house, update }) => {
+  Sheet: ({ house, update, run, notify }) => {
     const w = house.weather
     const ir = house.irrigation
     const shouldWater = !ir.rainSkip && ir.rain48hIn < 0.25
@@ -49,8 +49,23 @@ export const outside: Category = {
         </Card>
         <Card color="var(--outside)" title="Rachio" chip={<Chip tone="neutral">Rain skip {ir.rainSkip ? 'on' : 'off'}</Chip>}>
           <KV rows={[...ir.zones.map((z): [string, string] => [z.name, `${z.next} · ${z.minutes}m`]), ['Rain, last 48h', `${ir.rain48hIn.toFixed(2)} in`]]} />
+          <Toggle label="Skip watering for 24 hours" on={ir.rainSkip} onChange={(on) => update((h) => { h.irrigation.rainSkip = on })} />
           <Idea>Should I water? {shouldWater ? 'Yes. It has been dry.' : 'No. Recent rain or rain skip is on.'}</Idea>
         </Card>
+        {ir.valves.length > 0 && (
+          <Card color="var(--outside)" title="Water a zone now" chip={ir.valves.some((v) => v.running) ? <Chip tone="good">Watering</Chip> : undefined}>
+            <div className="list valves">
+              {ir.valves.map((v) => (
+                <div key={v.id}>
+                  <Dot color={v.running ? 'var(--good)' : 'var(--outside)'} />{v.name}
+                  {v.running
+                    ? <button className="btn sm" onClick={() => { run({ water: { valve: v.id, minutes: 0 } }); notify(`Stopping ${v.name}`) }}>Stop</button>
+                    : <button className="btn sm" onClick={() => { run({ water: { valve: v.id, minutes: 10 } }); notify(`Watering ${v.name} for 10 minutes`) }}>Water 10 min</button>}
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
         <Card title="Air & sky">
           <KV rows={([
             ['Air quality', w.aqi === undefined ? undefined : `${w.aqi} Good`],

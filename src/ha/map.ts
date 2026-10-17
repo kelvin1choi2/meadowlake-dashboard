@@ -82,6 +82,38 @@ export function roomLights(states: HassEntities, prefix: string): HassEntity[] {
   return Object.values(states).filter((e) => e.entity_id.startsWith(prefix) && !isGroup(e) && !offline.has(e.state))
 }
 
+const colorModes = new Set(['hs', 'xy', 'rgb', 'rgbw', 'rgbww'])
+
+/** How bright a room's lights are (the average of those on, 1–100) and whether any can show colours. */
+export function lightLook(lights: HassEntity[]): { brightness?: number; color?: boolean } {
+  const levels = lights.flatMap((e) => {
+    const b = num(e.attributes.brightness)
+    return e.state === 'on' && b !== undefined ? [b] : []
+  })
+  const color = lights.some((e) => Array.isArray(e.attributes.supported_color_modes)
+    && (e.attributes.supported_color_modes as unknown[]).some((m) => colorModes.has(String(m))))
+  return {
+    ...(levels.length ? { brightness: Math.max(1, Math.round((levels.reduce((a, b) => a + b, 0) / levels.length / 255) * 100)) } : {}),
+    ...(color ? { color } : {}),
+  }
+}
+
+/** Rachio zones, in zone order, named as Home Assistant names them. */
+export function valvesFrom(states: HassEntities): HouseState['irrigation']['valves'] {
+  const prefix = entities.irrigation.zonePrefix
+  return Object.values(states)
+    .flatMap((e) => {
+      const n = e.entity_id.startsWith(prefix) ? /^(\d+)_/.exec(e.entity_id.slice(prefix.length))?.[1] : undefined
+      if (!n || offline.has(e.state)) return []
+      return [{ n: Number(n), valve: { id: e.entity_id, name: String(e.attributes.friendly_name ?? e.entity_id), running: e.state === 'on' } }]
+    })
+    .sort((a, b) => a.n - b.n)
+    .map((v) => v.valve)
+}
+
+const heaterModes: Record<string, string> = { eco: 'Energy Saver', heat_pump: 'Heat pump', high_demand: 'High demand', electric: 'Electric', gas: 'Gas', performance: 'Performance' }
+const heaterMode = (id: string) => heaterModes[id] ?? label(id)
+
 export interface Forecasts {
   hourly?: ForecastEntry[]
   daily?: ForecastEntry[]
@@ -159,7 +191,7 @@ export function applyEntities(
     }
     linked++
     const lightsOn = lights.filter((e) => e.state === 'on').length
-    return [{ id: r.id, name: r.name, ...sensed, lightsOn, lightsTotal: lights.length }]
+    return [{ id: r.id, name: r.name, ...sensed, lightsOn, lightsTotal: lights.length, ...lightLook(lights) }]
   })
   const listed = new Set(entities.rooms.map((r) => r.sensor))
   for (const e of Object.values(states)) {
@@ -232,6 +264,8 @@ export function applyEntities(
 
   const rain = get(entities.irrigation.rainDelay)
   if (rain) h.irrigation.rainSkip = rain.state === 'on'
+  const valves = valvesFrom(states)
+  if (valves.length) h.irrigation.valves = valves
 
   // DSM reports used space and percent used; the size is worked out from the two.
   const volumes = entities.nas.volumes.flatMap((v) => {
@@ -269,14 +303,19 @@ export function applyEntities(
   const checked = str(states[entities.nas.refresh]?.attributes.last_triggered)
   if (checked && tasks.length) h.nas.tasksChecked = dayTime(new Date(checked), now)
 
+  const roonName = new Map(entities.media.roon.map((z) => [z.id, z.name]))
   const zones = entities.media.roon.flatMap((z) => {
     const p = get(z.id)
     if (!p) return []
+    const members = Array.isArray(p.attributes.group_members) ? (p.attributes.group_members as unknown[]).map(String) : []
+    const groupedWith = members.filter((m) => m !== z.id).map((m) => roonName.get(m) ?? String(states[m]?.attributes.friendly_name ?? m))
     const vl = num(p.attributes.volume_level)
     const pos = num(p.attributes.media_position)
     const dur = num(p.attributes.media_duration)
     return [{
+      id: z.id,
       name: z.name,
+      ...(groupedWith.length ? { groupedWith } : {}),
       state: p.state === 'playing' ? 'playing' as const : p.state === 'paused' ? 'paused' as const : 'idle' as const,
       track: str(p.attributes.media_title),
       artist: str(p.attributes.media_artist),
@@ -314,7 +353,7 @@ export function applyEntities(
         ? []
         : Object.entries(plex.attributes)
             .filter(([k, v]) => !meta.has(k) && typeof v === 'string')
-            .map(([k, v]) => ({ client: k.split(' - ').at(-1) ?? k, title: v as string })),
+            .map(([k, v]) => plexStream(states, k.split(' - ').at(-1) ?? k, v as string)),
       addedThisWeek: undefined,
     }
   }
@@ -324,10 +363,15 @@ export function applyEntities(
 
   const wh = get(entities.appliances.waterHeater)
   if (wh) {
-    h.appliances.waterHeater.mode = label(wh.state)
     h.appliances.waterHeater.setpointF = num(wh.attributes.temperature) ?? h.appliances.waterHeater.setpointF
     const away = str(wh.attributes.away_mode)
     if (away) h.appliances.waterHeater.vacation = away === 'on'
+    h.appliances.waterHeater.mode = heaterMode(wh.state)
+    const list = Array.isArray(wh.attributes.operation_list) ? (wh.attributes.operation_list as unknown[]).map(String) : []
+    // Off is left out: a cold shower shouldn't be one tap away.
+    const modes = list.filter((m) => m !== 'off').map((id) => ({ id, label: heaterMode(id) }))
+    h.appliances.waterHeater.modes = modes.length ? modes : undefined
+    h.appliances.waterHeater.modeId = wh.state
   }
   const hot = value(entities.appliances.hotWaterPct)
   if (hot !== undefined) h.appliances.waterHeater.availablePct = Math.round(hot)
@@ -363,6 +407,20 @@ export function applyEntities(
   if (linked) h.pulse = pulseFrom(states, now)
 
   return { house: h, linked, total, unavailable, onSample }
+}
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+
+/**
+ * A Plex stream, with the Plex player it's on when Home Assistant has one, so it can be
+ * paused. Players are found by the device name in their entity or friendly name.
+ */
+export function plexStream(states: HassEntities, client: string, title: string): HouseState['media']['plex']['streams'][number] {
+  const players = Object.values(states).filter((e) => e.entity_id.startsWith('media_player.plex_') && !offline.has(e.state))
+  const want = slug(client)
+  const match = players.find((e) => want && (e.entity_id.includes(want) || slug(String(e.attributes.friendly_name ?? '')).includes(want)))
+    ?? (players.filter((e) => e.state === 'playing' || e.state === 'paused').length === 1 ? players.find((e) => e.state === 'playing' || e.state === 'paused') : undefined)
+  return match ? { client, title, player: match.entity_id, paused: match.state === 'paused' } : { client, title }
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

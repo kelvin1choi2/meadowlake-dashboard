@@ -5,12 +5,12 @@ export const sampleHouse: HouseState = {
   mode: 'home',
   climate: { currentF: 71, setpointF: 69, mode: 'Heat', action: 'Idle', humidity: 41, comfort: 'Home', filterDays: 12 },
   rooms: [
-    { id: 'living', name: 'Living', tempF: 71, occupied: true, lightsOn: 3, lightsTotal: 5, fan: true },
-    { id: 'kitchen', name: 'Kitchen', tempF: 72, occupied: true, lightsOn: 2, lightsTotal: 4 },
+    { id: 'living', name: 'Living', tempF: 71, occupied: true, lightsOn: 3, lightsTotal: 5, brightness: 80, color: true, fan: true },
+    { id: 'kitchen', name: 'Kitchen', tempF: 72, occupied: true, lightsOn: 2, lightsTotal: 4, brightness: 100 },
     { id: 'office', name: 'Office', tempF: 69, occupied: false, lightsOn: 0, lightsTotal: 3 },
     { id: 'primary', name: 'Primary', tempF: 67, occupied: false, lightsOn: 0, lightsTotal: 4, fan: false },
     { id: 'guest', name: 'Guest', tempF: 65, occupied: false, lightsOn: 0, lightsTotal: 2 },
-    { id: 'den', name: 'Den', tempF: 70, occupied: false, lightsOn: 1, lightsTotal: 4 },
+    { id: 'den', name: 'Den', tempF: 70, occupied: false, lightsOn: 1, lightsTotal: 4, brightness: 40, color: true },
   ],
   weather: {
     tempF: 61,
@@ -52,15 +52,20 @@ export const sampleHouse: HouseState = {
       { name: 'Back lawn', next: 'Sat 6:18a', minutes: 22 },
       { name: 'Beds (drip)', next: 'Sat 6:40a', minutes: 30 },
     ],
+    valves: [
+      { id: 'sample-zone-1', name: 'Front lawn', running: false },
+      { id: 'sample-zone-2', name: 'Back lawn', running: false },
+      { id: 'sample-zone-3', name: 'Beds (drip)', running: false },
+    ],
   },
   media: {
     roon: [
-      { name: 'Linn Klimax DSM', state: 'playing', track: 'So What', artist: 'Miles Davis', album: 'Kind of Blue', volume: '−24 dB', progress: 0.38 },
-      { name: 'Ayre QX-5', state: 'idle' },
-      { name: 'Kitchen HomePod', state: 'idle', volume: '35' },
-      { name: 'Office Mac', state: 'paused', track: 'Blue in Green', artist: 'Miles Davis', album: 'Kind of Blue', volume: '40' },
+      { id: 'sample-linn', name: 'Linn Klimax DSM', state: 'playing', track: 'So What', artist: 'Miles Davis', album: 'Kind of Blue', volume: '−24 dB', progress: 0.38 },
+      { id: 'sample-ayre', name: 'Ayre QX-5', state: 'idle' },
+      { id: 'sample-homepod', name: 'Kitchen HomePod', state: 'idle', volume: '35' },
+      { id: 'sample-office', name: 'Office Mac', state: 'paused', track: 'Blue in Green', artist: 'Miles Davis', album: 'Kind of Blue', volume: '40' },
     ],
-    plex: { up: true, streams: [{ client: 'Den Apple TV', title: 'Shōgun S1E4', transcoding: false }], addedThisWeek: 7 },
+    plex: { up: true, streams: [{ client: 'Den Apple TV', title: 'Shōgun S1E4', transcoding: false, player: 'sample-plex', paused: false }], addedThisWeek: 7 },
     screens: [
       { id: 'lg', name: 'LG OLED (living)', on: false, tv: true },
       { id: 'sony', name: 'Sony OLED (den)', on: false, tv: true },
@@ -129,7 +134,14 @@ export const sampleHouse: HouseState = {
   appliances: {
     washer: { state: 'Rinse', cycle: 'Normal · Warm', minutesLeft: 23, progress: 0.64, doneAt: '9:05a' },
     range: { oven: 'Off', cooktop: 'All burners off', lastUsed: 'Yesterday 6:40p' },
-    waterHeater: { setpointF: 120, mode: 'Energy Saver', availablePct: 90, vacation: false },
+    waterHeater: {
+      setpointF: 120,
+      mode: 'Energy Saver',
+      availablePct: 90,
+      vacation: false,
+      modes: [{ id: 'eco', label: 'Energy Saver' }, { id: 'heat_pump', label: 'Heat pump' }, { id: 'high_demand', label: 'High demand' }, { id: 'electric', label: 'Electric' }],
+      modeId: 'eco',
+    },
   },
   safety: {
     garage: { open: false, since: '7:43a' },

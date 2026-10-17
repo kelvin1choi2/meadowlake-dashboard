@@ -308,3 +308,53 @@ a.chip.link { text-decoration: none; }
   background: var(--ac); color: var(--on-hue); font: 700 10.5px/1 var(--body); letter-spacing: 0.02em;
 }
 @media (prefers-reduced-motion: reduce) { img.nowp-art { animation: none; } }
+
+/* Controls on tiles and in sheets */
+button.room { border: 1px solid transparent; text-align: left; cursor: pointer; position: relative; font: inherit; color: inherit;
+  -webkit-touch-callout: none; user-select: none; touch-action: manipulation; }
+button.room:hover { border-color: color-mix(in oklab, var(--tc) 70%, var(--fg)); }
+.room .bulb { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--faint); }
+.room.lit .bulb { background: var(--tone-sun); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone-sun) 35%, transparent); }
+.tile-therm { display: flex; align-items: center; gap: 8px; }
+.step.sm { width: 34px; height: 34px; font-size: 18px; line-height: 1; flex: none; background: var(--surface); }
+.holdable { -webkit-touch-callout: none; user-select: none; }
+.dimmer { display: grid; grid-template-columns: auto minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 14px; }
+.dimmer .num { text-align: right; font-size: 13px; color: var(--muted); }
+.dimmer input { width: 100%; height: 8px; margin: 0; appearance: none; -webkit-appearance: none; border-radius: 99px; cursor: pointer;
+  background: linear-gradient(to right, var(--c) var(--fill), var(--surface-2) var(--fill)); box-shadow: inset 0 0 0 1px var(--line); }
+.dimmer input::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); border: 2px solid var(--c); }
+.dimmer input::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--c); }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.preset { border: 1px solid color-mix(in srgb, var(--pc) 60%, var(--line)); background: color-mix(in srgb, var(--pc) 30%, var(--surface));
+  border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.preset:hover { background: color-mix(in srgb, var(--pc) 50%, var(--surface)); }
+.seg { display: flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 14px; background: var(--surface-2); }
+.seg button { flex: 1 1 auto; border: 0; background: none; border-radius: 11px; padding: 7px 10px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed='true'] { background: var(--surface); color: var(--fg); box-shadow: 0 0 0 1.5px var(--c); }
+.btn.sm { padding: 5px 12px; font-size: 13px; }
+a.btn { color: inherit; text-decoration: none; white-space: nowrap; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.list .btn { margin-left: auto; }
+.linkish { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: inherit; }
+.linkish:hover, button.room-temp:hover { text-decoration: underline; text-decoration-color: var(--faint); }
+button.room-temp { border: 0; background: none; padding: 0; cursor: pointer; display: inline-flex; align-items: baseline; gap: 6px; }
+.chart-hint { font: 600 10px/1 var(--body); letter-spacing: 0.06em; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px; vertical-align: middle; }
+.handoff { display: flex; gap: 6px; }
+.handoff select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+table.zones td { vertical-align: top; }
+.valves > div { min-height: 34px; }
+.leaving { font-size: 14px; gap: 8px; }
+.leaving-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.sheet.small { width: min(720px, 100%); }
+
+/* Alerts come in three tones; red stays for failures and leaks */
+.alert.warn { background: color-mix(in srgb, var(--warn) 14%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 45%, var(--surface)); }
+.alert.warn b { color: var(--warn); }
+.alert.neutral { background: color-mix(in srgb, var(--appliances) 16%, var(--surface)); border-color: color-mix(in srgb, var(--appliances) 45%, var(--surface)); }
+.alert.neutral b { color: var(--fg); }
+.alert > .alert-btns { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; gap: 8px; flex: none; max-width: 60%; }
+@media (max-width: 600px) {
+  .alert { flex-wrap: wrap; }
+  .alert > .alert-btns { max-width: none; justify-content: flex-start; }
+  .handoff { flex-direction: column; }
+}

@@ -21,10 +21,16 @@ export interface Room {
   occupied: boolean
   lightsOn: number
   lightsTotal: number
+  /** 1–100, the average of the lights that are on. Missing when they're all off or it isn't known. */
+  brightness?: number
+  /** Some of the room's lights can show colours, not just shades of white. */
+  color?: boolean
   fan?: boolean
 }
 
 export interface RoonZone {
+  /** Opaque id the dashboard uses to move or group playback; missing on sample zones without one. */
+  id?: string
   name: string
   state: 'playing' | 'paused' | 'idle'
   track?: string
@@ -34,6 +40,8 @@ export interface RoonZone {
   progress?: number
   /** Cover art URL. */
   art?: string
+  /** Names of the other zones playing in sync with this one. */
+  groupedWith?: string[]
 }
 
 export interface Screen {
@@ -107,7 +115,6 @@ export interface Scene {
   favorite?: number
 }
 
-/** One-tap actions that don't change a value on screen, so they don't go through `update`. */
 /** The Roon ROCK server box: what its own web page shows. */
 export type Rock =
   | { status: 'checking' }
@@ -135,11 +142,33 @@ export type Rock =
 
 export type RockCommand = 'restartRoon' | 'stopRoon' | 'reboot' | 'powerOff' | 'eject'
 
+/** Looks a room's lights can be set to in one tap. The first three are shades of white. */
+export type LightPreset = 'relax' | 'read' | 'daylight' | 'sunset' | 'ocean' | 'forest'
+
+export type RoonCommand =
+  | { transfer: { from: string; to: string } }
+  | { group: { leader: string; members: string[] } }
+  | { ungroup: string }
+
+/** One-tap actions that don't change a value on screen, so they don't go through `update`. */
 export type HouseAction =
   | { scene: Scene }
   | { allLightsOff: true }
   | { player: Player; command: PlayerCommand }
   | { rock: RockCommand }
+  | { lights: { room: string; preset: LightPreset } }
+  | { vacuum: 'start' | 'dock' }
+  | { water: { valve: string; minutes: number } }
+  | { waterHeaterMode: string }
+  | { roon: RoonCommand }
+  /** Pauses or resumes a Plex stream, by the stream's `player`. */
+  | { plexToggle: string }
+
+/** Something the dashboard can chart over the last day. */
+export type HistoryKey = { room: string } | { hotWater: true } | { volume: string }
+
+/** Readings over the last day, oldest first; null when there's no history to show. */
+export type FetchHistory = (key: HistoryKey) => Promise<{ at: Date; value: number }[] | null>
 
 export interface HouseState {
   mode: 'home' | 'away' | 'night' | 'guests'
@@ -176,13 +205,16 @@ export interface HouseState {
     rainSkip: boolean
     rain48hIn: number
     zones: { name: string; next: string; minutes: number }[]
+    /** Zones that can be watered from the dashboard. */
+    valves: { id: string; name: string; running: boolean }[]
   }
   media: {
     roon: RoonZone[]
     plex: {
       up: boolean
       /** Transcoding and new titles come from sample data only; Home Assistant doesn't report them. */
-      streams: { client: string; title: string; transcoding?: boolean }[]
+      /** `player` is set when the dashboard can pause or resume that stream. */
+      streams: { client: string; title: string; transcoding?: boolean; player?: string; paused?: boolean }[]
       addedThisWeek?: number
     }
     screens: Screen[]
@@ -214,7 +246,15 @@ export interface HouseState {
   appliances: {
     washer: { state: string; cycle: string; minutesLeft: number; progress: number; doneAt: string }
     range: { oven: string; cooktop: string; lastUsed: string }
-    waterHeater: { setpointF: number; mode: string; availablePct: number; vacation: boolean }
+    waterHeater: {
+      setpointF: number
+      mode: string
+      availablePct: number
+      vacation: boolean
+      /** Modes it can switch to, when known. `id` is what the heater calls it. */
+      modes?: { id: string; label: string }[]
+      modeId?: string
+    }
   }
   safety: {
     /** `since` is when the door last opened or closed. */

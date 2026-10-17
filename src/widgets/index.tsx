@@ -1,6 +1,7 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import type { CategoryId, Tone } from '../data/types'
 import { ringDash, sparkGeometry } from './geometry'
+import { useHold } from './useHold'
 
 const iconPaths: Record<CategoryId, ReactNode> = {
   inside: <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -90,10 +91,13 @@ export function Sparkline({
   points,
   color,
   label,
+  unit = '°',
 }: {
   points: { label: string; value: number }[]
   color: string
   label: string
+  /** After each axis value. */
+  unit?: string
 }) {
   const g = sparkGeometry(points.map((p) => p.value))
   return (
@@ -101,7 +105,7 @@ export function Sparkline({
       {g.gridLines.map((line) => (
         <g key={line.value}>
           <line x1={g.left} x2={g.right} y1={line.y} y2={line.y} stroke="var(--line)" />
-          <text x={g.left - 6} y={line.y + 4} textAnchor="end" className="axis">{line.value}°</text>
+          <text x={g.left - 6} y={line.y + 4} textAnchor="end" className="axis">{line.value}{unit}</text>
         </g>
       ))}
       {points.map((p, i) =>
@@ -175,5 +179,59 @@ export function AppLink({ href, name, mark, color }: { href: string; name: strin
       <span>{name}</span>
       <span className="arrow" aria-hidden="true">↗</span>
     </a>
+  )
+}
+
+/**
+ * A brightness slider, 1–100%. It follows the finger, and sends the level once it's let go,
+ * so dragging doesn't flood Home Assistant with calls.
+ */
+export function Dimmer({ value, label, onCommit }: { value: number; label: string; onCommit: (value: number) => void }) {
+  const [v, setV] = useState(value)
+  const [dragging, setDragging] = useState(false)
+  useEffect(() => { if (!dragging) setV(value) }, [value, dragging])
+  const commit = () => { setDragging(false); if (v !== value) onCommit(v) }
+  return (
+    <label className="dimmer">
+      <span>{label}</span>
+      <input type="range" min={1} max={100} value={v} aria-label={label}
+        onPointerDown={() => setDragging(true)}
+        onChange={(e) => setV(Number(e.target.value))}
+        onPointerUp={commit}
+        onKeyUp={commit}
+        onBlur={() => dragging && commit()}
+        style={{ '--fill': `${v}%` } as CSSProperties} />
+      <span className="num">{v}%</span>
+    </label>
+  )
+}
+
+/** A row of choices with one picked, e.g. water heater modes. */
+export function Segmented<T extends string>({ label, options, value, onChange }: {
+  label: string
+  options: { id: T; label: string }[]
+  value?: T
+  onChange: (id: T) => void
+}) {
+  return (
+    <div className="seg" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.id} type="button" aria-pressed={o.id === value} onClick={() => o.id !== value && onChange(o.id)}>{o.label}</button>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Wraps part of a tappable tile so pressing and holding it does `onHold` (e.g. opens a chart)
+ * instead of opening the tile. A quick tap still opens the tile as usual.
+ */
+export function Holdable({ onHold, className, children }: { onHold: () => void; className?: string; children: ReactNode }) {
+  const { handlers, wasHeld } = useHold(onHold)
+  return (
+    <div className={`holdable${className ? ` ${className}` : ''}`} {...handlers}
+      onClickCapture={(e) => { if (wasHeld()) { e.stopPropagation(); e.preventDefault() } }}>
+      {children}
+    </div>
   )
 }
