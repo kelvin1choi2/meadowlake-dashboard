@@ -113,8 +113,8 @@ export interface Scene {
   room: string
   /** Position on the Scenes tile; scenes without one are only in the full list. */
   favorite?: number
-  /** Times it ran in the last 10 days, when Home Assistant's history is available. */
-  uses?: number
+  /** Position among its room's buttons in the Inside sheet; unpinned scenes aren't shown there. */
+  pinned?: number
 }
 
 /** The Roon ROCK server box: what its own web page shows. */
