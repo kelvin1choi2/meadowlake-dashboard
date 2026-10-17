@@ -21,12 +21,17 @@ export const chores: Category = {
       </div>
     )
   },
-  Sheet: ({ house, update }) => {
+  Sheet: ({ house, update, run, notify }) => {
     const v = house.chores.robovac
+    const cleaning = /clean|run/i.test(v.state)
     return (
       <>
         <Card color="var(--chores)" title="Robovac" chip={<Chip tone="neutral">{v.state}</Chip>}>
           <KV rows={[['Battery', `${v.battery}%`], ['Last clean', v.lastClean], ...(v.next ? [['Next', v.next] as [string, string]] : [])]} />
+          <div className="btn-row">
+            <button className="btn" disabled={cleaning} onClick={() => { run({ vacuum: 'start' }); notify('Robovac starting') }}>Start cleaning</button>
+            <button className="btn" disabled={/dock|charg/i.test(v.state)} onClick={() => { run({ vacuum: 'dock' }); notify('Robovac heading home') }}>Send to dock</button>
+          </div>
           <Toggle label="Run when everyone leaves" on={v.runWhenAway} onChange={(on) => update((h) => { h.chores.robovac.runWhenAway = on })} />
         </Card>
         <Card color="var(--chores)" title="Upkeep">

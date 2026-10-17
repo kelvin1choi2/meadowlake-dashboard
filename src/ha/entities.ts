@@ -47,7 +47,10 @@ export const entities = {
     ],
   },
   irrigation: {
+    /** On = Rachio skips watering for the next 24 hours. */
     rainDelay: 'switch.meadowlake_rachio_rain_delay',
+    /** Zone switches are named <prefix><zone number>_<name>, e.g. switch.meadowlake_rachio_1_front_one. */
+    zonePrefix: 'switch.meadowlake_rachio_',
   },
   nas: {
     volumes: [1, 2, 3].map((n) => ({

@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Connection, HassEntities } from 'home-assistant-js-websocket'
 import { callService } from 'home-assistant-js-websocket'
-import { actionCall, serviceCalls } from '../ha/actions'
+import { actionCalls, serviceCalls } from '../ha/actions'
 import { roonRockUrl } from '../config/home'
 import { connectToHA, haConfig, liveAllowed, watchEntities, watchForecast } from '../ha/connection'
 import { entities } from '../ha/entities'
 import { applyEntities, type Forecasts } from '../ha/map'
+import { fetchHistory } from '../ha/history'
+import { sampleHistory } from './history'
 import { useRock } from '../rock/useRock'
 import { withPickups } from './pickups'
 import { sampleHouse } from './sample'
-import type { HouseAction, HouseState } from './types'
+import type { FetchHistory, HouseAction, HouseState } from './types'
 
 /**
  * Asks Home Assistant to fetch the NAS backup results now (docs/nas-alerts.md), so they're
@@ -46,7 +48,7 @@ export type Link =
  * While connected, `update` also sends the change to Home Assistant (see ha/actions.ts),
  * and the new state comes back through the subscription.
  */
-export function useHouse(onError?: (message: string) => void): { house: HouseState; update: UpdateHouse; run: RunAction; link: Link } {
+export function useHouse(onError?: (message: string) => void): { house: HouseState; update: UpdateHouse; run: RunAction; history: FetchHistory; link: Link } {
   const [local, setLocal] = useState<HouseState>(() => structuredClone(sampleHouse))
   const [states, setStates] = useState<HassEntities | null>(null)
   const [forecasts, setForecasts] = useState<Forecasts>({})
@@ -106,7 +108,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
   }, [])
 
   /**
-   * Runs a scene, a player command, all lights off, or a ROCK command.
+   * Runs a one-tap action (see actionCalls), or a ROCK command.
    * Without Home Assistant (or, for the ROCK, off the home dashboard) it only explains why nothing happened.
    */
   const run = useCallback<RunAction>((action) => {
@@ -120,15 +122,25 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
       errorRef.current?.('This works once Home Assistant is connected.')
       return
     }
-    const call = actionCall(action)
-    callService(c, call.domain, call.service, call.data, { entity_id: call.entityIds }).catch(() =>
-      errorRef.current?.("Home Assistant didn't accept that."),
-    )
+    const calls = actionCalls(action, live.current?.states)
+    if (!calls.length) return errorRef.current?.("Home Assistant doesn't have anything to do that with.")
+    for (const call of calls) {
+      callService(c, call.domain, call.service, call.data, { entity_id: call.entityIds }).catch(() =>
+        errorRef.current?.("Home Assistant didn't accept that."),
+      )
+    }
   }, [sendRock])
+
+  /** The last day of readings for a chart: from Home Assistant when connected, else made up. */
+  const history = useCallback<FetchHistory>(async (key) => {
+    const c = liveConnection.current
+    if (!c) return haConfig() ? null : sampleHistory(key, new Date())
+    return fetchHistory(c, key).catch(() => null)
+  }, [])
 
   return useMemo(() => {
     const base = rock ? { ...local, media: { ...local.media, rock } } : local
-    if (!states) return { house: withPickups(base, new Date()), update, run, link: { status: conn } as Link }
+    if (!states) return { house: withPickups(base, new Date()), update, run, history, link: { status: conn } as Link }
     const { house, linked, total, unavailable, onSample } = applyEntities(base, states, new Date(), forecasts)
     // Artwork comes as a path on the Home Assistant server.
     const haUrl = haConfig()?.url
@@ -139,6 +151,6 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
         .map((e) => `${e.entity_id}  ${String(e.attributes.friendly_name ?? '')}`.trimEnd())
         .sort()
         .join('\n')
-    return { house: withPickups(house, new Date()), update, run, link: { status: 'live', haUrl: haUrl ?? '', linked, total, unavailable, onSample, entityList } }
-  }, [local, rock, states, forecasts, conn, update, run])
+    return { house: withPickups(house, new Date()), update, run, history, link: { status: 'live', haUrl: haUrl ?? '', linked, total, unavailable, onSample, entityList } }
+  }, [local, rock, states, forecasts, conn, update, run, history])
 }

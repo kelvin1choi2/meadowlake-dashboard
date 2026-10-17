@@ -1,14 +1,16 @@
-import { Bar, Card, Chip, Dot, KV, Ring } from '../widgets'
+import type { ReactNode } from 'react'
+import { Bar, Card, Chip, Dot, Holdable, KV, Ring } from '../widgets'
 import type { NasTask, NasVolume } from '../data/types'
-import type { Category } from './types'
+import { NEARLY_FULL } from '../app/alerts'
+import type { Category, HistoryChart } from './types'
 
 const taskColor = (t: NasTask) => (t.ok === null ? 'var(--faint)' : t.ok ? 'var(--good)' : 'var(--bad)')
-/** A volume this full turns amber and is named in the tile's chip. */
-const NEARLY_FULL = 0.85
 const usedShare = (v: NasVolume) => (v.totalTB ? v.usedTB / v.totalTB : 0)
 const nearlyFull = (v: NasVolume) => usedShare(v) >= NEARLY_FULL
 const freeTB = (v: NasVolume) => Math.max(0, v.totalTB - v.usedTB).toFixed(1)
 const sumTB = (vs: NasVolume[], k: 'usedTB' | 'totalTB') => Math.round(vs.reduce((a, v) => a + v[k], 0) * 10) / 10
+
+const volumeChart = (v: NasVolume): HistoryChart => ({ category: 'data', key: { volume: v.name }, title: `${v.name} space used`, unit: '%' })
 
 const taskResult = (t: NasTask) => (t.ok === null ? 'Waiting' : t.ok ? 'OK' : 'Failed')
 
@@ -25,18 +27,18 @@ export const data: Category = {
     const late = h.scripts.filter((s) => s.status !== 'ok').length
     return late ? { tone: 'warn', label: `${late} script${late > 1 ? 's' : ''} late` } : { tone: 'good', label: 'All good' }
   },
-  Tile: ({ house }) => {
+  Tile: ({ house, showHistory }) => {
     const n = house.nas
     const ok = house.scripts.filter((s) => s.status === 'ok').length
     return (
       <div className="vols">
         <div className="vol-rings">
           {n.volumes.map((v) => (
-            <div key={v.name}>
+            <Holdable key={v.name} onHold={() => showHistory(volumeChart(v))}>
               <Ring value={usedShare(v)} color={nearlyFull(v) ? 'var(--warn)' : 'var(--data)'} />
               <b>{v.name}</b>
               <span className="num">{v.usedTB} / {v.totalTB} TB</span>
-            </div>
+            </Holdable>
           ))}
         </div>
         <div className="vol-free">
@@ -57,7 +59,7 @@ export const data: Category = {
       </div>
     )
   },
-  Sheet: ({ house }) => {
+  Sheet: ({ house, showHistory }) => {
     const n = house.nas
     return (
       <>
@@ -80,7 +82,11 @@ export const data: Category = {
         </Card>
         <Card color="var(--data)" title={n.model} chip={<Chip tone="good">{n.raid}</Chip>}>
           <Bar value={sumTB(n.volumes, 'usedTB') / (sumTB(n.volumes, 'totalTB') || 1)} />
-          <KV rows={[...n.volumes.map((v): [string, string] => [v.name, `${v.usedTB} / ${v.totalTB} TB${v.status ? ` · ${v.status}` : ''}`]), ['CPU / RAM', `${n.cpuPct}% / ${n.ramPct}%`], ['Uptime', `${n.uptimeDays} days`], ['DSM', n.dsm]]} />
+          <KV rows={[...n.volumes.map((v): [string, ReactNode] => [v.name, (
+            <button key={v.name} className="linkish" onClick={() => showHistory(volumeChart(v))}>
+              {v.usedTB} / {v.totalTB} TB{v.status ? ` · ${v.status}` : ''} <span className="chart-hint">24h</span>
+            </button>
+          )]), ['CPU / RAM', `${n.cpuPct}% / ${n.ramPct}%`], ['Uptime', `${n.uptimeDays} days`], ['DSM', n.dsm]]} />
         </Card>
         <Card color="var(--data)" title="Drives">
           <div className="tw">

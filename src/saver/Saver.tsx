@@ -74,7 +74,7 @@ export function Saver({ house, update, run, link, onExit }: SaverProps) {
               {status && <Chip tone={status.tone}>{status.label}</Chip>}
             </div>
             <div className="sv-zoom">
-              <hero.Tile house={house} update={update} run={run} notify={noop} />
+              <hero.Tile house={house} update={update} run={run} notify={noop} showHistory={noop} />
             </div>
           </section>
 

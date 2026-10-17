@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import type { HouseState, PlayerCommand } from '../data/types'
-import { actionCall, serviceCalls } from './actions'
+import { actionCalls, serviceCalls } from './actions'
 import { entities } from './entities'
 import { applyEntities } from './map'
 
@@ -55,16 +55,72 @@ describe('serviceCalls', () => {
     ])
   })
 
+  it('dims a room, and switches it off without dimming it', () => {
+    const lit = { ...states, 'light.lounge_lamp_1': entity('light.lounge_lamp_1', 'on', { brightness: 128 }) }
+    const before = applyEntities(sampleHouse, lit).house
+    expect(before.rooms[0].brightness).toBe(50)
+    const dim = structuredClone(before)
+    dim.rooms[0].brightness = 20
+    expect(serviceCalls(before, dim, lit)).toEqual([
+      { domain: 'light', service: 'turn_on', data: { brightness_pct: 20 }, entityIds: ['light.lounge_lamp_1', 'light.lounge_lamp_2'] },
+    ])
+    const off = structuredClone(before)
+    off.rooms[0].brightness = 20
+    off.rooms[0].lightsOn = 0
+    expect(serviceCalls(before, off, lit)).toEqual([{ domain: 'light', service: 'turn_off', entityIds: ['light.lounge_lamp_1', 'light.lounge_lamp_2'] }])
+  })
+
+  it('turns the Rachio rain delay on to skip watering', () => {
+    const rain = { ...states, [entities.irrigation.rainDelay]: entity(entities.irrigation.rainDelay, 'off') }
+    const before = applyEntities(sampleHouse, rain).house
+    const after = structuredClone(before)
+    after.irrigation.rainSkip = true
+    expect(serviceCalls(before, after, rain)).toEqual([{ domain: 'switch', service: 'turn_on', entityIds: [entities.irrigation.rainDelay] }])
+  })
+
   it('sends nothing for things Home Assistant does not have yet', () => {
     expect(change((h) => { h.climate.setpointF += 1; h.safety.garage.open = true; h.mode = 'away' })).toEqual([])
   })
 })
 
-describe('actionCall', () => {
+describe('actionCalls', () => {
   it('turns on a scene and turns every light off', () => {
-    expect(actionCall({ scene: { id: 'scene.lounge_lounge_vinyl', name: 'Vinyl', room: 'Lounge' } }))
-      .toEqual({ domain: 'scene', service: 'turn_on', entityIds: ['scene.lounge_lounge_vinyl'] })
-    expect(actionCall({ allLightsOff: true })).toEqual({ domain: 'light', service: 'turn_off', entityIds: ['all'] })
+    expect(actionCalls({ scene: { id: 'scene.lounge_lounge_vinyl', name: 'Vinyl', room: 'Lounge' } }))
+      .toEqual([{ domain: 'scene', service: 'turn_on', entityIds: ['scene.lounge_lounge_vinyl'] }])
+    expect(actionCalls({ allLightsOff: true })).toEqual([{ domain: 'light', service: 'turn_off', entityIds: ['all'] }])
+  })
+
+  it('sends colour presets only to colour bulbs, and white presets to every bulb', () => {
+    const lights = {
+      ...states,
+      'light.lounge_lamp_1': entity('light.lounge_lamp_1', 'on', { supported_color_modes: ['xy', 'color_temp'] }),
+      'light.lounge_lamp_2': entity('light.lounge_lamp_2', 'off', { supported_color_modes: ['color_temp'] }),
+    }
+    expect(actionCalls({ lights: { room: 'lounge', preset: 'ocean' } }, lights)).toEqual([
+      { domain: 'light', service: 'turn_on', data: { hs_color: [205, 75], brightness_pct: 65 }, entityIds: ['light.lounge_lamp_1'] },
+    ])
+    expect(actionCalls({ lights: { room: 'lounge', preset: 'read' } }, lights)[0].entityIds).toEqual(['light.lounge_lamp_1', 'light.lounge_lamp_2'])
+    expect(actionCalls({ lights: { room: 'kitchen', preset: 'read' } }, lights)).toEqual([])
+  })
+
+  it('runs the robovac, a Rachio zone and a water heater mode', () => {
+    expect(actionCalls({ vacuum: 'dock' })).toEqual([{ domain: 'vacuum', service: 'return_to_base', entityIds: [entities.chores.vacuum] }])
+    expect(actionCalls({ water: { valve: 'switch.meadowlake_rachio_2_back', minutes: 10 } }))
+      .toEqual([{ domain: 'rachio', service: 'start_watering', data: { duration: 10 }, entityIds: ['switch.meadowlake_rachio_2_back'] }])
+    expect(actionCalls({ water: { valve: 'switch.meadowlake_rachio_2_back', minutes: 0 } }))
+      .toEqual([{ domain: 'switch', service: 'turn_off', entityIds: ['switch.meadowlake_rachio_2_back'] }])
+    expect(actionCalls({ waterHeaterMode: 'high_demand' })).toEqual([
+      { domain: 'water_heater', service: 'set_operation_mode', data: { operation_mode: 'high_demand' }, entityIds: [entities.appliances.waterHeater] },
+    ])
+  })
+
+  it('moves, groups and ungroups Roon zones, and pauses Plex', () => {
+    expect(actionCalls({ roon: { transfer: { from: 'media_player.a', to: 'media_player.b' } } }))
+      .toEqual([{ domain: 'roon', service: 'transfer', data: { transfer_id: 'media_player.b' }, entityIds: ['media_player.a'] }])
+    expect(actionCalls({ roon: { group: { leader: 'media_player.a', members: ['media_player.b'] } } }))
+      .toEqual([{ domain: 'media_player', service: 'join', data: { group_members: ['media_player.b'] }, entityIds: ['media_player.a'] }])
+    expect(actionCalls({ roon: { ungroup: 'media_player.a' } })).toEqual([{ domain: 'media_player', service: 'unjoin', entityIds: ['media_player.a'] }])
+    expect(actionCalls({ plexToggle: 'media_player.plex_x' })).toEqual([{ domain: 'media_player', service: 'media_play_pause', entityIds: ['media_player.plex_x'] }])
   })
 })
 
@@ -73,7 +129,7 @@ describe('player controls', () => {
   const player = { id: 'media_player.theater_tv', name: 'Theater TV', state: 'off' as const, muted: true, can }
 
   it('maps each control to a media_player service', () => {
-    const call = (command: PlayerCommand) => actionCall({ player, command })
+    const call = (command: PlayerCommand) => actionCalls({ player, command })[0]
     expect(call('play_pause')).toMatchObject({ service: 'media_play_pause' })
     expect(call('next')).toMatchObject({ service: 'media_next_track' })
     expect(call('previous')).toMatchObject({ service: 'media_previous_track' })

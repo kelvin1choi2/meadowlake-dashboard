@@ -1,13 +1,24 @@
 import type { FC } from 'react'
 import type { AppId } from '../apps/apps'
 import type { RunAction, UpdateHouse } from '../data/useHouse'
-import type { CategoryId, HouseState, Tone } from '../data/types'
+import type { CategoryId, HistoryKey, HouseState, Tone } from '../data/types'
 
 export interface CategoryProps {
   house: HouseState
   update: UpdateHouse
   run: RunAction
   notify: (message: string) => void
+  /** Opens the last day's chart for a reading (press and hold on a tile, or the chart buttons in sheets). */
+  showHistory: (chart: HistoryChart) => void
+}
+
+export interface HistoryChart {
+  /** Whose colour the chart takes. */
+  category: CategoryId
+  key: HistoryKey
+  title: string
+  /** Shown after axis values, e.g. ° or %. */
+  unit: string
 }
 
 export interface Category {

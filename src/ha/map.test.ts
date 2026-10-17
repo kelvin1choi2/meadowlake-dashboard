@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, nasTask, playersFrom, pulseFrom, scenesFrom, shortTime } from './map'
+import { applyEntities, lightLook, nasTask, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -83,7 +83,7 @@ describe('applyEntities', () => {
       entity(linn.id, 'playing', { media_title: 'Freddie Freeloader', volume_level: 0.4, media_position: 30, media_duration: 120, entity_picture: '/api/media_player_proxy/x' }),
       entity(tv.entity, 'on'),
     ), now)
-    expect(house.media.roon).toEqual([{ name: linn.name, state: 'playing', track: 'Freddie Freeloader', artist: undefined, album: undefined, volume: '40', progress: 0.25, art: '/api/media_player_proxy/x' }])
+    expect(house.media.roon).toEqual([{ id: linn.id, name: linn.name, state: 'playing', track: 'Freddie Freeloader', artist: undefined, album: undefined, volume: '40', progress: 0.25, art: '/api/media_player_proxy/x' }])
     expect(house.media.screens).toEqual([{ id: tv.id, name: tv.name, tv: true, on: true }])
   })
 
@@ -339,5 +339,53 @@ describe('NAS tasks', () => {
     expect(nasTask(t, entity(t.entity, ''), now)).toMatchObject({ ok: null, when: 'No report yet' })
     const { house } = applyEntities(sampleHouse, states(entity(t.entity, 'ok: done')), now)
     expect(house.nas.tasks.map((x) => x.name)).toEqual([t.name])
+  })
+})
+
+describe('controls', () => {
+  it('averages the brightness of lights that are on and spots colour bulbs', () => {
+    expect(lightLook([
+      entity('light.a', 'on', { brightness: 255, supported_color_modes: ['color_temp'] }),
+      entity('light.b', 'on', { brightness: 51, supported_color_modes: ['xy'] }),
+      entity('light.c', 'off', { brightness: null }),
+    ])).toEqual({ brightness: 60, color: true })
+    expect(lightLook([entity('light.a', 'off')])).toEqual({})
+  })
+
+  it('lists Rachio zones in zone order, skipping the rain delay switch', () => {
+    const p = entities.irrigation.zonePrefix
+    expect(valvesFrom(states(
+      entity(`${p}10_back_ten`, 'off', { friendly_name: 'Back Ten' }),
+      entity(`${p}2_front_two`, 'on', { friendly_name: 'Front Two' }),
+      entity(entities.irrigation.rainDelay, 'off'),
+      entity(`${p}3_side`, 'unavailable'),
+    ))).toEqual([
+      { id: `${p}2_front_two`, name: 'Front Two', running: true },
+      { id: `${p}10_back_ten`, name: 'Back Ten', running: false },
+    ])
+  })
+
+  it('finds the Plex player a stream is on', () => {
+    const s = states(
+      entity('media_player.plex_infuse_apple_tv', 'paused', { friendly_name: 'Plex (Infuse - Apple TV)' }),
+      entity('media_player.plex_web_chrome', 'idle'),
+    )
+    expect(plexStream(s, 'Apple TV', 'Show')).toEqual({ client: 'Apple TV', title: 'Show', player: 'media_player.plex_infuse_apple_tv', paused: true })
+    expect(plexStream(s, 'Living Room', 'Film')).toEqual({ client: 'Living Room', title: 'Film', player: 'media_player.plex_infuse_apple_tv', paused: true })
+    expect(plexStream({}, 'Living Room', 'Film')).toEqual({ client: 'Living Room', title: 'Film' })
+  })
+
+  it('reads water heater modes, leaving off out', () => {
+    const { house } = applyEntities(sampleHouse, states(entity(entities.appliances.waterHeater, 'heat_pump', { operation_list: ['off', 'eco', 'heat_pump'] })), now)
+    expect(house.appliances.waterHeater).toMatchObject({ mode: 'Heat pump', modeId: 'heat_pump', modes: [{ id: 'eco', label: 'Energy Saver' }, { id: 'heat_pump', label: 'Heat pump' }] })
+  })
+
+  it('names the Roon zones grouped with each zone', () => {
+    const [linn, ayre] = entities.media.roon
+    const { house } = applyEntities(sampleHouse, states(
+      entity(linn.id, 'playing', { group_members: [linn.id, ayre.id] }),
+      entity(ayre.id, 'playing', { group_members: [linn.id, ayre.id] }),
+    ), now)
+    expect(house.media.roon.map((z) => z.groupedWith)).toEqual([[ayre.name], [linn.name]])
   })
 })

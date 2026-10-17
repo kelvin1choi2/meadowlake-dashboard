@@ -9,7 +9,8 @@ const modes: { id: HouseState['mode']; label: string }[] = [
   { id: 'guests', label: 'Guests' },
 ]
 
-export function Rail({ house, update }: { house: HouseState; update: UpdateHouse }) {
+/** `onLeave` opens the Leaving check, which tapping Away does when coming from another mode. */
+export function Rail({ house, update, onLeave }: { house: HouseState; update: UpdateHouse; onLeave: () => void }) {
   const events = house.pulse.map((e, i) => (
     <span key={`${i}-${e.who}`} className="ev">
       <Dot color={`var(--${e.category})`} />
@@ -21,7 +22,7 @@ export function Rail({ house, update }: { house: HouseState; update: UpdateHouse
     <div className="rail">
       <div className="modes" role="group" aria-label="House mode">
         {modes.map((m) => (
-          <button key={m.id} className="mode" aria-pressed={house.mode === m.id} onClick={() => update((h) => { h.mode = m.id })}>
+          <button key={m.id} className="mode" aria-pressed={house.mode === m.id} onClick={() => (m.id === 'away' && house.mode !== 'away' ? onLeave() : update((h) => { h.mode = m.id }))}>
             {m.label}
           </button>
         ))}

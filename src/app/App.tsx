@@ -1,16 +1,19 @@
 import { useState, type CSSProperties } from 'react'
 import { categories } from '../categories'
-import type { CategoryId, HouseState } from '../data/types'
+import type { CategoryId, FetchHistory, HouseState } from '../data/types'
+import type { HistoryChart } from '../categories/types'
 import type { Link, RunAction, UpdateHouse } from '../data/useHouse'
 import { liveAllowed } from '../ha/connection'
 import { Settings } from '../ha/Settings'
 import { AppLink, Chip, Icon } from '../widgets'
-import { appHref, apps, deviceKind } from '../apps/apps'
+import { appHref, apps, deviceKind, type AppId } from '../apps/apps'
 import { windowsHelperOn } from '../apps/helper'
 import { Clock } from './Clock'
 import { Rail } from './Rail'
 import { PlayerBar } from '../widgets/PlayerBar'
 import { Alerts } from './Alerts'
+import { History } from './History'
+import { Leaving } from './Leaving'
 import { Sheet } from './Sheet'
 import { themes, type Theme } from './theme'
 import { views, type View } from './view'
@@ -19,6 +22,7 @@ export interface AppProps {
   house: HouseState
   update: UpdateHouse
   run: RunAction
+  history: FetchHistory
   link: Link
   notify: (message: string) => void
   view: View
@@ -29,10 +33,12 @@ export interface AppProps {
 
 const device = deviceKind(navigator.userAgent, navigator.platform, navigator.maxTouchPoints, windowsHelperOn())
 
-export function App({ house, update, run, link, notify, view, onView, theme, onTheme }: AppProps) {
-  const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
-  const props = { house, update, run, notify }
+export function App({ house, update, run, history, link, notify, view, onView, theme, onTheme }: AppProps) {
+  const [open, setOpen] = useState<CategoryId | 'settings' | 'leaving' | null>(null)
+  const [chart, setChart] = useState<HistoryChart | null>(null)
+  const props = { house, update, run, notify, showHistory: setChart }
   const openCategory = categories.find((c) => c.id === open)
+  const appUrl = (id: AppId) => appHref(id, window.location.href, link.status === 'live' ? link.haUrl : undefined, device)
 
   return (
     <div className="wrap">
@@ -52,8 +58,8 @@ export function App({ house, update, run, link, notify, view, onView, theme, onT
         {liveAllowed && <button className="gear" onClick={() => setOpen('settings')}>Settings</button>}
       </header>
 
-      <Alerts house={house} />
-      <Rail house={house} update={update} />
+      <Alerts house={house} appUrl={appUrl} />
+      <Rail house={house} update={update} onLeave={() => setOpen('leaving')} />
 
       <main className="grid">
         {categories.map((c) => {
@@ -89,7 +95,7 @@ export function App({ house, update, run, link, notify, view, onView, theme, onT
       {openCategory?.Sheet && (
         <Sheet id={openCategory.id} title={openCategory.name} onClose={() => setOpen(null)}
           apps={(openCategory.apps ?? []).flatMap((id) => {
-            const href = appHref(id, window.location.href, link.status === 'live' ? link.haUrl : undefined, device)
+            const href = appUrl(id)
             const a = apps[id]
             return href ? [<AppLink key={id} href={href} name={a.name} mark={a.mark} color={`var(--${a.hue})`} />] : []
           })}>
@@ -97,6 +103,8 @@ export function App({ house, update, run, link, notify, view, onView, theme, onT
         </Sheet>
       )}
       {open === 'settings' && <Settings link={link} onClose={() => setOpen(null)} />}
+      {open === 'leaving' && <Leaving house={house} update={update} run={run} notify={notify} onClose={() => setOpen(null)} />}
+      {chart && <History chart={chart} history={history} onClose={() => setChart(null)} />}
     </div>
   )
 }
