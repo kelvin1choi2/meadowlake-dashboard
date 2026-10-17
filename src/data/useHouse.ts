@@ -132,7 +132,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
     const { house, linked, total, unavailable, onSample } = applyEntities(base, states, new Date(), forecasts)
     // Artwork comes as a path on the Home Assistant server.
     const haUrl = haConfig()?.url
-    for (const p of house.media.players) if (haUrl && p.art?.startsWith('/')) p.art = haUrl + p.art
+    for (const p of [...house.media.players, ...house.media.roon]) if (haUrl && p.art?.startsWith('/')) p.art = haUrl + p.art
     live.current = { house, states }
     const entityList = () =>
       Object.values(states)

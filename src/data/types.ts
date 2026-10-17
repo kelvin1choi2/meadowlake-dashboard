@@ -32,6 +32,8 @@ export interface RoonZone {
   album?: string
   volume?: string
   progress?: number
+  /** Cover art URL. */
+  art?: string
 }
 
 export interface Screen {
