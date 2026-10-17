@@ -1,18 +1,59 @@
+import { useEffect, useState } from 'react'
 import { roonDisplayUrl, roonRockUrl } from '../config/home'
 import type { HouseState, RoonZone } from '../data/types'
 import type { RunAction } from '../data/useHouse'
+import { findArtistPhoto, mainArtist, slideMs, slidesFor } from '../media/nowPlaying'
 import { duration } from '../rock/rock'
 import { Bar, Card, Chip, Dot, KV, Ring, Toggle } from '../widgets'
 import { ConfirmButton } from '../widgets/ConfirmButton'
 import { PlayerBar } from '../widgets/PlayerBar'
 import type { Category } from './types'
 
+/** Artist photos already looked up, by name: a URL, or null when Wikipedia has none. */
+const artistPhotos = new Map<string, string | null>()
+
+function useArtistPhotos(zones: RoonZone[]) {
+  const [, setFound] = useState(0)
+  const wanted = [...new Set(zones.filter((z) => z.state !== 'idle').flatMap((z) => mainArtist(z.artist) ?? []))]
+    .filter((a) => !artistPhotos.has(a))
+  const key = wanted.join('\n')
+  useEffect(() => {
+    if (!key) return
+    const stop = new AbortController()
+    for (const artist of key.split('\n')) {
+      findArtistPhoto(artist, stop.signal)
+        .then((url) => { artistPhotos.set(artist, url ?? null); setFound((n) => n + 1) })
+        .catch(() => { if (!stop.signal.aborted) artistPhotos.set(artist, null) })
+    }
+    return () => stop.abort()
+  }, [key])
+  return (artist: string) => Boolean(artistPhotos.get(artist))
+}
+
+/** Counts up once a minute, to step through the slides. */
+function useTick(ms: number) {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), ms)
+    return () => clearInterval(id)
+  }, [ms])
+  return tick
+}
+
 /**
  * What Roon is playing, drawn from Home Assistant. Roon's own web display only starts when
  * music starts on a zone, so opened mid-song it sat blank until someone tapped Display Now.
+ * Every minute it moves on: from the album cover to a photo of the artist, then to the next
+ * playing zone.
  */
 function NowPlayingCard({ zones }: { zones: RoonZone[] }) {
-  const zone = zones.find((z) => z.state === 'playing') ?? zones.find((z) => z.state === 'paused')
+  const hasPhoto = useArtistPhotos(zones)
+  const tick = useTick(slideMs)
+  const slides = slidesFor(zones, hasPhoto)
+  const slide = slides.length ? slides[tick % slides.length] : undefined
+  const zone = slide?.zone
+  const artist = mainArtist(zone?.artist)
+  const picture = slide?.image === 'artist' && artist ? artistPhotos.get(artist) ?? undefined : zone?.art
   const others = zones.filter((z) => z !== zone && z.state === 'playing')
   return (
     <Card
@@ -23,7 +64,9 @@ function NowPlayingCard({ zones }: { zones: RoonZone[] }) {
     >
       {zone ? (
         <div className="nowp">
-          {zone.art ? <img className="nowp-art" src={zone.art} alt="" /> : <div className="nowp-art" aria-hidden="true" />}
+          {picture
+            ? <img key={picture} className="nowp-art" src={picture} alt={slide?.image === 'artist' ? artist : ''} />
+            : <div className="nowp-art" aria-hidden="true" />}
           <div className="nowp-meta">
             <span className="lbl">{zone.name} · {zone.state === 'playing' ? 'Playing' : 'Paused'}</span>
             <b>{zone.track ?? 'Unknown track'}</b>
@@ -32,6 +75,11 @@ function NowPlayingCard({ zones }: { zones: RoonZone[] }) {
             {zone.progress !== undefined && <Bar value={zone.progress} color="var(--media)" />}
             {others.length > 0 && (
               <span className="nowp-also">Also playing: {others.map((z) => `${z.name} (${z.track ?? 'unknown'})`).join(' · ')}</span>
+            )}
+            {slides.length > 1 && (
+              <span className="nowp-dots" aria-hidden="true">
+                {slides.map((s, i) => <i key={i} className={s === slide ? 'on' : ''} />)}
+              </span>
             )}
           </div>
         </div>
