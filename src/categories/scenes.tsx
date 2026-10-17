@@ -8,7 +8,7 @@ import type { Category } from './types'
 // The tile is tappable (it opens every scene by room), so its buttons keep their taps to themselves.
 const own = { onClick: (e: MouseEvent) => e.stopPropagation(), onKeyDown: (e: KeyboardEvent) => e.stopPropagation() }
 
-function SceneButton({ scene, room, tone, run, notify }: { scene: Scene; room?: boolean; tone: SceneTone; run: RunAction; notify: (m: string) => void }) {
+export function SceneButton({ scene, room, tone, run, notify }: { scene: Scene; room?: boolean; tone: SceneTone; run: RunAction; notify: (m: string) => void }) {
   const go = (e: MouseEvent) => {
     own.onClick(e)
     run({ scene })

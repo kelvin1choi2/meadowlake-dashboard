@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Scene } from '../data/types'
-import { countRuns, rankByUse } from './sceneUse'
+import { countRuns, roomScenes, withUses } from './sceneUse'
 
-const scene = (id: string, favorite?: number): Scene => ({ id, name: id, room: 'Lounge', ...(favorite === undefined ? {} : { favorite }) })
-const tile = (scenes: Scene[]) => scenes.filter((s) => s.favorite !== undefined).sort((a, b) => a.favorite! - b.favorite!).map((s) => s.id)
+const scene = (id: string, room = 'Lounge'): Scene => ({ id, name: id, room })
 
 describe('countRuns', () => {
   it('counts one run per recorded state, ignoring unknown and unavailable', () => {
@@ -15,24 +14,18 @@ describe('countRuns', () => {
   })
 })
 
-describe('rankByUse', () => {
-  const all = [scene('a', 0), scene('b', 1), scene('c', 2), scene('d'), scene('e'), scene('f')]
+describe('roomScenes', () => {
+  const all = withUses([scene('Read'), scene('Vinyl'), scene('Bright'), scene('Relax'), scene('Movie', 'Theater')], { Vinyl: 7, Relax: 2 })
 
-  it('leads with the most used scenes and fills the rest from the hand-picked ones', () => {
-    expect(tile(rankByUse(all, { e: 9, f: 3 }, 4))).toEqual(['e', 'f', 'a', 'b'])
+  it("leads with the room's most used scenes, then the rest by name", () => {
+    expect(roomScenes(all, 'Lounge').map((s) => s.id)).toEqual(['Vinyl', 'Relax', 'Bright', 'Read'])
   })
 
-  it('breaks ties by the hand-picked order', () => {
-    expect(tile(rankByUse(all, { c: 2, b: 2, d: 2 }, 3))).toEqual(['b', 'c', 'd'])
+  it('shows only as many as fit', () => {
+    expect(roomScenes(all, 'Lounge', 2).map((s) => s.id)).toEqual(['Vinyl', 'Relax'])
   })
 
-  it('keeps the hand-picked order when nothing has run', () => {
-    expect(tile(rankByUse(all, {}, 5))).toEqual(['a', 'b', 'c'])
-  })
-
-  it('drops scenes that fall off the tile', () => {
-    const ranked = rankByUse(all, { d: 1, e: 1, f: 1 }, 3)
-    expect(tile(ranked)).toEqual(['d', 'e', 'f'])
-    expect(ranked.find((s) => s.id === 'a')).not.toHaveProperty('favorite')
+  it('sorts by name when nothing has run', () => {
+    expect(roomScenes([scene('Read'), scene('Bright')], 'Lounge').map((s) => s.id)).toEqual(['Bright', 'Read'])
   })
 })
