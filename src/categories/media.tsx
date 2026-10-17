@@ -1,27 +1,95 @@
+import { useEffect, useState } from 'react'
 import { roonDisplayUrl, roonRockUrl } from '../config/home'
-import type { HouseState } from '../data/types'
+import type { HouseState, RoonZone } from '../data/types'
 import type { RunAction } from '../data/useHouse'
+import { findArtistPhoto, mainArtist, slideMs, slidesFor } from '../media/nowPlaying'
 import { duration } from '../rock/rock'
 import { Bar, Card, Chip, Dot, KV, Ring, Toggle } from '../widgets'
 import { ConfirmButton } from '../widgets/ConfirmButton'
-import { canEmbed } from '../widgets/embed'
 import { PlayerBar } from '../widgets/PlayerBar'
 import type { Category } from './types'
 
-/** A page from the home network in a card, with a link to open it on its own. */
-function EmbedCard({ title, url, frameTitle }: { title: string; url: string; frameTitle: string }) {
+/** Artist photos already looked up, by name: a URL, or null when Wikipedia has none. */
+const artistPhotos = new Map<string, string | null>()
+
+function useArtistPhotos(zones: RoonZone[]) {
+  const [, setFound] = useState(0)
+  const wanted = [...new Set(zones.filter((z) => z.state !== 'idle').flatMap((z) => mainArtist(z.artist) ?? []))]
+    .filter((a) => !artistPhotos.has(a))
+  const key = wanted.join('\n')
+  useEffect(() => {
+    if (!key) return
+    const stop = new AbortController()
+    for (const artist of key.split('\n')) {
+      findArtistPhoto(artist, stop.signal)
+        .then((url) => { artistPhotos.set(artist, url ?? null); setFound((n) => n + 1) })
+        .catch(() => { if (!stop.signal.aborted) artistPhotos.set(artist, null) })
+    }
+    return () => stop.abort()
+  }, [key])
+  return (artist: string) => Boolean(artistPhotos.get(artist))
+}
+
+/** Counts up once a minute, to step through the slides. */
+function useTick(ms: number) {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), ms)
+    return () => clearInterval(id)
+  }, [ms])
+  return tick
+}
+
+/**
+ * What Roon is playing, drawn from Home Assistant. Roon's own web display only starts when
+ * music starts on a zone, so opened mid-song it sat blank until someone tapped Display Now.
+ * Every minute it moves on: from the album cover to a photo of the artist, then to the next
+ * playing zone.
+ */
+function NowPlayingCard({ zones }: { zones: RoonZone[] }) {
+  const hasPhoto = useArtistPhotos(zones)
+  const tick = useTick(slideMs)
+  const slides = slidesFor(zones, hasPhoto)
+  const slide = slides.length ? slides[tick % slides.length] : undefined
+  const zone = slide?.zone
+  const artist = mainArtist(zone?.artist)
+  const picture = slide?.image === 'artist' && artist ? artistPhotos.get(artist) ?? undefined : zone?.art
+  const others = zones.filter((z) => z !== zone && z.state === 'playing')
   return (
     <Card
       wide
       color="var(--media)"
-      title={title}
-      chip={<a className="chip neutral link" href={url} target="_blank" rel="noreferrer">Open full screen</a>}
+      title="Now playing"
+      chip={<a className="chip neutral link" href={roonDisplayUrl(window.location.href)} target="_blank" rel="noreferrer">Roon display</a>}
     >
-      {canEmbed(url, window.location.href) ? (
-        <iframe className="embed" src={url} title={frameTitle} />
+      {zone ? (
+        <div className="nowp">
+          {picture
+            ? <img key={picture} className="nowp-art" src={picture} alt={slide?.image === 'artist' ? artist : ''} />
+            : <div className="nowp-art" aria-hidden="true" />}
+          <div className="nowp-meta">
+            <span className="lbl">{zone.name} · {zone.state === 'playing' ? 'Playing' : 'Paused'}</span>
+            <b>{zone.track ?? 'Unknown track'}</b>
+            {zone.artist && <span className="nowp-artist">{zone.artist}</span>}
+            {zone.album && <span className="nowp-album">{zone.album}</span>}
+            {zone.progress !== undefined && <Bar value={zone.progress} color="var(--media)" />}
+            {others.length > 0 && (
+              <span className="nowp-also">Also playing: {others.map((z) => `${z.name} (${z.track ?? 'unknown'})`).join(' · ')}</span>
+            )}
+            {slides.length > 1 && (
+              <span className="nowp-dots" aria-hidden="true">
+                {slides.map((s, i) => <i key={i} className={s === slide ? 'on' : ''} />)}
+              </span>
+            )}
+          </div>
+        </div>
       ) : (
-        <div className="embed embed-off">
-          <p>This appears here when the dashboard runs on your home network.</p>
+        <div className="nowp nowp-quiet">
+          <div className="nowp-art" aria-hidden="true" />
+          <div className="nowp-meta">
+            <b>Nothing playing in Roon</b>
+            <span className="nowp-album">Start music in Roon and it shows here.</span>
+          </div>
         </div>
       )}
     </Card>
@@ -135,7 +203,7 @@ export const media: Category = {
         {playing ? (
           <>
             <div className="np">
-              <div className="art" aria-hidden="true" />
+              {playing.art ? <img className="art" src={playing.art} alt="" /> : <div className="art" aria-hidden="true" />}
               <div className="meta">
                 <span className="lbl">Roon · {playing.name}</span>
                 <b>{playing.track}</b>
@@ -156,7 +224,7 @@ export const media: Category = {
   },
   Sheet: ({ house, update, run }) => (
     <>
-      <EmbedCard title="Roon display" url={roonDisplayUrl(window.location.href)} frameTitle="Roon now playing display" />
+      <NowPlayingCard zones={house.media.roon} />
       <PlayerBar players={house.media.players} run={run} />
       <Card wide color="var(--media)" title="Roon zones">
         <div className="tw">

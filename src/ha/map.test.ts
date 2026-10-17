@@ -80,10 +80,10 @@ describe('applyEntities', () => {
     const [linn] = entities.media.roon
     const [tv] = entities.media.screens
     const { house } = applyEntities(sampleHouse, states(
-      entity(linn.id, 'playing', { media_title: 'Freddie Freeloader', volume_level: 0.4, media_position: 30, media_duration: 120 }),
+      entity(linn.id, 'playing', { media_title: 'Freddie Freeloader', volume_level: 0.4, media_position: 30, media_duration: 120, entity_picture: '/api/media_player_proxy/x' }),
       entity(tv.entity, 'on'),
     ), now)
-    expect(house.media.roon).toEqual([{ name: linn.name, state: 'playing', track: 'Freddie Freeloader', artist: undefined, album: undefined, volume: '40', progress: 0.25 }])
+    expect(house.media.roon).toEqual([{ name: linn.name, state: 'playing', track: 'Freddie Freeloader', artist: undefined, album: undefined, volume: '40', progress: 0.25, art: '/api/media_player_proxy/x' }])
     expect(house.media.screens).toEqual([{ id: tv.id, name: tv.name, tv: true, on: true }])
   })
 

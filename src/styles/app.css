@@ -95,6 +95,25 @@ button { font: inherit; color: inherit; }
 .np .meta { min-width: 0; display: flex; flex-direction: column; }
 .np .meta b { font-family: var(--display); font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .np .meta span:last-child { color: var(--muted); font-size: 13px; }
+img.art { object-fit: cover; background: var(--surface-2); }
+
+/* Media sheet: what Roon is playing, with big cover art */
+.nowp { display: flex; gap: 24px; align-items: center; min-width: 0; }
+.nowp-art { width: min(280px, 38%); aspect-ratio: 1; flex: none; border-radius: 18px; object-fit: cover;
+  background: linear-gradient(135deg, var(--media), color-mix(in srgb, var(--media) 40%, var(--surface-2))); }
+.nowp-quiet .nowp-art { width: min(120px, 30%); opacity: .5; }
+.nowp-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.nowp-meta b { font-family: var(--display); font-size: clamp(22px, 3.2vw, 38px); line-height: 1.1; overflow-wrap: anywhere; }
+.nowp-artist { font-size: clamp(16px, 2vw, 22px); }
+.nowp-album { color: var(--muted); font-size: 15px; }
+.nowp-meta .bar { margin-top: 10px; }
+.nowp-also { color: var(--muted); font-size: 13px; margin-top: 6px; }
+img.nowp-art { animation: nowp-in .8s ease; }
+@keyframes nowp-in { from { opacity: 0; } to { opacity: 1; } }
+.nowp-dots { display: flex; gap: 6px; margin-top: 8px; }
+.nowp-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.nowp-dots i.on { background: var(--media); }
+@media (max-width: 560px) { .nowp { flex-direction: column; align-items: stretch; } .nowp-art { width: 100%; } }
 .fc { display: flex; gap: 6px; }
 .fc .d { flex: 1; text-align: center; background: var(--surface-2); border-radius: 12px; padding: 6px 0; font-size: 12px; color: var(--muted); }
 .fc .d b { display: block; color: var(--fg); font-size: 14px; font-weight: 500; }
@@ -288,3 +307,4 @@ a.chip.link { text-decoration: none; }
   display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%;
   background: var(--ac); color: var(--on-hue); font: 700 10.5px/1 var(--body); letter-spacing: 0.02em;
 }
+@media (prefers-reduced-motion: reduce) { img.nowp-art { animation: none; } }

@@ -283,6 +283,7 @@ export function applyEntities(
       album: str(p.attributes.media_album_name),
       volume: vl === undefined ? undefined : String(Math.round(vl * 100)),
       progress: pos !== undefined && dur ? Math.min(1, pos / dur) : undefined,
+      art: str(p.attributes.entity_picture),
     }]
   })
   if (zones.length) h.media.roon = zones
