@@ -206,21 +206,25 @@ export function applyEntities(
   if (rooms.length) h.rooms = rooms
 
   const w = get(entities.weather)
-  if (w) {
-    h.weather.condition = conditions[w.state] ?? label(w.state)
-    const temp = num(w.attributes.temperature)
+  // Current conditions come from the weather station when it has a reading, else from the forecast.
+  const station = Object.values(states).find((e) =>
+    e.entity_id.startsWith('weather.') && entities.observedBy.test(String(e.attributes.attribution ?? '')))
+  const o = station && num(station.attributes.temperature) !== undefined ? station : w
+  if (w && o) {
+    h.weather.condition = conditions[o.state] ?? label(o.state)
+    const temp = num(o.attributes.temperature)
     if (temp !== undefined) h.weather.tempF = Math.round(temp)
-    const feels = num(w.attributes.apparent_temperature)
+    const feels = num(o.attributes.apparent_temperature)
     h.weather.feelsF = feels === undefined ? h.weather.tempF : Math.round(feels)
     // Nothing in Home Assistant reports these yet, so don't show the sample values.
     h.weather.aqi = undefined
     h.weather.pollen = undefined
     const uv = num(w.attributes.uv_index)
     h.weather.uv = uv === undefined ? undefined : Math.round(uv)
-    const speed = num(w.attributes.wind_speed)
-    const bearing = num(w.attributes.wind_bearing)
+    const speed = num(o.attributes.wind_speed)
+    const bearing = num(o.attributes.wind_bearing)
     if (speed !== undefined) {
-      const unit = str(w.attributes.wind_speed_unit) ?? 'mph'
+      const unit = str(o.attributes.wind_speed_unit) ?? 'mph'
       const dir = bearing === undefined ? '' : ` ${compass[Math.round(bearing / 45) % 8]}`
       h.weather.wind = `${Math.round(speed)} ${unit}${dir}`
     }

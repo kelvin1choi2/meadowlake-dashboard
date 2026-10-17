@@ -122,6 +122,22 @@ describe('weather', () => {
     const { house } = applyEntities(sampleHouse, states(entity(entities.weather, 'partlycloudy', { temperature: 82.4 })), now)
     expect(house.weather).toMatchObject({ condition: 'Partly cloudy', tempF: 82, feelsF: 82 })
   })
+
+  it("takes current conditions from the station and UV from the forecast", () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity(entities.weather, 'partlycloudy', { temperature: 69, uv_index: 4 }),
+      entity('weather.station', 'sunny', { attribution: 'Data from National Weather Service/NOAA', temperature: 74.3, apparent_temperature: 76, wind_speed: 5, wind_speed_unit: 'mph', wind_bearing: 90 }),
+    ), now)
+    expect(house.weather).toMatchObject({ condition: 'Sunny', tempF: 74, feelsF: 76, uv: 4, wind: '5 mph E' })
+  })
+
+  it('falls back to the forecast when the station has no reading', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity(entities.weather, 'partlycloudy', { temperature: 69 }),
+      entity('weather.station', 'unknown', { attribution: 'Data from National Weather Service/NOAA', temperature: null }),
+    ), now)
+    expect(house.weather).toMatchObject({ condition: 'Partly cloudy', tempF: 69 })
+  })
 })
 
 describe('shortTime', () => {

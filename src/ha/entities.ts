@@ -44,7 +44,14 @@ export const entities = {
       'scene.kitchen_kitchen_bright_kitchen',
     ],
   },
+  /** Forecasts (hourly, daily) and UV: Met.no for the home location. */
   weather: 'weather.forecast_home',
+  /**
+   * Current conditions come from a National Weather Service station when that integration is
+   * set up (a real reading rather than a forecast). It's found by its attribution, so the
+   * station's name, and with it the house's whereabouts, stays out of the repo.
+   */
+  observedBy: /national weather service/i,
   sun: 'sun.sun',
   cameras: {
     armed: 'alarm_control_panel.blink_meadowlake',
