@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
 import { Sheet } from '../app/Sheet'
 import type { Link } from '../data/useHouse'
-import { Card, Idea, KV } from '../widgets'
+import { Card, Idea, KV, Toggle } from '../widgets'
+import { isWindows } from '../apps/apps'
+import { setWindowsHelper, windowsHelperOn } from '../apps/helper'
 import { clearHaConfig, connectErrorText, connectToHA, haConfig, normalizeHaUrl, saveHaConfig } from './connection'
 
 // Where the Home Assistant address and token are entered on the tablet. They're
@@ -15,6 +17,7 @@ export function Settings({ link, onClose }: { link: Link; onClose: () => void })
   const [error, setError] = useState<string | null>(null)
   const listRef = useRef<HTMLTextAreaElement>(null)
   const [copied, setCopied] = useState(false)
+  const [helper, setHelper] = useState(windowsHelperOn)
 
   async function connect() {
     const base = normalizeHaUrl(url)
@@ -84,6 +87,16 @@ export function Settings({ link, onClose }: { link: Link; onClose: () => void })
           Create token under Long-lived access tokens. The address and token stay in this browser only.
         </Idea>
       </Card>
+      {isWindows(navigator.userAgent, navigator.platform) && (
+        <Card title="Apps on this PC" wide>
+          <Toggle label="Open Roon, Plex and SmartThings here" on={helper}
+            onChange={(on) => { setWindowsHelper(on); setHelper(on); window.location.reload() }} />
+          <Idea>
+            Needs the small app helper installed on this PC first (docs/windows-apps.md). Without it, those
+            buttons open their websites instead.
+          </Idea>
+        </Card>
+      )}
       {link.status === 'live' && (
         <Card title="Entities in your Home Assistant" wide>
           <textarea ref={listRef} className="entity-list" readOnly value={link.entityList()} aria-label="Entity list" />

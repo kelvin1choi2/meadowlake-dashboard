@@ -4,7 +4,7 @@ import type { Category } from './types'
 export const safety: Category = {
   id: 'safety',
   name: 'Safety',
-  apps: ['blink', 'smartthings'],
+  apps: ['home', 'blink', 'smartthings'],
   status: (h) => {
     if (h.safety.leaks.some((l) => l.wet)) return { tone: 'bad', label: 'Leak!' }
     if (h.safety.garage.open) return { tone: 'warn', label: 'Garage open' }

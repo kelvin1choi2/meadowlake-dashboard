@@ -188,7 +188,7 @@ function RockCard({ rock, run }: RockProps) {
 export const media: Category = {
   id: 'media',
   name: 'Media',
-  apps: ['plex', 'roon'],
+  apps: ['roon', 'rock', 'plex'],
   wide: true,
   status: (h) => {
     const n = h.media.roon.filter((z) => z.state === 'playing').length
