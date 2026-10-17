@@ -5,7 +5,7 @@ import type { Link, RunAction, UpdateHouse } from '../data/useHouse'
 import { liveAllowed } from '../ha/connection'
 import { Settings } from '../ha/Settings'
 import { AppLink, Chip, Icon } from '../widgets'
-import { appHref, apps } from '../apps/apps'
+import { appHref, apps, isAppleTouch } from '../apps/apps'
 import { Clock } from './Clock'
 import { Rail } from './Rail'
 import { PlayerBar } from '../widgets/PlayerBar'
@@ -25,6 +25,8 @@ export interface AppProps {
   theme: Theme
   onTheme: (theme: Theme) => void
 }
+
+const appleTouch = isAppleTouch(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)
 
 export function App({ house, update, run, link, notify, view, onView, theme, onTheme }: AppProps) {
   const [open, setOpen] = useState<CategoryId | 'settings' | null>(null)
@@ -86,7 +88,7 @@ export function App({ house, update, run, link, notify, view, onView, theme, onT
       {openCategory?.Sheet && (
         <Sheet id={openCategory.id} title={openCategory.name} onClose={() => setOpen(null)}
           apps={(openCategory.apps ?? []).flatMap((id) => {
-            const href = appHref(id, window.location.href, link.status === 'live' ? link.haUrl : undefined)
+            const href = appHref(id, window.location.href, link.status === 'live' ? link.haUrl : undefined, appleTouch)
             const a = apps[id]
             return href ? [<AppLink key={id} href={href} name={a.name} mark={a.mark} color={`var(--${a.hue})`} />] : []
           })}>
