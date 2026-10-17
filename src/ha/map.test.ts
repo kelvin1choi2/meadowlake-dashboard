@@ -265,7 +265,7 @@ describe('washer and leak sensors', () => {
 })
 
 describe('scenes', () => {
-  it('lists every scene by dashboard room, marks favorites in order and keeps never-run scenes', () => {
+  it('lists every scene by dashboard room, marks favorites and room picks in order and keeps never-run scenes', () => {
     const list = scenesFrom(states(
       entity('scene.kitchen_kitchen_bright_kitchen', 'unknown', { group_name: 'Kitchen', name: 'bright kitchen' }),
       entity('scene.lounge_lounge_vinyl', '2026-10-15T20:00:00Z', { group_name: 'Lounge', name: 'Vinyl' }),
@@ -275,9 +275,9 @@ describe('scenes', () => {
       entity('scene.theater_theater_glow', 'unavailable', { group_name: 'Theater', name: 'Glow' }),
     ))
     expect(list).toEqual([
-      { id: 'scene.lounge_lounge_bright_lounge', name: 'Bright Lounge', room: 'Lounge', favorite: 0 },
-      { id: 'scene.lounge_lounge_vinyl', name: 'Vinyl', room: 'Lounge', favorite: 1 },
-      { id: 'scene.kitchen_kitchen_bright_kitchen', name: 'bright kitchen', room: 'Kitchen', favorite: 4 },
+      { id: 'scene.lounge_lounge_bright_lounge', name: 'Bright Lounge', room: 'Lounge', favorite: 0, pinned: 0 },
+      { id: 'scene.lounge_lounge_vinyl', name: 'Vinyl', room: 'Lounge', favorite: 1, pinned: 1 },
+      { id: 'scene.kitchen_kitchen_bright_kitchen', name: 'bright kitchen', room: 'Kitchen', favorite: 4, pinned: 1 },
       { id: 'scene.master_bathroom_master_bathroom_tubbie', name: 'Tubbie', room: 'Bath' },
       { id: 'scene.entertaining_relax', name: 'Relax', room: 'Entertaining' },
     ])

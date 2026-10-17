@@ -1,9 +1,12 @@
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { lightPresets } from '../data/lightPresets'
-import type { Room } from '../data/types'
+import type { Room, Scene } from '../data/types'
+import type { RunAction } from '../data/useHouse'
 import { Card, Chip, Dimmer, KV, Toggle } from '../widgets'
 import { tempColor } from '../widgets/geometry'
 import { useHold } from '../widgets/useHold'
+import { distinctTones } from './sceneTone'
+import { SceneButton } from './scenes'
 import type { Category, CategoryProps } from './types'
 
 // The tile opens the sheet when tapped, so its own buttons keep their taps to themselves.
@@ -112,7 +115,9 @@ export const inside: Category = {
             <Dimmer label="Brightness" value={r.lightsOn > 0 ? r.brightness ?? 100 : 0}
               onCommit={(v) => update((h) => { h.rooms[i].brightness = v; if (!h.rooms[i].lightsOn) h.rooms[i].lightsOn = h.rooms[i].lightsTotal })} />
           )}
-          {r.lightsTotal > 0 && (
+          {r.lightsTotal > 0 && (house.scenes.some((s) => s.room === r.name && s.pinned !== undefined) ? (
+            <RoomScenes scenes={pinnedScenes(house.scenes, r.name)} run={run} notify={notify} />
+          ) : (
             <div className="presets" role="group" aria-label={`${r.name} light presets`}>
               {lightPresets.filter((p) => r.color || !p.color).map((p) => (
                 <button key={p.id} type="button" className="preset" style={{ '--pc': `var(--preset-${p.id})` } as CSSProperties}
@@ -121,7 +126,7 @@ export const inside: Category = {
                 </button>
               ))}
             </div>
-          )}
+          ))}
           {r.fan !== undefined && (
             <Toggle label="Ceiling fan" on={r.fan} onChange={(on) => update((h) => { h.rooms[i].fan = on })} />
           )}
@@ -129,4 +134,19 @@ export const inside: Category = {
       ))}
     </>
   ),
+}
+
+/** The scenes picked for a room's card, in their picked order. */
+function pinnedScenes(scenes: Scene[], room: string): Scene[] {
+  return scenes.filter((s) => s.room === room && s.pinned !== undefined).sort((a, b) => a.pinned! - b.pinned!)
+}
+
+/** A room's picked Hue scenes, colored like the Scenes tile. */
+function RoomScenes({ scenes, run, notify }: { scenes: Scene[]; run: RunAction; notify: (m: string) => void }) {
+  const tones = distinctTones(scenes.map((s) => s.name))
+  return (
+    <div className="scenes room-scenes" role="group" aria-label="Scenes">
+      {scenes.map((s, i) => <SceneButton key={s.id} scene={s} tone={tones[i]} run={run} notify={notify} />)}
+    </div>
+  )
 }

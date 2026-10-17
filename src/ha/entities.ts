@@ -16,17 +16,24 @@ export const entities = {
    * `sensor` names an Ecobee room sensor (sensor.<name>_sensor_temperature and
    * binary_sensor.<name>_sensor_occupancy). Ecobee sensors not listed here become
    * rooms of their own, named from Home Assistant, so their names stay out of the repo.
+   * `scenes` are the Hue scenes offered on the room's card in the Inside sheet, in order;
+   * rooms without them get the generic light presets.
    * Only sensors with an occupancy entity count, which skips the copies SmartThings
    * makes of the same sensors (those report presence instead).
    */
   rooms: [
-    { id: 'lounge', name: 'Lounge', lights: 'light.lounge_', sensor: 'lounge' },
-    { id: 'kitchen', name: 'Kitchen', lights: 'light.kitchen_' },
-    { id: 'theater', name: 'Theater', lights: 'light.theater_' },
-    { id: 'hallway', name: 'Hallway', lights: 'light.hallway_' },
-    { id: 'master-suite', name: 'Master', lights: 'light.master_suite_', sensor: 'master' },
+    { id: 'lounge', name: 'Lounge', lights: 'light.lounge_', sensor: 'lounge',
+      scenes: ['scene.lounge_lounge_bright_lounge', 'scene.lounge_lounge_vinyl', 'scene.lounge_lounge_barely_there'] },
+    { id: 'kitchen', name: 'Kitchen', lights: 'light.kitchen_',
+      scenes: ['scene.kitchen_kitchen_undercounter_only', 'scene.kitchen_kitchen_bright_kitchen', 'scene.kitchen_kitchen_night_light'] },
+    { id: 'theater', name: 'Theater', lights: 'light.theater_',
+      scenes: ['scene.theater_theater_bright', 'scene.theater_theater_reference_video', 'scene.theater_theater_theater_party', 'scene.theater_theater_glow'] },
+    { id: 'hallway', name: 'Hallway', lights: 'light.hallway_',
+      scenes: ['scene.hallway_hallway_bright', 'scene.hallway_hallway_guest_light', 'scene.hallway_hallway_blue_hallway'] },
+    { id: 'master-suite', name: 'Master', lights: 'light.master_suite_', sensor: 'master',
+      scenes: ['scene.master_suite_master_suite_bright', 'scene.master_suite_master_suite_romance', 'scene.master_suite_master_suite_bright_headboard'] },
     { id: 'master-bath', name: 'Bath', lights: 'light.master_bathroom_' },
-  ] as { id: string; name: string; lights: string; sensor?: string }[],
+  ] as { id: string; name: string; lights: string; sensor?: string; scenes?: string[] }[],
   /** Scenes for the Scenes tile, in order. Every Hue scene is listed when the tile is opened. */
   scenes: {
     favorites: [

@@ -514,7 +514,7 @@ export function playersFrom(states: HassEntities): HouseState['media']['players'
  * Hue scenes carry their room (group_name) and short name; others use their full name.
  */
 export function scenesFrom(states: HassEntities): HouseState['scenes'] {
-  const order = entities.rooms.map((r) => ({ prefix: r.lights.replace(/^light\./, 'scene.'), name: r.name }))
+  const order = entities.rooms.map((r) => ({ prefix: r.lights.replace(/^light\./, 'scene.'), name: r.name, pins: r.scenes ?? [] }))
   const favorites: string[] = entities.scenes.favorites
   return Object.values(states)
     .filter((e) => e.entity_id.startsWith('scene.') && e.state !== 'unavailable')
@@ -523,7 +523,11 @@ export function scenesFrom(states: HassEntities): HouseState['scenes'] {
       const room = known >= 0 ? order[known].name : str(e.attributes.group_name) ?? 'Other'
       const name = str(e.attributes.name) ?? String(e.attributes.friendly_name ?? e.entity_id)
       const fav = favorites.indexOf(e.entity_id)
-      return { scene: { id: e.entity_id, name, room, ...(fav >= 0 ? { favorite: fav } : {}) }, rank: known >= 0 ? known : order.length }
+      const pin = known >= 0 ? order[known].pins.indexOf(e.entity_id) : -1
+      return {
+        scene: { id: e.entity_id, name, room, ...(fav >= 0 ? { favorite: fav } : {}), ...(pin >= 0 ? { pinned: pin } : {}) },
+        rank: known >= 0 ? known : order.length,
+      }
     })
     .sort((a, b) => a.rank - b.rank || a.scene.room.localeCompare(b.scene.room) || a.scene.name.localeCompare(b.scene.name))
     .map((s) => s.scene)

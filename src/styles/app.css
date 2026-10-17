@@ -325,6 +325,9 @@ button.room:hover { border-color: color-mix(in oklab, var(--tc) 70%, var(--fg));
 .dimmer input::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); border: 2px solid var(--c); }
 .dimmer input::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--c); }
 .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+/* A room's Hue scenes in the Inside sheet: scene colors, preset-sized pills */
+.card .scenes.room-scenes { display: flex; flex-wrap: wrap; gap: 6px; }
+.room-scenes .scene { border-radius: 999px; padding: 7px 14px; font-size: 14px; }
 .preset { border: 1px solid color-mix(in srgb, var(--pc) 60%, var(--line)); background: color-mix(in srgb, var(--pc) 30%, var(--surface));
   border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .preset:hover { background: color-mix(in srgb, var(--pc) 50%, var(--surface)); }
