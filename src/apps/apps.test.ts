@@ -76,3 +76,20 @@ describe('deviceKind', () => {
     expect(deviceKind('Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Win32', 10)).toBe('other')
   })
 })
+
+describe('on a Windows PC with the app helper', () => {
+  const win = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+
+  it('is only a Windows device once the helper is switched on', () => {
+    expect(deviceKind(win, 'Win32', 0, true)).toBe('windows')
+    expect(deviceKind(win, 'Win32', 0, false)).toBe('other')
+    expect(deviceKind('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 'MacIntel', 0, true)).toBe('mac')
+  })
+
+  it('opens the Windows apps through the helper and keeps websites for the rest', () => {
+    expect(appHref('roon', nas, ha, 'windows')).toBe('meadowlake-app:roon')
+    expect(appHref('smartthings', nas, ha, 'windows')).toBe('meadowlake-app:smartthings')
+    expect(appHref('ecobee', nas, ha, 'windows')).toMatch(/^https:/)
+    expect(appHref('home', nas, ha, 'windows')).toBeUndefined()
+  })
+})
