@@ -110,6 +110,14 @@ img.art { object-fit: cover; background: var(--surface-2); }
 .nowp-also { color: var(--muted); font-size: 13px; margin-top: 6px; }
 img.nowp-art { animation: nowp-in .8s ease; }
 @keyframes nowp-in { from { opacity: 0; } to { opacity: 1; } }
+.nowp-pick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.nowp-pick button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 14px 4px 4px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; color: inherit; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; max-width: 100%; }
+.nowp-pick button:first-child { padding-left: 14px; }
+.nowp-pick button.on { border-color: var(--media); background: color-mix(in srgb, var(--media) 22%, transparent); }
+.nowp-pick img, .nowp-pick i { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none;
+  background: color-mix(in srgb, var(--media) 35%, var(--paper)); }
+.nowp-pick .sub { color: var(--muted); font-weight: 400; }
 .nowp-dots { display: flex; gap: 6px; margin-top: 8px; }
 .nowp-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
 .nowp-dots i.on { background: var(--media); }

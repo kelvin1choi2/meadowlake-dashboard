@@ -1,7 +1,9 @@
-import type { RoonZone } from '../data/types'
+import { useSyncExternalStore } from 'react'
+import type { Player, RoonZone } from '../data/types'
 
 // What the Now Playing card shows, turn by turn: each playing zone in order, and within a
-// zone its album cover and then (when Wikipedia has one) a photo of the artist.
+// zone its album cover and then (when Wikipedia has one) a photo of the artist. Tapping a
+// zone's name holds the card (and the Media tile) on that zone.
 
 export type Slide = { zone: RoonZone; image: 'cover' | 'artist' }
 
@@ -9,12 +11,31 @@ export type Slide = { zone: RoonZone; image: 'cover' | 'artist' }
 export const slideMs = 60_000
 
 /**
- * The slides to cycle through. Every playing zone takes a turn; with nothing playing, a
- * paused zone stands still on its cover. `hasPhoto` says whether an artist photo was found.
+ * Everything with something on: Roon zones first, then other players (Apple TVs, HomePods,
+ * TVs) that report a title and aren't one of the Roon zones, in the same shape.
  */
-export function slidesFor(zones: RoonZone[], hasPhoto: (artist: string) => boolean): Slide[] {
+export function nowPlayingFrom(roon: RoonZone[], players: Player[]): RoonZone[] {
+  const taken = new Set(roon.flatMap((z) => (z.id ? [z.name, z.id] : [z.name])))
+  const others = players
+    .filter((p) => (p.state === 'playing' || p.state === 'paused') && p.title && !taken.has(p.id) && !taken.has(p.name))
+    .map((p): RoonZone => ({ id: p.id, name: p.name, state: p.state as 'playing' | 'paused', track: p.title, artist: p.subtitle, art: p.art, progress: p.progress }))
+  return [...roon, ...others]
+}
+
+/** The zones someone can hold the card on: those playing, then those paused. */
+export function choices(zones: RoonZone[]): RoonZone[] {
+  return [...zones.filter((z) => z.state === 'playing'), ...zones.filter((z) => z.state === 'paused')]
+}
+
+/**
+ * The slides to cycle through. Every playing zone takes a turn; with nothing playing, a
+ * paused zone stands still on its cover. With a zone `picked` (by name) and still on, only
+ * that zone shows. `hasPhoto` says whether an artist photo was found.
+ */
+export function slidesFor(zones: RoonZone[], hasPhoto: (artist: string) => boolean, picked?: string): Slide[] {
+  const held = picked ? choices(zones).filter((z) => z.name === picked) : []
   const playing = zones.filter((z) => z.state === 'playing')
-  const shown = playing.length ? playing : zones.filter((z) => z.state === 'paused').slice(0, 1)
+  const shown = held.length ? held : playing.length ? playing : zones.filter((z) => z.state === 'paused').slice(0, 1)
   return shown.flatMap((zone): Slide[] => {
     const artist = mainArtist(zone.artist)
     return artist && hasPhoto(artist) ? [{ zone, image: 'cover' }, { zone, image: 'artist' }] : [{ zone, image: 'cover' }]
@@ -54,4 +75,22 @@ export async function findArtistPhoto(artist: string, signal?: AbortSignal): Pro
   })) url.searchParams.set(k, v)
   const res = await fetch(url, { signal })
   return res.ok ? photoFrom(await res.json()) : undefined
+}
+
+// The zone held on screen, shared by the Now Playing card and the Media tile. Not saved:
+// a fresh visit goes back to taking turns.
+let picked: string | undefined
+const listeners = new Set<() => void>()
+
+/** Hold the card on a zone by name, or undefined to take turns again. */
+export function pickZone(name: string | undefined) {
+  picked = name
+  listeners.forEach((l) => l())
+}
+
+export function usePickedZone(): string | undefined {
+  return useSyncExternalStore(
+    (l) => { listeners.add(l); return () => { listeners.delete(l) } },
+    () => picked,
+  )
 }
