@@ -56,8 +56,8 @@ export const entities = {
   cameras: {
     armed: 'alarm_control_panel.blink_meadowlake',
     list: [
-      { name: 'Front door', motion: 'binary_sensor.front_door_motion' },
-      { name: 'Patio', motion: 'binary_sensor.patio_motion' },
+      { name: 'Front door', motion: 'binary_sensor.front_door_motion', camera: 'camera.front_door' },
+      { name: 'Patio', motion: 'binary_sensor.patio_motion', camera: 'camera.patio' },
     ],
   },
   irrigation: {

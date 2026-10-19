@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { roonDisplayUrl, roonRockUrl } from '../config/home'
 import type { HouseState, RoonZone } from '../data/types'
 import type { RunAction } from '../data/useHouse'
-import { findArtistPhoto, mainArtist, slideMs, slidesFor } from '../media/nowPlaying'
+import { choices, findArtistPhoto, mainArtist, nowPlayingFrom, pickZone, slideMs, slidesFor, usePickedZone } from '../media/nowPlaying'
 import { duration } from '../rock/rock'
 import { Bar, Card, Chip, Dot, KV, Ring, Toggle } from '../widgets'
 import { ConfirmButton } from '../widgets/ConfirmButton'
@@ -49,7 +49,10 @@ function useTick(ms: number) {
 function NowPlayingCard({ zones }: { zones: RoonZone[] }) {
   const hasPhoto = useArtistPhotos(zones)
   const tick = useTick(slideMs)
-  const slides = slidesFor(zones, hasPhoto)
+  const picked = usePickedZone()
+  const options = choices(zones)
+  const held = options.some((z) => z.name === picked) ? picked : undefined
+  const slides = slidesFor(zones, hasPhoto, held)
   const slide = slides.length ? slides[tick % slides.length] : undefined
   const zone = slide?.zone
   const artist = mainArtist(zone?.artist)
@@ -62,6 +65,18 @@ function NowPlayingCard({ zones }: { zones: RoonZone[] }) {
       title="Now playing"
       chip={<a className="chip neutral link" href={roonDisplayUrl(window.location.href)} target="_blank" rel="noreferrer">Roon display</a>}
     >
+      {options.length > 1 && (
+        <div className="nowp-pick" role="group" aria-label="Show what's playing on">
+          <button className={held ? '' : 'on'} aria-pressed={!held} onClick={() => pickZone(undefined)}>Take turns</button>
+          {options.map((z) => (
+            <button key={z.name} className={held === z.name ? 'on' : ''} aria-pressed={held === z.name} onClick={() => pickZone(z.name)}>
+              {z.art ? <img src={z.art} alt="" /> : <i aria-hidden="true" />}
+              {z.name}
+              {z.state === 'paused' && <span className="sub"> · paused</span>}
+            </button>
+          ))}
+        </div>
+      )}
       {zone ? (
         <div className="nowp">
           {picture
@@ -73,7 +88,7 @@ function NowPlayingCard({ zones }: { zones: RoonZone[] }) {
             {zone.artist && <span className="nowp-artist">{zone.artist}</span>}
             {zone.album && <span className="nowp-album">{zone.album}</span>}
             {zone.progress !== undefined && <Bar value={zone.progress} color="var(--media)" />}
-            {others.length > 0 && (
+            {others.length > 0 && !held && (
               <span className="nowp-also">Also playing: {others.map((z) => `${z.name} (${z.track ?? 'unknown'})`).join(' · ')}</span>
             )}
             {slides.length > 1 && (
@@ -251,7 +266,9 @@ export const media: Category = {
     return { tone: 'neutral', label: n ? `${n} zone${n > 1 ? 's' : ''} playing` : 'Quiet' }
   },
   Tile: ({ house }) => {
-    const playing = house.media.roon.find((z) => z.state === 'playing')
+    const picked = usePickedZone()
+    const on = choices(nowPlayingFrom(house.media.roon, house.media.players))
+    const playing = on.find((z) => z.name === picked) ?? on.find((z) => z.state === 'playing')
     const stream = house.media.plex.streams[0]
     const tvs = house.media.screens.filter((s) => s.tv)
     return (
@@ -261,9 +278,9 @@ export const media: Category = {
             <div className="np">
               {playing.art ? <img className="art" src={playing.art} alt="" /> : <div className="art" aria-hidden="true" />}
               <div className="meta">
-                <span className="lbl">Roon · {playing.name}</span>
+                <span className="lbl">{house.media.roon.includes(playing) ? 'Roon · ' : ''}{playing.name}{playing.state === 'paused' ? ' · Paused' : ''}</span>
                 <b>{playing.track}</b>
-                <span>{playing.artist} · {playing.album}</span>
+                <span>{[playing.artist, playing.album].filter(Boolean).join(' · ')}</span>
               </div>
             </div>
             <Bar value={playing.progress ?? 0} color="var(--media)" />
@@ -280,7 +297,7 @@ export const media: Category = {
   },
   Sheet: ({ house, update, run, notify }) => (
     <>
-      <NowPlayingCard zones={house.media.roon} />
+      <NowPlayingCard zones={nowPlayingFrom(house.media.roon, house.media.players)} />
       <PlayerBar players={house.media.players} run={run} />
       <ZonesCard zones={house.media.roon} run={run} notify={notify} />
       <Card color="var(--media)" title="Plex" chip={<Chip tone={house.media.plex.up ? 'good' : 'bad'}>{house.media.plex.up ? 'Server up' : 'Server down'}</Chip>}>

@@ -107,7 +107,17 @@ describe('applyEntities', () => {
       entity(patio.motion, 'off', {}, new Date(2026, 9, 14, 22, 0)),
     ), now)
     expect(house.camerasArmed).toBe(true)
-    expect(house.cameras).toEqual([{ name: 'Front door', lastMotion: '8:14a' }, { name: 'Patio', lastMotion: null }])
+    expect(house.cameras).toEqual([{ name: 'Front door', lastMotion: '8:14a', image: undefined }, { name: 'Patio', lastMotion: null, image: undefined }])
+  })
+
+  it("shows each camera's latest picture", () => {
+    const [front] = entities.cameras.list
+    const shot = new Date(2026, 9, 15, 9, 0)
+    const { house } = applyEntities(sampleHouse, states(
+      entity(front.motion, 'off'),
+      entity(front.camera, 'idle', { entity_picture: '/api/camera_proxy/camera.front_door?token=abc' }, shot),
+    ), now)
+    expect(house.cameras[0].image).toBe(`/api/camera_proxy/camera.front_door?token=abc&at=${shot.getTime()}`)
   })
 
   it('does not change the state it was given', () => {

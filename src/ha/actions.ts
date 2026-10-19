@@ -123,5 +123,9 @@ export function actionCalls(action: Exclude<HouseAction, { rock: unknown }>, sta
     if ('group' in r) return [{ domain: 'media_player', service: 'join', data: { group_members: r.group.members }, entityIds: [r.group.leader] }]
     return [{ domain: 'media_player', service: 'unjoin', entityIds: [r.ungroup] }]
   }
+  if ('cameraSnap' in action) {
+    const cams = entities.cameras.list.map((c) => c.camera).filter((id) => states[id])
+    return cams.length ? [{ domain: 'blink', service: 'trigger_camera', entityIds: cams }] : []
+  }
   return [{ domain: 'media_player', service: 'media_play_pause', entityIds: [action.plexToggle] }]
 }
