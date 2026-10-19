@@ -42,10 +42,14 @@ export const outside: Category = {
         <Card wide color="var(--safety)" title="Blink cameras" chip={<Chip tone={house.camerasArmed ? 'good' : 'warn'}>{house.camerasArmed ? 'Armed' : 'Off'}</Chip>}>
           <div className="cams">
             {house.cameras.map((c) => (
-              <div key={c.name} className="cam"><span>{c.name} · {c.lastMotion ? `Motion ${c.lastMotion}` : 'No motion today'}</span></div>
+              <div key={c.name} className="cam">
+                {c.image && <img src={c.image} alt={`${c.name} camera`} />}
+                <span>{c.name} · {c.lastMotion ? `Motion ${c.lastMotion}` : 'No motion today'}</span>
+              </div>
             ))}
           </div>
           <Toggle label="Arm system" on={house.camerasArmed} onChange={(on) => update((h) => { h.camerasArmed = on })} />
+          <button className="btn" onClick={() => { run({ cameraSnap: true }); notify('Asking the cameras for new pictures') }}>Take new pictures</button>
         </Card>
         <Card color="var(--outside)" title="Rachio" chip={<Chip tone="neutral">Rain skip {ir.rainSkip ? 'on' : 'off'}</Chip>}>
           <KV rows={[...ir.zones.map((z): [string, string] => [z.name, `${z.next} · ${z.minutes}m`]), ['Rain, last 48h', `${ir.rain48hIn.toFixed(2)} in`]]} />

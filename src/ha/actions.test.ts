@@ -122,6 +122,12 @@ describe('actionCalls', () => {
     expect(actionCalls({ roon: { ungroup: 'media_player.a' } })).toEqual([{ domain: 'media_player', service: 'unjoin', entityIds: ['media_player.a'] }])
     expect(actionCalls({ plexToggle: 'media_player.plex_x' })).toEqual([{ domain: 'media_player', service: 'media_play_pause', entityIds: ['media_player.plex_x'] }])
   })
+
+  it('asks the Blink cameras Home Assistant has for new pictures', () => {
+    const states = { 'camera.front_door': { entity_id: 'camera.front_door' } } as unknown as Parameters<typeof actionCalls>[1]
+    expect(actionCalls({ cameraSnap: true }, states)).toEqual([{ domain: 'blink', service: 'trigger_camera', entityIds: ['camera.front_door'] }])
+    expect(actionCalls({ cameraSnap: true }, {})).toEqual([])
+  })
 })
 
 describe('player controls', () => {

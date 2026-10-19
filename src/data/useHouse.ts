@@ -156,6 +156,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
     // Artwork comes as a path on the Home Assistant server.
     const haUrl = haConfig()?.url
     for (const p of [...house.media.players, ...house.media.roon]) if (haUrl && p.art?.startsWith('/')) p.art = haUrl + p.art
+    for (const c of house.cameras) if (haUrl && c.image?.startsWith('/')) c.image = haUrl + c.image
     live.current = { house, states }
     const entityList = () =>
       Object.values(states)

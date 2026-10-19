@@ -295,7 +295,11 @@ export function applyEntities(
     if (!m) return []
     const changed = new Date(m.last_changed)
     const today = changed.toDateString() === now.toDateString()
-    return [{ name: c.name, lastMotion: m.state === 'on' ? 'now' : today ? shortTime(changed) : null }]
+    const cam = states[c.camera]
+    // The picture's address carries a short-lived token; the timestamp makes a new picture load.
+    const pic = cam && !offline.has(cam.state) ? str(cam.attributes.entity_picture) : undefined
+    const image = pic && `${pic}${pic.includes('?') ? '&' : '?'}at=${Date.parse(cam.last_updated)}`
+    return [{ name: c.name, lastMotion: m.state === 'on' ? 'now' : today ? shortTime(changed) : null, image }]
   })
   if (cams.length) h.cameras = cams
 
