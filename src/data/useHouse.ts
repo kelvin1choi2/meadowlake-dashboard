@@ -5,7 +5,7 @@ import { actionCalls, serviceCalls } from '../ha/actions'
 import { roonRockUrl } from '../config/home'
 import { connectToHA, haConfig, liveAllowed, watchEntities, watchForecast } from '../ha/connection'
 import { entities } from '../ha/entities'
-import { applyEntities, type Forecasts } from '../ha/map'
+import { applyEntities, dailyForecastType, forecastSource, type Forecasts } from '../ha/map'
 import { fetchHistory } from '../ha/history'
 import { sampleHistory } from './history'
 import { useRock } from '../rock/useRock'
@@ -54,6 +54,7 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
   const [forecasts, setForecasts] = useState<Forecasts>({})
   const [conn, setConn] = useState<'sample' | 'connecting' | 'error'>(() => (haConfig() ? 'connecting' : 'sample'))
   const liveConnection = useRef<Connection | null>(null)
+  const [connection, setConnection] = useState<Connection | null>(null)
   const live = useRef<{ house: HouseState; states: HassEntities } | null>(null)
   const errorRef = useRef(onError)
   errorRef.current = onError
@@ -70,12 +71,9 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
       (c) => {
         if (cancelled) return c.close()
         connection = c
-        unsubscribers.push(
-          watchEntities(c, setStates),
-          watchForecast(c, entities.weather, 'hourly', (hourly) => setForecasts((f) => ({ ...f, hourly }))),
-          watchForecast(c, entities.weather, 'daily', (daily) => setForecasts((f) => ({ ...f, daily }))),
-        )
+        unsubscribers.push(watchEntities(c, setStates))
         liveConnection.current = c
+        setConnection(c)
         unsubscribers.push(refreshWhenOpened(c))
       },
       () => { if (!cancelled) setConn('error') },
@@ -87,6 +85,19 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
       liveConnection.current = null
     }
   }, [])
+
+  // Forecasts follow whichever weather entity Home Assistant has (see forecastSource).
+  const weatherId = states ? forecastSource(states) : undefined
+  const dailyType = dailyForecastType(weatherId ? states?.[weatherId] : undefined)
+  useEffect(() => {
+    if (!connection || !weatherId) return
+    setForecasts({})
+    const stops = [
+      watchForecast(connection, weatherId, 'hourly', (hourly) => setForecasts((f) => ({ ...f, hourly }))),
+      watchForecast(connection, weatherId, dailyType, (daily) => setForecasts((f) => ({ ...f, daily }))),
+    ]
+    return () => stops.forEach((s) => s())
+  }, [connection, weatherId, dailyType])
 
   const update = useCallback<UpdateHouse>((change) => {
     const c = liveConnection.current

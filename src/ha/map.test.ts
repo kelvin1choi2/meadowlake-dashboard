@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, lightLook, nasTask, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom } from './map'
+import { applyEntities, byDay, dailyForecastType, forecastSource, lightLook, nasTask, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -121,6 +121,50 @@ describe('weather', () => {
   it('writes Home Assistant conditions in words', () => {
     const { house } = applyEntities(sampleHouse, states(entity(entities.weather, 'partlycloudy', { temperature: 82.4 })), now)
     expect(house.weather).toMatchObject({ condition: 'Partly cloudy', tempF: 82, feelsF: 82 })
+  })
+
+  it("takes current conditions from the station and UV from the forecast", () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity(entities.weather, 'partlycloudy', { temperature: 69, uv_index: 4 }),
+      entity('weather.station', 'sunny', { attribution: 'Data from National Weather Service/NOAA', temperature: 74.3, apparent_temperature: 76, wind_speed: 5, wind_speed_unit: 'mph', wind_bearing: 90 }),
+    ), now)
+    expect(house.weather).toMatchObject({ condition: 'Sunny', tempF: 74, feelsF: 76, uv: 4, wind: '5 mph E' })
+  })
+
+  it('falls back to the forecast when the station has no reading', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity(entities.weather, 'partlycloudy', { temperature: 69 }),
+      entity('weather.station', 'unknown', { attribution: 'Data from National Weather Service/NOAA', temperature: null }),
+    ), now)
+    expect(house.weather).toMatchObject({ condition: 'Partly cloudy', tempF: 69 })
+  })
+
+  it('uses the station for everything when the home forecast is gone', () => {
+    const nws = entity('weather.station', 'cloudy', { attribution: 'Data from National Weather Service/NOAA', temperature: 71, supported_features: 6 })
+    const all = states(nws, entity('weather.other', 'sunny', { temperature: 60 }))
+    expect(forecastSource(all)).toBe('weather.station')
+    expect(dailyForecastType(nws)).toBe('twice_daily')
+    const { house, onSample } = applyEntities(sampleHouse, all, now)
+    expect(house.weather).toMatchObject({ condition: 'Cloudy', tempF: 71 })
+    expect(onSample).not.toContain(entities.weather)
+  })
+
+  it('keeps the home forecast when it is there', () => {
+    const home = entity(entities.weather, 'sunny', { temperature: 70, supported_features: 3 })
+    expect(forecastSource(states(home, entity('weather.other', 'sunny')))).toBe(entities.weather)
+    expect(dailyForecastType(home)).toBe('daily')
+  })
+
+  it('folds day and night forecasts into days', () => {
+    expect(byDay([
+      { datetime: '2026-10-19T18:00:00Z', temperature: 58, is_daytime: false },
+      { datetime: '2026-10-20T12:00:00Z', temperature: 84, is_daytime: true },
+      { datetime: '2026-10-20T23:00:00Z', temperature: 66, is_daytime: false },
+      { datetime: '2026-10-21T12:00:00Z', temperature: 86, is_daytime: true },
+    ])).toEqual([
+      { datetime: '2026-10-20T12:00:00Z', temperature: 84, templow: 66, is_daytime: true },
+      { datetime: '2026-10-21T12:00:00Z', temperature: 86, templow: undefined, is_daytime: true },
+    ])
   })
 })
 

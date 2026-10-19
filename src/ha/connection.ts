@@ -74,13 +74,15 @@ export interface ForecastEntry {
   templow?: number
   condition?: string
   precipitation_probability?: number
+  /** Only on day-and-night forecasts. */
+  is_daytime?: boolean
 }
 
 /** Home Assistant pushes forecasts on their own subscription, not as entity state. */
 export function watchForecast(
   conn: Connection,
   entityId: string,
-  type: 'hourly' | 'daily',
+  type: 'hourly' | 'daily' | 'twice_daily',
   onChange: (forecast: ForecastEntry[]) => void,
 ): () => void {
   let unsub: (() => Promise<void>) | undefined

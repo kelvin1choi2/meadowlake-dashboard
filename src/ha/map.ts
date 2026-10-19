@@ -114,6 +114,40 @@ export function valvesFrom(states: HassEntities): HouseState['irrigation']['valv
 const heaterModes: Record<string, string> = { eco: 'Energy Saver', heat_pump: 'Heat pump', high_demand: 'High demand', electric: 'Electric', gas: 'Gas', performance: 'Performance' }
 const heaterMode = (id: string) => heaterModes[id] ?? label(id)
 
+/** The station Home Assistant names as a National Weather Service reading, if there is one. */
+function stationIn(states: HassEntities): HassEntity | undefined {
+  return Object.values(states).find((e) =>
+    e.entity_id.startsWith('weather.') && entities.observedBy.test(String(e.attributes.attribution ?? '')))
+}
+
+/**
+ * Which weather entity to take forecasts and UV from: Met.no's home forecast when it's there,
+ * else the station, else any weather entity, so removing or renaming one doesn't drop the
+ * dashboard back to sample weather.
+ */
+export function forecastSource(states: HassEntities): string {
+  if (states[entities.weather]) return entities.weather
+  return (stationIn(states) ?? Object.values(states).find((e) => e.entity_id.startsWith('weather.')))?.entity_id ?? entities.weather
+}
+
+/** Weather entities without a daily forecast (the National Weather Service) give day and night ones instead. */
+export function dailyForecastType(e: HassEntity | undefined): 'daily' | 'twice_daily' {
+  const features = Number(e?.attributes.supported_features ?? 0)
+  return !(features & 1) && features & 4 ? 'twice_daily' : 'daily'
+}
+
+/** Folds day and night forecasts into one entry per day: the day's temperature is the high, the night after it the low. */
+export function byDay(forecast: ForecastEntry[]): ForecastEntry[] {
+  if (!forecast.some((f) => f.is_daytime !== undefined)) return forecast
+  const days: ForecastEntry[] = []
+  forecast.forEach((f, i) => {
+    if (!f.is_daytime) return
+    const night = forecast[i + 1]
+    days.push({ ...f, templow: night && !night.is_daytime ? night.temperature : f.templow })
+  })
+  return days
+}
+
 export interface Forecasts {
   hourly?: ForecastEntry[]
   daily?: ForecastEntry[]
@@ -205,22 +239,25 @@ export function applyEntities(
   }
   if (rooms.length) h.rooms = rooms
 
-  const w = get(entities.weather)
-  if (w) {
-    h.weather.condition = conditions[w.state] ?? label(w.state)
-    const temp = num(w.attributes.temperature)
+  const w = get(forecastSource(states))
+  // Current conditions come from the weather station when it has a reading, else from the forecast.
+  const station = stationIn(states)
+  const o = station && num(station.attributes.temperature) !== undefined ? station : w
+  if (w && o) {
+    h.weather.condition = conditions[o.state] ?? label(o.state)
+    const temp = num(o.attributes.temperature)
     if (temp !== undefined) h.weather.tempF = Math.round(temp)
-    const feels = num(w.attributes.apparent_temperature)
+    const feels = num(o.attributes.apparent_temperature)
     h.weather.feelsF = feels === undefined ? h.weather.tempF : Math.round(feels)
     // Nothing in Home Assistant reports these yet, so don't show the sample values.
     h.weather.aqi = undefined
     h.weather.pollen = undefined
     const uv = num(w.attributes.uv_index)
     h.weather.uv = uv === undefined ? undefined : Math.round(uv)
-    const speed = num(w.attributes.wind_speed)
-    const bearing = num(w.attributes.wind_bearing)
+    const speed = num(o.attributes.wind_speed)
+    const bearing = num(o.attributes.wind_bearing)
     if (speed !== undefined) {
-      const unit = str(w.attributes.wind_speed_unit) ?? 'mph'
+      const unit = str(o.attributes.wind_speed_unit) ?? 'mph'
       const dir = bearing === undefined ? '' : ` ${compass[Math.round(bearing / 45) % 8]}`
       h.weather.wind = `${Math.round(speed)} ${unit}${dir}`
     }
@@ -232,7 +269,7 @@ export function applyEntities(
     const wet = hourly.find((f) => (f.precipitation_probability ?? 0) >= 30)
     h.weather.rainNote = wet ? `${Math.round(wet.precipitation_probability!)}% rain after ${hourLabel(new Date(wet.datetime))}` : 'No rain expected'
   }
-  const daily = (forecasts.daily ?? []).filter((f) => num(f.temperature) !== undefined).slice(0, 5)
+  const daily = byDay(forecasts.daily ?? []).filter((f) => num(f.temperature) !== undefined).slice(0, 5)
   if (daily.length) {
     h.weather.daily = daily.map((f) => ({
       day: new Date(f.datetime).toLocaleDateString('en-US', { weekday: 'short' }),
