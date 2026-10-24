@@ -104,7 +104,10 @@ export interface ScriptRun {
   name: string
   schedule: string
   lastRun: string
-  status: 'ok' | 'late' | 'failed'
+  /** waiting = hasn't run yet; off = disabled in Task Scheduler. */
+  status: 'ok' | 'late' | 'failed' | 'waiting' | 'off'
+  /** Why it's late or failed, e.g. "Should run daily" or "Exit code 0x1". */
+  detail?: string
 }
 
 export interface Scene {
@@ -246,7 +249,13 @@ export interface HouseState {
     /** When Home Assistant last asked the NAS for these results, e.g. "Today 7:02a". */
     tasksChecked?: string
   }
+  /** Scheduled tasks on the Windows PC (docs/windows-tasks.md). */
   scripts: ScriptRun[]
+  /**
+   * When the PC last reported its tasks, and whether that's too long ago (PC off or asleep).
+   * Absent on sample data; `setUp: false` when Home Assistant has no report sensor yet.
+   */
+  scriptsReport?: { setUp: boolean; when?: string; stale?: boolean }
   macMini: { uptimeDays: number; services: { name: string; up: boolean }[] }
   appliances: {
     washer: { state: string; cycle: string; minutesLeft: number; progress: number; doneAt: string }

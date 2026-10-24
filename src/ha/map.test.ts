@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, byDay, dailyForecastType, forecastSource, lightLook, nasTask, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom } from './map'
+import { applyEntities, byDay, dailyForecastType, forecastSource, lightLook, nasTask, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -441,5 +441,54 @@ describe('controls', () => {
       entity(ayre.id, 'playing', { group_members: [linn.id, ayre.id] }),
     ), now)
     expect(house.media.roon.map((z) => z.groupedWith)).toEqual([[ayre.name], [linn.name]])
+  })
+})
+
+describe('Windows tasks', () => {
+  const at = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m).toISOString()
+  const report = (tasks: unknown[], reported = now) =>
+    entity(entities.windowsTasks, String(tasks.length), { tasks, reported: reported.toISOString() }, reported)
+
+  it('marks each task ok, late, failed, waiting or off', () => {
+    const { scripts, report: r } = windowsTasks(report([
+      { name: 'Photo import', schedule: 'Daily 1:00a', every: 1440, enabled: true, last: at(15, 1), result: 0 },
+      { name: 'Plex refresh', schedule: 'Daily 4:00a', every: 1440, enabled: true, last: at(13, 4), result: 0 },
+      { name: 'Mirror', schedule: 'Hourly', every: 60, enabled: true, last: at(15, 14), result: 1 },
+      { name: 'New one', schedule: 'Sun 3:00a', every: 10080, enabled: true, last: null, result: 0x41303 },
+      { name: 'Old one', schedule: 'Daily 2:00a', every: 1440, enabled: false, last: at(1, 2), result: 0 },
+      { name: 'Busy', schedule: 'Hourly', every: 60, enabled: true, running: true, last: at(15, 9), result: 0x41301 },
+    ]), now)
+    expect(scripts.map((s) => [s.name, s.status])).toEqual([
+      ['Photo import', 'ok'], ['Plex refresh', 'late'], ['Mirror', 'failed'], ['New one', 'waiting'], ['Old one', 'off'], ['Busy', 'ok'],
+    ])
+    expect(scripts[0]).toEqual({ name: 'Photo import', schedule: 'Daily 1:00a', lastRun: 'Today 1:00a', status: 'ok' })
+    expect(scripts[1]).toMatchObject({ lastRun: 'Oct 13 4:00a', detail: 'Missed a scheduled run' })
+    expect(scripts[2].detail).toBe('Exit code 0x1')
+    expect(scripts[3].lastRun).toBe('Never')
+    expect(r).toEqual({ setUp: true, when: 'Today 3:00p', stale: false })
+  })
+
+  it('allows some slack before a task counts as late', () => {
+    const daily = { name: 'Daily', schedule: 'Daily 2:00p', every: 1440, enabled: true, result: 0 }
+    expect(windowsTasks(report([{ ...daily, last: at(14, 14, 0) }]), now).scripts[0].status).toBe('ok')
+    expect(windowsTasks(report([{ ...daily, last: at(14, 11, 0) }]), now).scripts[0].status).toBe('late')
+    const quarter = { name: 'Q', schedule: 'Every 15 min', every: 15, enabled: true, result: 0 }
+    expect(windowsTasks(report([{ ...quarter, last: at(15, 14, 20) }]), now).scripts[0].status).toBe('ok')
+    expect(windowsTasks(report([{ ...quarter, last: at(15, 14, 0) }]), now).scripts[0].status).toBe('late')
+  })
+
+  it('says when the PC stopped reporting', () => {
+    const { report: r } = windowsTasks(report([], new Date(2026, 9, 15, 13, 0)), now)
+    expect(r).toEqual({ setUp: true, when: 'Today 1:00p', stale: true })
+    expect(windowsTasks(entity(entities.windowsTasks, 'unknown'), now)).toEqual({ scripts: [], report: { setUp: true } })
+  })
+
+  it('drops the made-up tasks once Home Assistant is connected, and uses real ones when reported', () => {
+    const other = entity(entities.climate.thermostat, 'heat')
+    const none = applyEntities(sampleHouse, states(other), now).house
+    expect(none.scripts).toEqual([])
+    expect(none.scriptsReport).toEqual({ setUp: false })
+    const real = applyEntities(sampleHouse, states(other, report([{ name: 'Backup', schedule: 'Hourly', every: 60, enabled: true, last: at(15, 14), result: 0 }])), now).house
+    expect(real.scripts.map((s) => s.name)).toEqual(['Backup'])
   })
 })

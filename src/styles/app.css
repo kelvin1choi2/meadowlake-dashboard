@@ -193,7 +193,7 @@ th { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: 
 .result.ok { color: var(--good); }
 .result.late { color: var(--warn); }
 .result.failed { color: var(--bad); }
-.result.waiting { color: var(--muted); }
+.result.waiting, .result.off { color: var(--muted); }
 td .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .checked { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
 

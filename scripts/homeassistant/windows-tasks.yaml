@@ -1,0 +1,16 @@
+# Keeps the Windows PC's scheduled tasks in sensor.windows_tasks for the dashboard
+# (docs/windows-tasks.md). scripts/windows/report-tasks.ps1 posts them here every 15 minutes.
+# The webhook id lives in Home Assistant's secrets.yaml, never in the repo.
+- triggers:
+    - trigger: webhook
+      webhook_id: !secret windows_tasks_webhook
+      allowed_methods: [POST]
+      local_only: true
+  sensor:
+    - name: Windows tasks
+      unique_id: meadowlake_windows_tasks
+      icon: mdi:microsoft-windows
+      state: "{{ trigger.json.tasks | count if trigger.json is mapping and trigger.json.tasks is list else 0 }}"
+      attributes:
+        tasks: "{{ trigger.json.tasks if trigger.json is mapping and trigger.json.tasks is list else [] }}"
+        reported: "{{ now().isoformat() }}"

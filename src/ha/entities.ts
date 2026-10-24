@@ -95,6 +95,12 @@ export const entities = {
       status: `sensor.choi_vault_drive_${n}_status`,
     })),
   },
+  /**
+   * Scheduled tasks on the Windows PC. A small script there (scripts/windows/report-tasks.ps1)
+   * posts them to a Home Assistant webhook every 15 minutes, and a template sensor keeps the
+   * list in its `tasks` attribute (docs/windows-tasks.md).
+   */
+  windowsTasks: 'sensor.windows_tasks',
   media: {
     /** Roon zones, by the name shown on the dashboard. */
     roon: [

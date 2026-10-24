@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Bar, Card, Chip, Dot, Holdable, KV, Ring } from '../widgets'
-import type { NasTask, NasVolume } from '../data/types'
+import type { HouseState, NasTask, NasVolume, ScriptRun } from '../data/types'
 import { NEARLY_FULL } from '../app/alerts'
 import type { Category, HistoryChart } from './types'
 
@@ -14,6 +14,28 @@ const volumeChart = (v: NasVolume): HistoryChart => ({ category: 'data', key: { 
 
 const taskResult = (t: NasTask) => (t.ok === null ? 'Waiting' : t.ok ? 'OK' : 'Failed')
 
+const scriptResult: Record<ScriptRun['status'], string> = { ok: 'OK', late: 'Late', failed: 'Failed', waiting: 'Not run yet', off: 'Off' }
+const behind = (h: HouseState) => h.scripts.filter((s) => s.status === 'late' || s.status === 'failed')
+
+function scriptsNote(r: NonNullable<HouseState['scriptsReport']>, count: number): string {
+  if (!r.setUp) return "This PC's scheduled tasks show here once it reports them to Home Assistant (docs/windows-tasks.md)."
+  if (!r.when) return 'Waiting for the PC to send its first report.'
+  const when = `Reported by the PC ${r.when}`
+  if (r.stale) return `${when}. It sends a report every 15 minutes, so it's probably off or asleep.`
+  return count ? when : `${when}, with no tasks to show.`
+}
+
+/** The Windows tasks line on the tile: how many are on time, or why there's nothing to show. */
+function scriptsLine(h: HouseState): { color: string; text: string } {
+  const r = h.scriptsReport
+  if (r && !r.setUp) return { color: 'var(--faint)', text: 'Not set up' }
+  if (r?.stale) return { color: 'var(--warn)', text: 'PC not reporting' }
+  if (r && !r.when) return { color: 'var(--faint)', text: 'No report yet' }
+  const counted = h.scripts.filter((s) => s.status !== 'off')
+  const late = behind(h).length
+  return { color: late ? 'var(--warn)' : 'var(--good)', text: `${counted.length - late} of ${counted.length} on time` }
+}
+
 export const data: Category = {
   id: 'data',
   name: 'Data',
@@ -24,12 +46,14 @@ export const data: Category = {
     if (failed) return { tone: 'bad', label: failed > 1 ? `${failed} tasks failed` : 'Backup failed' }
     const full = h.nas.volumes.filter(nearlyFull)
     if (full.length) return { tone: 'warn', label: full.length > 1 ? `${full.length} volumes almost full` : `${full[0].name} almost full` }
-    const late = h.scripts.filter((s) => s.status !== 'ok').length
-    return late ? { tone: 'warn', label: `${late} script${late > 1 ? 's' : ''} late` } : { tone: 'good', label: 'All good' }
+    const pcFailed = behind(h).filter((s) => s.status === 'failed').length
+    if (pcFailed) return { tone: 'warn', label: pcFailed > 1 ? `${pcFailed} PC tasks failed` : 'PC task failed' }
+    const late = behind(h).length
+    return late ? { tone: 'warn', label: `${late} PC task${late > 1 ? 's' : ''} late` } : { tone: 'good', label: 'All good' }
   },
   Tile: ({ house, showHistory }) => {
     const n = house.nas
-    const ok = house.scripts.filter((s) => s.status === 'ok').length
+    const pc = scriptsLine(house)
     return (
       <div className="vols">
         <div className="vol-rings">
@@ -54,7 +78,7 @@ export const data: Category = {
           {n.tasks.map((t) => (
             <div key={t.name}><Dot color={taskColor(t)} />{t.name}<span className="r">{t.ok === false ? 'Failed' : t.when}</span></div>
           ))}
-          <div><Dot color={ok === house.scripts.length ? 'var(--good)' : 'var(--warn)'} />Windows scripts<span className="r">{ok} of {house.scripts.length} on time</span></div>
+          <div><Dot color={pc.color} />Windows tasks<span className="r">{pc.text}</span></div>
         </div>
       </div>
     )
@@ -106,20 +130,23 @@ export const data: Category = {
           </div>
           <KV rows={[[n.backupTarget, n.backupLast], ['Cloud Sync', n.cloudSync], ['Last missed run', n.lastMiss ?? 'None']]} />
         </Card>
-        <Card wide title="Windows 11 scripts">
-          <div className="tw">
-            <table>
-              <thead><tr><th>Script</th><th>Schedule</th><th>Last run</th><th>Result</th></tr></thead>
-              <tbody>
-                {house.scripts.map((s) => (
-                  <tr key={s.name}>
-                    <td>{s.name}</td><td>{s.schedule}</td><td className="num">{s.lastRun}</td>
-                    <td className={`result ${s.status}`}>{s.status === 'ok' ? 'OK' : s.status === 'late' ? 'Late' : 'Failed'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <Card wide title="Windows 11 tasks">
+          {house.scripts.length > 0 && (
+            <div className="tw">
+              <table>
+                <thead><tr><th>Task</th><th>Schedule</th><th>Last run</th><th>Result</th></tr></thead>
+                <tbody>
+                  {house.scripts.map((s) => (
+                    <tr key={s.name}>
+                      <td>{s.name}{s.detail && <div className="sub">{s.detail}</div>}</td><td>{s.schedule}</td><td className="num">{s.lastRun}</td>
+                      <td className={`result ${s.status}`}>{scriptResult[s.status]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {house.scriptsReport && <p className="checked">{scriptsNote(house.scriptsReport, house.scripts.length)}</p>}
         </Card>
         <Card title="Mac Mini" chip={<Chip tone="good">Up</Chip>}>
           <KV rows={[['Uptime', `${house.macMini.uptimeDays} days`], ...house.macMini.services.map((s): [string, string] => [s.name, s.up ? 'Running' : 'Stopped'])]} />

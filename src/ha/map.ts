@@ -445,6 +445,16 @@ export function applyEntities(
   }
   if (found.length) h.scenes = found
 
+  // Windows tasks: real ones replace the sample list. Once Home Assistant is connected but has no
+  // report sensor, the list is empty rather than made up, since a made-up "late" task looks real.
+  const win = states[entities.windowsTasks]
+  if (win || linked) {
+    const report = win ? windowsTasks(win, now) : { scripts: [], report: { setUp: false } }
+    h.scripts = report.scripts
+    h.scriptsReport = report.report
+  }
+  if (win) { total++; linked++ }
+
   if (linked) h.pulse = pulseFrom(states, now)
 
   return { house: h, linked, total, unavailable, onSample }
@@ -490,6 +500,41 @@ export function nasTask(t: { name: string; app: string; entity: string }, e: Has
     ...(m[3] ? { detail: m[3] } : {}),
     reportId,
   }
+}
+
+/** Task Scheduler result codes that aren't failures: running, never run, queued. */
+const notFailures = new Set([0, 0x41301, 0x41303, 0x41325])
+/** How long a report can be before the PC counts as not reporting (it sends every 15 minutes). */
+const REPORT_STALE_MS = 45 * 60_000
+
+/**
+ * The PC's scheduled tasks, from the template sensor its report script feeds. A task is late
+ * when its last run is longer ago than its schedule allows (plus some slack, at least half an
+ * hour), which is what happens when the PC was off or asleep at the time.
+ */
+export function windowsTasks(e: HassEntity, now: Date): { scripts: HouseState['scripts']; report: NonNullable<HouseState['scriptsReport']> } {
+  const list = Array.isArray(e.attributes.tasks) ? (e.attributes.tasks as unknown[]) : []
+  const reported = new Date(str(e.attributes.reported) ?? e.last_updated)
+  if (offline.has(e.state) && !list.length) return { scripts: [], report: { setUp: true } }
+  const scripts = list.flatMap((raw): HouseState['scripts'] => {
+    if (!raw || typeof raw !== 'object') return []
+    const t = raw as Record<string, unknown>
+    const name = str(t.name)
+    if (!name) return []
+    const last = str(t.last) ? new Date(t.last as string) : undefined
+    const ran = last && !Number.isNaN(last.getTime()) ? last : undefined
+    const every = num(t.every) ?? 0
+    const code = num(t.result) ?? 0
+    const base = { name, schedule: str(t.schedule) ?? '', lastRun: ran ? dayTime(ran, now) : 'Never' }
+    if (t.enabled === false) return [{ ...base, status: 'off' }]
+    if (t.running === true) return [{ ...base, status: 'ok', detail: 'Running now' }]
+    if (ran && !notFailures.has(code)) return [{ ...base, status: 'failed', detail: `Exit code 0x${code.toString(16).toUpperCase()}` }]
+    const slack = Math.max(30, every * 0.1) * 60_000
+    if (every && (ran ? reported.getTime() - ran.getTime() : 0) > every * 60_000 + slack)
+      return [{ ...base, status: 'late', detail: 'Missed a scheduled run' }]
+    return [{ ...base, status: ran ? 'ok' : 'waiting' }]
+  })
+  return { scripts, report: { setUp: true, when: dayTime(reported, now), stale: now.getTime() - reported.getTime() > REPORT_STALE_MS } }
 }
 
 // Home Assistant's media_player feature flags.
