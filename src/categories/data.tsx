@@ -104,6 +104,24 @@ export const data: Category = {
           </div>
           {n.tasksChecked && <p className="checked">Checked with the NAS {n.tasksChecked}</p>}
         </Card>
+        <Card wide title="Windows 11 tasks">
+          {house.scripts.length > 0 && (
+            <div className="tw">
+              <table>
+                <thead><tr><th>Task</th><th>Schedule</th><th>Last run</th><th>Result</th></tr></thead>
+                <tbody>
+                  {house.scripts.map((s) => (
+                    <tr key={s.name}>
+                      <td>{s.name}{s.detail && <div className="sub">{s.detail}</div>}</td><td>{s.schedule}</td><td className="num">{s.lastRun}</td>
+                      <td className={`result ${s.status}`}>{scriptResult[s.status]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {house.scriptsReport && <p className="checked">{scriptsNote(house.scriptsReport, house.scripts.length)}</p>}
+        </Card>
         <Card color="var(--data)" title={n.model} chip={<Chip tone="good">{n.raid}</Chip>}>
           <Bar value={sumTB(n.volumes, 'usedTB') / (sumTB(n.volumes, 'totalTB') || 1)} />
           <KV rows={[...n.volumes.map((v): [string, ReactNode] => [v.name, (
@@ -124,32 +142,14 @@ export const data: Category = {
             </table>
           </div>
         </Card>
+        <Card title="Mac Mini" chip={<Chip tone="good">Up</Chip>}>
+          <KV rows={[['Uptime', `${house.macMini.uptimeDays} days`], ...house.macMini.services.map((s): [string, string] => [s.name, s.up ? 'Running' : 'Stopped'])]} />
+        </Card>
         <Card wide color="var(--data)" title={`Backups, last ${n.backupNights.length} nights`}>
           <div className="nights" role="img" aria-label={`${n.backupNights.filter(Boolean).length} of ${n.backupNights.length} nights succeeded`}>
             {n.backupNights.map((ok, i) => <span key={i} className={ok ? 'ok' : 'miss'} />)}
           </div>
           <KV rows={[[n.backupTarget, n.backupLast], ['Cloud Sync', n.cloudSync], ['Last missed run', n.lastMiss ?? 'None']]} />
-        </Card>
-        <Card wide title="Windows 11 tasks">
-          {house.scripts.length > 0 && (
-            <div className="tw">
-              <table>
-                <thead><tr><th>Task</th><th>Schedule</th><th>Last run</th><th>Result</th></tr></thead>
-                <tbody>
-                  {house.scripts.map((s) => (
-                    <tr key={s.name}>
-                      <td>{s.name}{s.detail && <div className="sub">{s.detail}</div>}</td><td>{s.schedule}</td><td className="num">{s.lastRun}</td>
-                      <td className={`result ${s.status}`}>{scriptResult[s.status]}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {house.scriptsReport && <p className="checked">{scriptsNote(house.scriptsReport, house.scripts.length)}</p>}
-        </Card>
-        <Card title="Mac Mini" chip={<Chip tone="good">Up</Chip>}>
-          <KV rows={[['Uptime', `${house.macMini.uptimeDays} days`], ...house.macMini.services.map((s): [string, string] => [s.name, s.up ? 'Running' : 'Stopped'])]} />
         </Card>
       </>
     )

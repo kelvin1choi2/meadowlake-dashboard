@@ -8,7 +8,7 @@ import { safety } from './safety'
 import { scenes } from './scenes'
 import type { Category } from './types'
 
-/** Tile order on the grid: three rows of four columns, then Data across the bottom. */
-export const categories: Category[] = [inside, outside, media, appliances, safety, chores, scenes, data]
+/** Tile order on the grid: Data across the top, then three rows of four columns. */
+export const categories: Category[] = [data, inside, outside, media, appliances, safety, chores, scenes]
 
 export type { Category, CategoryProps } from './types'
