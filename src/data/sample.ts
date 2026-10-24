@@ -128,8 +128,9 @@ export const sampleHouse: HouseState = {
     { name: 'Photo import to NAS', schedule: 'Daily 1:00a', lastRun: 'Today 1:00a', status: 'ok' },
     { name: 'Robocopy documents mirror', schedule: 'Hourly', lastRun: 'Today 8:00a', status: 'ok' },
     { name: 'Disk cleanup', schedule: 'Sun 3:00a', lastRun: 'Oct 11 3:00a', status: 'ok' },
-    { name: 'Plex metadata refresh', schedule: 'Daily 4:00a', lastRun: 'Oct 13 4:00a', status: 'late' },
+    { name: 'Plex metadata refresh', schedule: 'Daily 4:00a', lastRun: 'Oct 13 4:00a', status: 'late', detail: 'Missed a scheduled run' },
   ],
+  scriptsReport: { setUp: true, when: 'Today 8:15a' },
   macMini: { uptimeDays: 21, services: [{ name: 'Home Assistant', up: true }, { name: 'Roon Core', up: true }] },
   appliances: {
     washer: { state: 'Rinse', cycle: 'Normal · Warm', minutesLeft: 23, progress: 0.64, doneAt: '9:05a' },
