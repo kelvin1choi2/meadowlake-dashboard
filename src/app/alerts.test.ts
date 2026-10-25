@@ -32,3 +32,11 @@ describe('houseAlerts', () => {
     expect(visibleAlerts(alerts, [], { 'volume@Volume 3': 1000 }, 1000)).toEqual(alerts)
   })
 })
+
+describe('jammed lock', () => {
+  it('gets a red banner', () => {
+    const h = house()
+    h.safety.locks[0].state = 'jammed'
+    expect(houseAlerts(h).find((a) => a.id.startsWith('jammed@'))?.tone).toBe('bad')
+  })
+})

@@ -177,6 +177,22 @@ export type HistoryKey = { room: string } | { hotWater: true } | { volume: strin
 /** Readings over the last day, oldest first; null when there's no history to show. */
 export type FetchHistory = (key: HistoryKey) => Promise<{ at: Date; value: number }[] | null>
 
+/**
+ * A door lock. The UI only ever sets `state` to locked or unlocked; Home Assistant reports
+ * the in-between states while the bolt moves, and jammed when it couldn't.
+ */
+export interface Lock {
+  /** The lock's Home Assistant entity. */
+  id: string
+  name: string
+  state: 'locked' | 'unlocked' | 'locking' | 'unlocking' | 'jammed' | 'open' | 'unknown'
+  /** When it last locked or unlocked. */
+  since: string
+  battery?: number
+  /** From the lock's door sensor, when it has one. */
+  doorOpen?: boolean
+}
+
 export interface HouseState {
   mode: 'home' | 'away' | 'night' | 'guests'
   climate: {
@@ -274,6 +290,8 @@ export interface HouseState {
     /** `since` is when the door last opened or closed. */
     garage: { open: boolean; since: string }
     leaks: { name: string; wet: boolean; battery?: number }[]
+    /** Door locks (the Eufy on the door from the garage, through Matter). */
+    locks: Lock[]
   }
   chores: {
     robovac: { state: string; battery: number; lastClean: string; next?: string; runWhenAway: boolean }

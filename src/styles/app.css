@@ -370,3 +370,11 @@ table.zones td { vertical-align: top; }
   .alert > .alert-btns { max-width: none; justify-content: flex-start; }
   .handoff { flex-direction: column; }
 }
+
+/* Door locks (Safety). Locking is one tap; unlocking takes a second tap. */
+.padlock { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lock-row .n { min-width: 0; line-height: 1.25; }
+.lock-row .r { margin-left: auto; white-space: nowrap; }
+.lock-row .btn { margin-left: 4px; white-space: nowrap; }
+.lock-big { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+.lock-big .ring { width: 64px; height: 64px; padding: 15px; border-radius: 50%; background: var(--c); color: var(--on-hue); flex: none; }

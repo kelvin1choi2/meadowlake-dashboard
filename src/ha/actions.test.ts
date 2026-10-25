@@ -17,6 +17,7 @@ const states: HassEntities = Object.fromEntries([
   entity(entities.media.screens[0].entity, 'off'),
   entity(entities.appliances.waterHeater, 'heat_pump', { away_mode: 'off' }),
   entity(entities.cameras.armed, 'armed_away'),
+  entity('lock.inside_garage_door', 'locked'),
 ].map((e) => [e.entity_id, e]))
 
 function change(edit: (h: HouseState) => void) {
@@ -27,6 +28,15 @@ function change(edit: (h: HouseState) => void) {
 }
 
 describe('serviceCalls', () => {
+  it('locks and unlocks a door', () => {
+    expect(change((h) => { h.safety.locks[0].state = 'unlocked' })).toEqual([{ domain: 'lock', service: 'unlock', entityIds: ['lock.inside_garage_door'] }])
+    const unlocked = { ...states, 'lock.inside_garage_door': entity('lock.inside_garage_door', 'unlocked') }
+    const before = applyEntities(sampleHouse, unlocked).house
+    const after = structuredClone(before)
+    after.safety.locks[0].state = 'locked'
+    expect(serviceCalls(before, after, unlocked)).toEqual([{ domain: 'lock', service: 'lock', entityIds: ['lock.inside_garage_door'] }])
+  })
+
   it('turns a room on through its lights, not the Hue group', () => {
     expect(change((h) => { h.rooms[0].lightsOn = h.rooms[0].lightsTotal })).toEqual([
       { domain: 'light', service: 'turn_on', entityIds: ['light.lounge_lamp_1', 'light.lounge_lamp_2'] },
