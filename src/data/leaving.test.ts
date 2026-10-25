@@ -25,3 +25,14 @@ describe('leaving', () => {
     expect(nothingToDo(leavingPlan({ ...h, chores: { ...h.chores, robovac: { ...h.chores.robovac, runWhenAway: false } }, media: { ...h.media, players: [] } }))).toBe(true)
   })
 })
+
+describe('leaving with a door unlocked', () => {
+  it('locks it', () => {
+    const h = structuredClone(sampleHouse)
+    h.safety.locks[0].state = 'unlocked'
+    expect(leavingPlan(h).locks).toEqual(['Inside garage door'])
+    leave(h)
+    expect(h.safety.locks[0].state).toBe('locked')
+    expect(leavingPlan(h).locks).toEqual([])
+  })
+})

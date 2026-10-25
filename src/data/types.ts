@@ -290,7 +290,7 @@ export interface HouseState {
     /** `since` is when the door last opened or closed. */
     garage: { open: boolean; since: string }
     leaks: { name: string; wet: boolean; battery?: number }[]
-    /** Door locks (the Eufy on the front door, through Matter). */
+    /** Door locks (the Eufy on the door from the garage, through Matter). */
     locks: Lock[]
   }
   chores: {

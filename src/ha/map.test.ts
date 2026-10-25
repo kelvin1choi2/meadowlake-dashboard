@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, byDay, dailyForecastType, forecastSource, lightLook, nasTask, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
+import { applyEntities, byDay, locksFrom, dailyForecastType, forecastSource, lightLook, nasTask, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -490,5 +490,26 @@ describe('Windows tasks', () => {
     expect(none.scriptsReport).toEqual({ setUp: false })
     const real = applyEntities(sampleHouse, states(other, report([{ name: 'Backup', schedule: 'Hourly', every: 60, enabled: true, last: at(15, 14), result: 0 }])), now).house
     expect(real.scripts.map((s) => s.name)).toEqual(['Backup'])
+  })
+})
+
+describe('locks', () => {
+  it('finds every lock with its battery and door sensors, named by Home Assistant', () => {
+    const found = locksFrom(states(
+      entity('lock.inside_garage_door', 'locked', { friendly_name: 'Inside Garage Door Lock' }),
+      entity('sensor.inside_garage_door_battery', '77'),
+      entity('binary_sensor.inside_garage_door_door', 'off'),
+      entity('lock.shed', 'weird'),
+    ))
+    expect(found).toEqual([
+      { id: 'lock.inside_garage_door', name: 'Inside Garage Door', state: 'locked', since: '3:00p', battery: 77, doorOpen: false },
+      { id: 'lock.shed', name: 'Shed', state: 'unknown', since: '3:00p', battery: undefined, doorOpen: undefined },
+    ])
+  })
+
+  it('drops the sample lock once Home Assistant is connected without one', () => {
+    const { house, onSample } = applyEntities(sampleHouse, states(entity('sun.sun', 'above_horizon')), now)
+    expect(house.safety.locks).toEqual([])
+    expect(onSample).toContain('Door lock (a lock.* entity)')
   })
 })

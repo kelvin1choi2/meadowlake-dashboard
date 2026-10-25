@@ -150,7 +150,7 @@ export const sampleHouse: HouseState = {
       { name: 'Water heater', wet: false, battery: 80 },
       { name: 'Laundry', wet: false, battery: 64 },
     ],
-    locks: [{ id: 'lock.front_door', name: 'Front door', state: 'locked', since: '7:41a', battery: 88, doorOpen: false }],
+    locks: [{ id: 'lock.inside_garage_door', name: 'Inside garage door', state: 'locked', since: '7:41a', battery: 88, doorOpen: false }],
   },
   chores: {
     robovac: { state: 'Docked', battery: 87, lastClean: 'Yesterday · 42 min', next: 'Today 10:00a', runWhenAway: true },

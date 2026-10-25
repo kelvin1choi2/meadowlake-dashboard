@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import type { Lock } from '../data/types'
 import type { UpdateHouse } from '../data/useHouse'
 import { Card, Chip, Dot, Idea, KV } from '../widgets'
@@ -7,9 +7,6 @@ import type { Category } from './types'
 
 // The tile opens the sheet when tapped, so its own buttons keep their taps to themselves.
 const own = { onClick: (e: MouseEvent) => e.stopPropagation(), onKeyDown: (e: KeyboardEvent) => e.stopPropagation() }
-
-// MOCKUP ONLY: ?lock=a|b|c picks a tile design for Kelvin to choose from.
-const variant = typeof location === 'undefined' ? 'b' : new URLSearchParams(location.search).get('lock') ?? 'b'
 
 const lockWords: Record<Lock['state'], string> = {
   locked: 'Locked', unlocked: 'Unlocked', locking: 'Locking…', unlocking: 'Unlocking…', jammed: 'Jammed', open: 'Open', unknown: 'Not answering',
@@ -41,52 +38,6 @@ function LockButtons({ lock, update, notify, small }: { lock: Lock; update: Upda
     : <button type="button" className={`btn primary${small ? ' sm' : ''}`} onClick={() => setLock(update, notify, lock, 'locked')}>Lock</button>
 }
 
-/** Mockup B: a big button that shows the lock's state. Tap locks; unlocking needs a second tap. */
-function BigLock({ lock, update, notify }: { lock: Lock; update: UpdateHouse; notify: (m: string) => void }) {
-  const [armed, setArmed] = useState(false)
-  useEffect(() => {
-    if (!armed) return
-    const t = setTimeout(() => setArmed(false), 4000)
-    return () => clearTimeout(t)
-  }, [armed])
-  const locked = lock.state === 'locked' || lock.state === 'locking'
-  const tap = (e: MouseEvent) => {
-    own.onClick(e)
-    if (!canMove(lock)) return
-    if (lock.state !== 'locked') return setLock(update, notify, lock, 'locked')
-    if (!armed) return setArmed(true)
-    setArmed(false)
-    setLock(update, notify, lock, 'unlocked')
-  }
-  const hint = !canMove(lock) ? lockWords[lock.state] : lock.state !== 'locked' ? 'Tap to lock' : armed ? 'Tap again to unlock' : 'Tap twice to unlock'
-  return (
-    <button type="button" className={`biglock ${lockTone(lock)}${armed ? ' armed' : ''}`} onClick={tap} onKeyDown={own.onKeyDown}
-      aria-label={`${lock.name}: ${lockWords[lock.state]}. ${hint}.`}>
-      <span className="ring"><Padlock open={!locked} /></span>
-      <span className="txt"><b>{lock.name}</b><span>{lockWords[lock.state]} · {hint}</span></span>
-    </button>
-  )
-}
-
-/** Mockup C: tap locks; unlocking is press and hold while the bar fills. */
-function HoldLock({ lock, update, notify }: { lock: Lock; update: UpdateHouse; notify: (m: string) => void }) {
-  const [holding, setHolding] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  useEffect(() => () => clearTimeout(timer.current), [])
-  const stop = () => { clearTimeout(timer.current); setHolding(false) }
-  const locked = lock.state === 'locked'
-  return (
-    <button type="button" className={`biglock hold ${lockTone(lock)}${holding ? ' holding' : ''}`} onKeyDown={own.onKeyDown}
-      onClick={(e) => { own.onClick(e); if (canMove(lock) && !locked) setLock(update, notify, lock, 'locked') }}
-      onPointerDown={() => { if (!locked) return; setHolding(true); timer.current = setTimeout(() => { setHolding(false); setLock(update, notify, lock, 'unlocked') }, 1500) }}
-      onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop} onContextMenu={(e) => e.preventDefault()}>
-      <span className="ring"><Padlock open={!locked} /></span>
-      <span className="txt"><b>{lock.name}</b><span>{lockWords[lock.state]} · {locked ? 'Hold to unlock' : canMove(lock) ? 'Tap to lock' : ''}</span></span>
-      <i className="fill" />
-    </button>
-  )
-}
-
 export const safety: Category = {
   id: 'safety',
   name: 'Safety',
@@ -99,25 +50,20 @@ export const safety: Category = {
     return { tone: 'good', label: 'All clear' }
   },
   Tile: ({ house, update, notify }) => (
-    <>
-      {variant !== 'a' && house.safety.locks.map((l) => variant === 'c'
-        ? <HoldLock key={l.id} lock={l} update={update} notify={notify} />
-        : <BigLock key={l.id} lock={l} update={update} notify={notify} />)}
-      <div className="list">
-        {variant === 'a' && house.safety.locks.map((l) => (
-          <div key={l.id} className="lock-row">
-            <Dot color={`var(--${lockTone(l) === 'neutral' ? 'faint' : lockTone(l)})`} />{l.name}
-            <span className="r">{lockWords[l.state]}</span>
-            <span {...own}><LockButtons lock={l} update={update} notify={notify} small /></span>
-          </div>
-        ))}
-        <div><Dot color={house.safety.garage.open ? 'var(--warn)' : 'var(--good)'} />Garage door<span className="r">{house.safety.garage.open ? 'Open' : 'Closed'}</span></div>
-        {house.safety.leaks.map((l) => (
-          <div key={l.name}><Dot color={l.wet ? 'var(--bad)' : 'var(--good)'} />Leak · {l.name.toLowerCase()}<span className="r">{l.wet ? 'Wet' : 'Dry'}</span></div>
-        ))}
-        <div><Dot color={house.camerasArmed ? 'var(--good)' : 'var(--warn)'} />Cameras<span className="r">{house.camerasArmed ? 'Armed' : 'Off'}</span></div>
-      </div>
-    </>
+    <div className="list">
+      {house.safety.locks.map((l) => (
+        <div key={l.id} className="lock-row">
+          <Dot color={`var(--${lockTone(l) === 'neutral' ? 'faint' : lockTone(l)})`} /><span className="n">{l.name}</span>
+          <span className="r">{lockWords[l.state]}</span>
+          <span {...own}><LockButtons lock={l} update={update} notify={notify} small /></span>
+        </div>
+      ))}
+      <div><Dot color={house.safety.garage.open ? 'var(--warn)' : 'var(--good)'} />Garage door<span className="r">{house.safety.garage.open ? 'Open' : 'Closed'}</span></div>
+      {house.safety.leaks.map((l) => (
+        <div key={l.name}><Dot color={l.wet ? 'var(--bad)' : 'var(--good)'} />Leak · {l.name.toLowerCase()}<span className="r">{l.wet ? 'Wet' : 'Dry'}</span></div>
+      ))}
+      <div><Dot color={house.camerasArmed ? 'var(--good)' : 'var(--warn)'} />Cameras<span className="r">{house.camerasArmed ? 'Armed' : 'Off'}</span></div>
+    </div>
   ),
   Sheet: ({ house, update, notify }) => {
     const g = house.safety.garage
