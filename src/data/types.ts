@@ -170,6 +170,8 @@ export type HouseAction =
   | { plexToggle: string }
   /** Asks one Blink camera (by id), or every one, for a fresh picture. */
   | { cameraSnap: true; camera?: string }
+  /** Has Home Assistant fetch a camera's latest picture now instead of at its next check. */
+  | { cameraRefresh: string }
 
 /** Something the dashboard can chart over the last day. */
 export type HistoryKey = { room: string } | { hotWater: true } | { volume: string }

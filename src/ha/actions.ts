@@ -136,5 +136,8 @@ export function actionCalls(action: Exclude<HouseAction, { rock: unknown }>, sta
       : Object.keys(states).filter((id) => id.startsWith('camera.') && !states[id].attributes.restored)
     return cams.length ? [{ domain: 'blink', service: 'trigger_camera', entityIds: cams }] : []
   }
+  if ('cameraRefresh' in action) {
+    return states[action.cameraRefresh] ? [{ domain: 'homeassistant', service: 'update_entity', entityIds: [action.cameraRefresh] }] : []
+  }
   return [{ domain: 'media_player', service: 'media_play_pause', entityIds: [action.plexToggle] }]
 }
