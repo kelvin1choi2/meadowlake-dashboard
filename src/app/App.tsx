@@ -36,9 +36,9 @@ const device = deviceKind(navigator.userAgent, navigator.platform, navigator.max
 export function App({ house, update, run, history, link, notify, view, onView, theme, onTheme }: AppProps) {
   const [open, setOpen] = useState<CategoryId | 'settings' | 'leaving' | null>(null)
   const [chart, setChart] = useState<HistoryChart | null>(null)
-  const props = { house, update, run, notify, showHistory: setChart }
-  const openCategory = categories.find((c) => c.id === open)
   const appUrl = (id: AppId) => appHref(id, window.location.href, link.status === 'live' ? link.haUrl : undefined, device)
+  const props = { house, update, run, notify, showHistory: setChart, appUrl }
+  const openCategory = categories.find((c) => c.id === open)
 
   return (
     <div className="wrap">

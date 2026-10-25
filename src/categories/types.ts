@@ -10,6 +10,8 @@ export interface CategoryProps {
   notify: (message: string) => void
   /** Opens the last day's chart for a reading (press and hold on a tile, or the chart buttons in sheets). */
   showHistory: (chart: HistoryChart) => void
+  /** Where a link to an app goes from this device, or undefined when it can't open here. */
+  appUrl: (id: AppId) => string | undefined
 }
 
 export interface HistoryChart {

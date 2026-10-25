@@ -1,7 +1,7 @@
 import { type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
-import type { Lock } from '../data/types'
+import type { HouseState, Lock } from '../data/types'
 import type { UpdateHouse } from '../data/useHouse'
-import { Card, Chip, Dot, Idea, KV } from '../widgets'
+import { AppLink, Card, Chip, Dot, Idea, KV, Toggle } from '../widgets'
 import { ConfirmButton } from '../widgets/ConfirmButton'
 import type { Category } from './types'
 
@@ -38,18 +38,35 @@ function LockButtons({ lock, update, notify, small }: { lock: Lock; update: Upda
     : <button type="button" className={`btn primary${small ? ' sm' : ''}`} onClick={() => setLock(update, notify, lock, 'locked')}>Lock</button>
 }
 
-export const safety: Category = {
-  id: 'safety',
-  name: 'Safety',
-  apps: ['home', 'blink', 'smartthings'],
-  status: (h) => {
-    if (h.safety.leaks.some((l) => l.wet)) return { tone: 'bad', label: 'Leak!' }
-    if (h.safety.locks.some((l) => l.state === 'jammed')) return { tone: 'bad', label: 'Lock jammed' }
-    if (h.safety.garage.open) return { tone: 'warn', label: 'Garage open' }
-    if (h.safety.locks.some((l) => l.state === 'unlocked' || l.state === 'open')) return { tone: 'warn', label: 'Unlocked' }
-    return { tone: 'good', label: 'All clear' }
-  },
-  Tile: ({ house, update, notify }) => (
+function Bell() {
+  return (
+    <svg className="bell" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z" />
+      <path d="M10 20.5a2 2 0 0 0 4 0" />
+    </svg>
+  )
+}
+
+/**
+ * The doorbell lives in Apple Home (Home Assistant would only get snapshots of it), so this
+ * opens the Home app, where its live view is. Home only opens from an iPad, iPhone or Mac.
+ */
+function DoorbellButton({ href, big }: { href?: string; big?: boolean }) {
+  const body = (
+    <>
+      <span className="ring"><Bell /></span>
+      <span className="txt"><b>Doorbell</b><small>{href ? 'Live view in Apple Home' : 'Live view is in Apple Home on an iPad, iPhone or Mac'}</small></span>
+      {href && <span className="arrow" aria-hidden="true">↗</span>}
+    </>
+  )
+  const cls = `doorbell${big ? ' big' : ''}`
+  return href
+    ? <a className={cls} href={href} aria-label="Open the doorbell in Apple Home" {...own}>{body}</a>
+    : <div className={`${cls} off`}>{body}</div>
+}
+
+function StatusList({ house, update, notify }: { house: HouseState; update: UpdateHouse; notify: (m: string) => void }) {
+  return (
     <div className="list">
       {house.safety.locks.map((l) => (
         <div key={l.id} className="lock-row">
@@ -62,17 +79,65 @@ export const safety: Category = {
       {house.safety.leaks.map((l) => (
         <div key={l.name}><Dot color={l.wet ? 'var(--bad)' : 'var(--good)'} />Leak · {l.name.toLowerCase()}<span className="r">{l.wet ? 'Wet' : 'Dry'}</span></div>
       ))}
-      <div><Dot color={house.camerasArmed ? 'var(--good)' : 'var(--warn)'} />Cameras<span className="r">{house.camerasArmed ? 'Armed' : 'Off'}</span></div>
+      <div><Dot color={house.camerasArmed ? 'var(--good)' : 'var(--warn)'} />Blink cameras<span className="r">{house.camerasArmed ? 'Armed' : 'Off'}</span></div>
+    </div>
+  )
+}
+
+export const safety: Category = {
+  id: 'safety',
+  name: 'Safety',
+  apps: ['home', 'blink', 'smartthings'],
+  status: (h) => {
+    if (h.safety.leaks.some((l) => l.wet)) return { tone: 'bad', label: 'Leak!' }
+    if (h.safety.locks.some((l) => l.state === 'jammed')) return { tone: 'bad', label: 'Lock jammed' }
+    if (h.safety.garage.open) return { tone: 'warn', label: 'Garage open' }
+    if (h.safety.locks.some((l) => l.state === 'unlocked' || l.state === 'open')) return { tone: 'warn', label: 'Unlocked' }
+    return { tone: 'good', label: 'All clear' }
+  },
+  Tile: ({ house, update, notify, appUrl }) => (
+    <div className="safety-side">
+      <DoorbellButton href={appUrl('home')} />
+      <StatusList house={house} update={update} notify={notify} />
     </div>
   ),
-  Sheet: ({ house, update, notify }) => {
+  Sheet: ({ house, update, run, notify, appUrl }) => {
     const g = house.safety.garage
     const stillOn = [
       ...house.rooms.filter((r) => r.lightsOn > 0).map((r) => `${r.name} lights`),
       ...house.media.screens.filter((s) => s.on).map((s) => s.name),
     ]
+    const home = appUrl('home')
+    const blink = appUrl('blink')
+    // Only the Blink app has live view; on a laptop the Blink link is a Home Assistant page.
+    const blinkLive = blink && !/^https?:/.test(blink) ? blink : undefined
     return (
       <>
+        <Card wide color="var(--safety)" title="Blink cameras" chip={<Chip tone={house.camerasArmed ? 'good' : 'warn'}>{house.camerasArmed ? 'Armed' : 'Off'}</Chip>}>
+          <div className="cams big">
+            {house.cameras.map((c) => (
+              <div key={c.id} className="cam-card">
+                <div className="cam">
+                  {c.image && <img src={c.image} alt={`${c.name} camera`} />}
+                  <span>{c.name}{c.shotAt ? ` · picture ${c.shotAt}` : ''}</span>
+                </div>
+                <div className="cam-foot">
+                  <span>{c.lastMotion ? `Motion ${c.lastMotion}` : 'No motion today'}</span>
+                  <button className="btn sm" onClick={() => { run({ cameraSnap: true, camera: c.id }); notify(`Asking ${c.name} for a new picture`) }}>New picture</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="cam-actions">
+            <Toggle label="Arm system" on={house.camerasArmed} onChange={(on) => update((h) => { h.camerasArmed = on })} />
+            {blinkLive && <AppLink href={blinkLive} name="Live view in Blink" mark="Bl" color="var(--safety)" />}
+          </div>
+          <Idea>Blink only sends Home Assistant still pictures, so live video stays in the Blink app. Each new picture uses a little camera battery.</Idea>
+        </Card>
+        <Card color="var(--safety)" title="Doorbell">
+          <DoorbellButton href={home} big />
+          <Idea>The ecobee doorbell stays in Apple Home, which has its live video, sound and recordings. The ecobee app has them too.</Idea>
+        </Card>
         {house.safety.locks.map((l) => (
           <Card key={l.id} color="var(--safety)" title={`${l.name} lock`} chip={<Chip tone={lockTone(l)}>{lockWords[l.state]}</Chip>}>
             <div className="lock-big" style={{ '--c': `var(--${lockTone(l) === 'neutral' ? 'faint' : lockTone(l)})` } as CSSProperties}>

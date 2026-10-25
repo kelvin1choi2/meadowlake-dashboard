@@ -132,7 +132,8 @@ export function actionCalls(action: Exclude<HouseAction, { rock: unknown }>, sta
     return [{ domain: 'media_player', service: 'unjoin', entityIds: [r.ungroup] }]
   }
   if ('cameraSnap' in action) {
-    const cams = entities.cameras.list.map((c) => c.camera).filter((id) => states[id])
+    const cams = action.camera ? [action.camera].filter((id) => states[id])
+      : Object.keys(states).filter((id) => id.startsWith('camera.') && !states[id].attributes.restored)
     return cams.length ? [{ domain: 'blink', service: 'trigger_camera', entityIds: cams }] : []
   }
   return [{ domain: 'media_player', service: 'media_play_pause', entityIds: [action.plexToggle] }]

@@ -53,12 +53,9 @@ export const entities = {
    */
   observedBy: /national weather service/i,
   sun: 'sun.sun',
+  /** Cameras are every camera.* entity (the Blink ones), named from Home Assistant. */
   cameras: {
     armed: 'alarm_control_panel.blink_meadowlake',
-    list: [
-      { name: 'Front door', motion: 'binary_sensor.front_door_motion', camera: 'camera.front_door' },
-      { name: 'Patio', motion: 'binary_sensor.patio_motion', camera: 'camera.patio' },
-    ],
   },
   irrigation: {
     /** On = Rachio skips watering for the next 24 hours. */
