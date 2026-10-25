@@ -378,3 +378,25 @@ table.zones td { vertical-align: top; }
 .lock-row .btn { margin-left: 4px; white-space: nowrap; }
 .lock-big { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
 .lock-big .ring { width: 64px; height: 64px; padding: 15px; border-radius: 50%; background: var(--c); color: var(--on-hue); flex: none; }
+
+/* Safety: doorbell button (opens Apple Home) above the status list; Blink pictures in the sheet. */
+.safety-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.doorbell { display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; border-radius: 18px; background: var(--surface); color: var(--fg); text-decoration: none; border: 1px solid color-mix(in srgb, var(--safety) 40%, var(--surface)); }
+.doorbell .ring { width: 42px; height: 42px; padding: 9px; border-radius: 50%; background: var(--safety); color: var(--on-hue); flex: none; }
+.doorbell .txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.doorbell b { font-size: 15px; }
+.doorbell small { font-size: 12px; color: var(--muted); }
+.doorbell .arrow { margin-left: auto; color: var(--muted); }
+.doorbell.off .ring { background: var(--faint); }
+.doorbell.big { padding: 14px 18px 14px 14px; }
+.doorbell.big .ring { width: 56px; height: 56px; padding: 12px; }
+.doorbell.big b { font-size: 18px; }
+.bell { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cams.big { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.cam-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cam-foot { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.cam-foot .btn { margin-left: auto; }
+.cam-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; }
+@media (max-width: 600px) {
+  .cams.big { grid-template-columns: minmax(0, 1fr); }
+}

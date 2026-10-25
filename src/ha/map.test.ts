@@ -99,25 +99,37 @@ describe('applyEntities', () => {
     ])
   })
 
-  it('shows camera motion as now, a time today, or nothing', () => {
-    const [front, patio] = entities.cameras.list
+  it('lists every camera by its Home Assistant name, with motion as now, a time today, or nothing', () => {
     const { house } = applyEntities(sampleHouse, states(
       entity(entities.cameras.armed, 'armed_away'),
-      entity(front.motion, 'off', {}, new Date(2026, 9, 15, 8, 14)),
-      entity(patio.motion, 'off', {}, new Date(2026, 9, 14, 22, 0)),
+      entity('camera.front_door', 'idle', { friendly_name: 'Patio' }),
+      entity('binary_sensor.front_door_motion', 'off', {}, new Date(2026, 9, 15, 8, 14)),
+      entity('camera.driveway', 'idle', { friendly_name: 'Driveway' }),
+      entity('binary_sensor.driveway_motion', 'off', {}, new Date(2026, 9, 14, 22, 0)),
+      entity('camera.side', 'idle', { friendly_name: 'Side' }),
+      entity('binary_sensor.side_motion', 'on'),
     ), now)
     expect(house.camerasArmed).toBe(true)
-    expect(house.cameras).toEqual([{ name: 'Front door', lastMotion: '8:14a', image: undefined }, { name: 'Patio', lastMotion: null, image: undefined }])
+    expect(house.cameras.map((c) => [c.id, c.name, c.lastMotion])).toEqual([
+      ['camera.driveway', 'Driveway', null], ['camera.front_door', 'Patio', '8:14a'], ['camera.side', 'Side', 'now'],
+    ])
   })
 
-  it("shows each camera's latest picture", () => {
-    const [front] = entities.cameras.list
+  it('leaves out cameras removed from the Blink app that Home Assistant still remembers', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity('camera.front_door', 'idle', { friendly_name: 'Patio' }),
+      entity('camera.patio', 'unavailable', { friendly_name: 'Patio', restored: true }),
+    ), now)
+    expect(house.cameras.map((c) => c.id)).toEqual(['camera.front_door'])
+  })
+
+  it("shows each camera's latest picture and when it was taken", () => {
     const shot = new Date(2026, 9, 15, 9, 0)
     const { house } = applyEntities(sampleHouse, states(
-      entity(front.motion, 'off'),
-      entity(front.camera, 'idle', { entity_picture: '/api/camera_proxy/camera.front_door?token=abc' }, shot),
+      entity('camera.front_door', 'idle', { entity_picture: '/api/camera_proxy/camera.front_door?token=abc' }, shot),
     ), now)
     expect(house.cameras[0].image).toBe(`/api/camera_proxy/camera.front_door?token=abc&at=${shot.getTime()}`)
+    expect(house.cameras[0].shotAt).toBe('9:00a')
   })
 
   it('does not change the state it was given', () => {
@@ -213,10 +225,11 @@ describe('forecast and sun', () => {
 
 describe('pulseFrom', () => {
   it("lists today's events newest first and skips older ones", () => {
-    const [front, patio] = entities.cameras.list
     const pulse = pulseFrom(states(
-      entity(front.motion, 'off', {}, new Date(2026, 9, 15, 8, 14)),
-      entity(patio.motion, 'off', {}, new Date(2026, 9, 14, 22, 0)),
+      entity('camera.front_door', 'idle', { friendly_name: 'Front door' }),
+      entity('binary_sensor.front_door_motion', 'off', {}, new Date(2026, 9, 15, 8, 14)),
+      entity('camera.patio', 'idle', { friendly_name: 'Patio' }),
+      entity('binary_sensor.patio_motion', 'off', {}, new Date(2026, 9, 14, 22, 0)),
       entity(entities.media.roon[0].id, 'playing', { media_title: 'So What' }, new Date(2026, 9, 15, 14, 2)),
       entity('light.lounge_lounge', 'on', { is_hue_group: true }, new Date(2026, 9, 15, 12, 30)),
     ), now)

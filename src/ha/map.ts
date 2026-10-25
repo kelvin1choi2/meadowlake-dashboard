@@ -290,17 +290,7 @@ export function applyEntities(
 
   const armed = get(entities.cameras.armed)
   if (armed) h.camerasArmed = armed.state.startsWith('armed')
-  const cams = entities.cameras.list.flatMap((c) => {
-    const m = get(c.motion)
-    if (!m) return []
-    const changed = new Date(m.last_changed)
-    const today = changed.toDateString() === now.toDateString()
-    const cam = states[c.camera]
-    // The picture's address carries a short-lived token; the timestamp makes a new picture load.
-    const pic = cam && !offline.has(cam.state) ? str(cam.attributes.entity_picture) : undefined
-    const image = pic && `${pic}${pic.includes('?') ? '&' : '?'}at=${Date.parse(cam.last_updated)}`
-    return [{ name: c.name, lastMotion: m.state === 'on' ? 'now' : today ? shortTime(changed) : null, image }]
-  })
+  const cams = camerasFrom(states, now)
   if (cams.length) h.cameras = cams
 
   const rain = get(entities.irrigation.rainDelay)
@@ -695,6 +685,37 @@ export function locksFrom(states: HassEntities): Lock[] {
 }
 
 /**
+ * Every camera Home Assistant has (the Blink ones), named as Home Assistant names them, so
+ * renaming a camera in the Blink app renames it here. Cameras the integration no longer
+ * provides (removed in the app, still remembered by Home Assistant) are left out.
+ */
+function cameraEntities(states: HassEntities): HassEntity[] {
+  return Object.values(states)
+    .filter((e) => e.entity_id.startsWith('camera.') && !e.attributes.restored)
+    .sort((a, b) => cameraName(a).localeCompare(cameraName(b)))
+}
+const cameraName = (e: HassEntity) => String(e.attributes.friendly_name ?? e.entity_id.slice('camera.'.length))
+/** Blink names each camera's motion sensor after the camera: camera.patio → binary_sensor.patio_motion. */
+const motionOf = (e: HassEntity) => `binary_sensor.${e.entity_id.slice('camera.'.length)}_motion`
+
+export function camerasFrom(states: HassEntities, now: Date): HouseState['cameras'] {
+  return cameraEntities(states).map((cam) => {
+    const m = states[motionOf(cam)]
+    const changed = m && new Date(m.last_changed)
+    const today = changed?.toDateString() === now.toDateString()
+    // The picture's address carries a short-lived token; the timestamp makes a new picture load.
+    const pic = !offline.has(cam.state) ? str(cam.attributes.entity_picture) : undefined
+    return {
+      id: cam.entity_id,
+      name: cameraName(cam),
+      lastMotion: !m || offline.has(m.state) ? null : m.state === 'on' ? 'now' : changed && today ? shortTime(changed) : null,
+      image: pic && `${pic}${pic.includes('?') ? '&' : '?'}at=${Date.parse(cam.last_updated)}`,
+      shotAt: pic ? shortTime(new Date(cam.last_updated)) : undefined,
+    }
+  })
+}
+
+/**
  * Today's notable events for the Pulse ticker, newest first, read from when each
  * tracked entity last changed. Rebuilt on every update, so it needs no history.
  */
@@ -709,7 +730,7 @@ export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] 
     if (what) events.push({ category, who, what, when })
   }
 
-  for (const c of entities.cameras.list) add(c.motion, 'outside', c.name, (e) => (e.state === 'on' ? 'motion now' : 'motion'))
+  for (const c of cameraEntities(states)) add(motionOf(c), 'outside', cameraName(c), (e) => (e.state === 'on' ? 'motion now' : 'motion'))
   add(entities.cameras.armed, 'safety', 'Blink', (e) => (e.state.startsWith('armed') ? 'armed' : 'disarmed'))
   for (const z of entities.media.roon) {
     add(z.id, 'media', z.name, (e) => {

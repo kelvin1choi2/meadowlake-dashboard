@@ -168,8 +168,8 @@ export type HouseAction =
   | { roon: RoonCommand }
   /** Pauses or resumes a Plex stream, by the stream's `player`. */
   | { plexToggle: string }
-  /** Asks every Blink camera for a fresh picture. */
-  | { cameraSnap: true }
+  /** Asks one Blink camera (by id), or every one, for a fresh picture. */
+  | { cameraSnap: true; camera?: string }
 
 /** Something the dashboard can chart over the last day. */
 export type HistoryKey = { room: string } | { hotWater: true } | { volume: string }
@@ -222,8 +222,8 @@ export interface HouseState {
     hourly: { label: string; tempF: number }[]
     daily: { day: string; high: number; low: number }[]
   }
-  /** `image` is the camera's latest picture, as Blink last took it. */
-  cameras: { name: string; lastMotion: string | null; image?: string }[]
+  /** `image` is the camera's latest picture, as Blink last took it, at `shotAt`. */
+  cameras: { id: string; name: string; lastMotion: string | null; image?: string; shotAt?: string }[]
   camerasArmed: boolean
   irrigation: {
     rainSkip: boolean

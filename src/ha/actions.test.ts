@@ -134,9 +134,11 @@ describe('actionCalls', () => {
   })
 
   it('asks the Blink cameras Home Assistant has for new pictures', () => {
-    const states = { 'camera.front_door': { entity_id: 'camera.front_door' } } as unknown as Parameters<typeof actionCalls>[1]
+    const states = { 'camera.front_door': { entity_id: 'camera.front_door', attributes: {} } } as unknown as Parameters<typeof actionCalls>[1]
     expect(actionCalls({ cameraSnap: true }, states)).toEqual([{ domain: 'blink', service: 'trigger_camera', entityIds: ['camera.front_door'] }])
     expect(actionCalls({ cameraSnap: true }, {})).toEqual([])
+    const two = { ...states, 'camera.driveway': { entity_id: 'camera.driveway', attributes: {} } } as unknown as typeof states
+    expect(actionCalls({ cameraSnap: true, camera: 'camera.driveway' }, two)).toEqual([{ domain: 'blink', service: 'trigger_camera', entityIds: ['camera.driveway'] }])
   })
 })
 

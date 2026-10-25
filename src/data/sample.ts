@@ -1,3 +1,4 @@
+import { samplePictures } from './sampleCameras'
 import type { HouseState } from './types'
 
 // Made-up but realistic numbers for building and demoing without Home Assistant.
@@ -38,10 +39,8 @@ export const sampleHouse: HouseState = {
     ],
   },
   cameras: [
-    { name: 'Front door', lastMotion: '8:14a' },
-    { name: 'Driveway', lastMotion: '7:42a' },
-    { name: 'Backyard', lastMotion: null },
-    { name: 'Side gate', lastMotion: null },
+    { id: 'camera.sample_patio', name: 'Patio', lastMotion: '8:14a', image: samplePictures.patio, shotAt: '2:40p' },
+    { id: 'camera.sample_driveway', name: 'Driveway', lastMotion: null, image: samplePictures.driveway, shotAt: '2:40p' },
   ],
   camerasArmed: true,
   irrigation: {
