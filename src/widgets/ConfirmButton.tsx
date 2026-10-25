@@ -10,6 +10,7 @@ export function ConfirmButton({
   onConfirm,
   danger,
   disabled,
+  small,
 }: {
   children: ReactNode
   /** Shown while armed, e.g. "Tap again to reboot". */
@@ -17,6 +18,7 @@ export function ConfirmButton({
   onConfirm: () => void
   danger?: boolean
   disabled?: boolean
+  small?: boolean
 }) {
   const [armed, setArmed] = useState(false)
   useEffect(() => {
@@ -27,7 +29,7 @@ export function ConfirmButton({
   return (
     <button
       type="button"
-      className={`btn${danger ? ' danger' : ''}${armed ? ' armed' : ''}`}
+      className={`btn${small ? ' sm' : ''}${danger ? ' danger' : ''}${armed ? ' armed' : ''}`}
       disabled={disabled}
       onClick={() => {
         if (!armed) return setArmed(true)

@@ -36,6 +36,9 @@ export function houseAlerts(h: HouseState): HouseAlert[] {
       buttons: [{ app: 'dsm', label: 'Open DSM' }, { dismiss: true }],
     })
   }
+  for (const l of h.safety.locks.filter((x) => x.state === 'jammed')) {
+    alerts.push({ id: `jammed@${l.name}@${l.since}`, tone: 'bad', title: `${l.name} lock is jammed`, detail: `Since ${l.since}: check the door`, buttons: [{ app: 'home', label: 'Open Home' }, { snooze: 30 }] })
+  }
   const g = h.safety.garage
   if (g.open) {
     alerts.push({ id: `garage@${g.since}`, tone: 'warn', title: 'Garage door is open', detail: `Since ${g.since}`, buttons: [{ app: 'home', label: 'Open Home' }, { snooze: 30 }] })

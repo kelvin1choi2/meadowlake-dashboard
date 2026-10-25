@@ -15,6 +15,8 @@ export interface LeavingPlan {
   /** The robovac starts, when it's set to run once everyone leaves and it's docked. */
   vacuum: boolean
   garageOpen: boolean
+  /** Unlocked doors, by name, to lock. */
+  locks: string[]
 }
 
 export function leavingPlan(h: HouseState): LeavingPlan {
@@ -27,13 +29,15 @@ export function leavingPlan(h: HouseState): LeavingPlan {
     arm: !h.camerasArmed,
     vacuum: h.chores.robovac.runWhenAway && /dock|charg/i.test(h.chores.robovac.state),
     garageOpen: h.safety.garage.open,
+    locks: h.safety.locks.filter((l) => l.state === 'unlocked').map((l) => l.name),
   }
 }
 
-export const nothingToDo = (p: LeavingPlan) => !p.lights.length && !p.screens.length && !p.players.length && !p.arm && !p.vacuum
+export const nothingToDo = (p: LeavingPlan) => !p.lights.length && !p.screens.length && !p.players.length && !p.arm && !p.vacuum && !p.locks.length
 
-/** The on-screen part of leaving: lights and screens off, cameras armed, Away mode. */
+/** The on-screen part of leaving: lights and screens off, doors locked, cameras armed, Away mode. */
 export function leave(h: HouseState): void {
+  for (const l of h.safety.locks) if (l.state === 'unlocked') l.state = 'locked'
   for (const r of h.rooms) r.lightsOn = 0
   for (const s of h.media.screens) s.on = false
   h.camerasArmed = true

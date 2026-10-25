@@ -26,6 +26,7 @@ export function Leaving({ house, update, run, notify, onClose }: {
     ...plan.lights.map((n) => ({ what: `${n} lights`, does: 'Turn off' })),
     ...plan.screens.map((n) => ({ what: n, does: 'Turn off' })),
     ...plan.players.map((p) => ({ what: `${p.name}${p.title ? ` · ${p.title}` : ''}`, does: 'Pause' })),
+    ...plan.locks.map((n) => ({ what: n, does: 'Lock' })),
     ...(plan.arm ? [{ what: 'Blink cameras', does: 'Arm' }] : []),
     ...(plan.vacuum ? [{ what: 'Robovac', does: 'Start cleaning' }] : []),
   ]

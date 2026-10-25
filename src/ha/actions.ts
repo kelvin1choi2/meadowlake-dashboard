@@ -8,6 +8,7 @@ import { lightLook, roomLights } from './map'
 // comparing the house before and after. Pure, so it's unit tested. Only entities
 // Home Assistant actually has get a call; everything else stays a local change.
 // The garage door is left out on purpose: opening it should never be one stray tap.
+// Unlocking a door is a confirmed tap in the UI (categories/safety.tsx).
 
 export interface ServiceCall {
   domain: string
@@ -64,6 +65,13 @@ export function serviceCalls(before: HouseState, after: HouseState, states: Hass
   const blink = entities.cameras.armed
   if (before.camerasArmed !== after.camerasArmed && has(blink)) {
     calls.push({ domain: 'alarm_control_panel', service: after.camerasArmed ? 'alarm_arm_away' : 'alarm_disarm', entityIds: [blink] })
+  }
+
+  for (const lock of after.safety.locks) {
+    const was = before.safety.locks.find((l) => l.id === lock.id)
+    if (!was || was.state === lock.state || !has(lock.id)) continue
+    if (lock.state === 'locked') calls.push({ domain: 'lock', service: 'lock', entityIds: [lock.id] })
+    if (lock.state === 'unlocked') calls.push({ domain: 'lock', service: 'unlock', entityIds: [lock.id] })
   }
 
   return calls

@@ -1,5 +1,5 @@
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
-import type { CategoryId, HouseState } from '../data/types'
+import type { CategoryId, HouseState, Lock } from '../data/types'
 import type { ForecastEntry } from './connection'
 import { entities } from './entities'
 
@@ -437,6 +437,16 @@ export function applyEntities(
   })
   if (leaks.length) h.safety.leaks = leaks
 
+  // Locks are found by domain. Once Home Assistant is connected without one, the sample lock
+  // goes away rather than showing a made-up "Locked".
+  const locks = locksFrom(states)
+  total++
+  if (locks.length) {
+    linked++
+    for (const l of locks) if (l.state === 'unknown') unavailable.push(l.name)
+  } else onSample.push('Door lock (a lock.* entity)')
+  if (locks.length || Object.keys(states).length) h.safety.locks = locks
+
   const found = scenesFrom(states)
   for (const id of entities.scenes.favorites) {
     total++
@@ -661,6 +671,29 @@ function washerFrom(get: (id: string) => HassEntity | undefined, now: Date): Hou
   }
 }
 
+const lockStates = new Set<Lock['state']>(['locked', 'unlocked', 'locking', 'unlocking', 'jammed', 'open'])
+
+/** Every lock Home Assistant has, with the battery and door sensors that share its name. */
+export function locksFrom(states: HassEntities): Lock[] {
+  return Object.values(states)
+    .filter((e) => e.entity_id.startsWith(entities.safety.lockDomain))
+    .sort((a, b) => a.entity_id.localeCompare(b.entity_id))
+    .map((e) => {
+      const base = e.entity_id.slice(entities.safety.lockDomain.length)
+      const battery = num(states[`sensor.${base}_battery`]?.state)
+      const door = states[`binary_sensor.${base}_door`]?.state
+      const name = String(e.attributes.friendly_name ?? label(base)).replace(/\s+lock$/i, '')
+      return {
+        id: e.entity_id,
+        name,
+        state: lockStates.has(e.state as Lock['state']) ? (e.state as Lock['state']) : 'unknown',
+        since: shortTime(new Date(e.last_changed)),
+        battery: battery === undefined ? undefined : Math.round(battery),
+        doorOpen: door === 'on' ? true : door === 'off' ? false : undefined,
+      }
+    })
+}
+
 /**
  * Today's notable events for the Pulse ticker, newest first, read from when each
  * tracked entity last changed. Rebuilt on every update, so it needs no history.
@@ -693,6 +726,9 @@ export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] 
   add(entities.chores.vacuum, 'chores', 'Robovac', (e) => (e.state === 'docked' ? 'docked' : e.state))
   add(entities.irrigation.rainDelay, 'outside', 'Rachio', (e) => `rain delay ${e.state}`)
   add(entities.appliances.washer.machine, 'appliances', 'Washer', (e) => ({ run: 'started', pause: 'paused', stop: 'stopped' })[e.state] ?? null)
+  for (const l of locksFrom(states)) {
+    add(l.id, 'safety', l.name, (e) => (e.state === 'locked' || e.state === 'unlocked' || e.state === 'jammed' ? e.state : null))
+  }
   for (const l of entities.safety.leaks) add(l.moisture, 'safety', `${l.name} leak sensor`, (e) => (e.state === 'on' ? 'wet!' : 'dry'))
   add(entities.appliances.waterHeater, 'appliances', 'Water heater', (e) => `switched to ${label(e.state).toLowerCase()}`)
 

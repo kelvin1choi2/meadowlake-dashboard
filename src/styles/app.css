@@ -370,3 +370,29 @@ table.zones td { vertical-align: top; }
   .alert > .alert-btns { max-width: none; justify-content: flex-start; }
   .handoff { flex-direction: column; }
 }
+
+/* Door locks (Safety). Locking is one tap; unlocking takes a second tap. */
+.padlock { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.biglock {
+  --s: var(--good);
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 10px 14px 10px 10px; border-radius: 20px; cursor: pointer; font: inherit; color: var(--fg);
+  border: 1px solid color-mix(in srgb, var(--s) 45%, transparent);
+  background: color-mix(in srgb, var(--s) 12%, var(--surface));
+}
+.biglock.warn { --s: var(--warn); }
+.biglock.bad { --s: var(--bad); }
+.biglock.neutral { --s: var(--faint); }
+.biglock.armed { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 22%, var(--surface)); }
+.biglock .ring { flex: none; width: 44px; height: 44px; padding: 10px; border-radius: 50%; background: var(--s); color: var(--on-hue); }
+.biglock .txt { display: flex; flex-direction: column; min-width: 0; position: relative; }
+.biglock .txt b { font-size: 15px; }
+.biglock .txt span { font-size: 12.5px; color: var(--muted); }
+.biglock .fill { position: absolute; inset: auto 0 0 0; height: 4px; width: 0; background: var(--warn); }
+.biglock.holding .fill { width: 100%; transition: width 1.5s linear; }
+.lock-row { white-space: nowrap; }
+.lock-row .r { margin-left: auto; }
+.lock-row .btn { margin-left: 4px; }
+.lock-big { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+.lock-big .ring { width: 64px; height: 64px; padding: 15px; border-radius: 50%; background: var(--c); color: var(--on-hue); flex: none; }

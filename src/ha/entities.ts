@@ -143,5 +143,11 @@ export const entities = {
         battery: 'sensor.laundry_room_laundry_leak_sensor_battery',
       },
     ],
+    /**
+     * Door locks: every lock.* entity, named as Home Assistant names it (so the door's name
+     * stays out of the repo). The Eufy C34 joins through Matter, shared from Apple Home.
+     * A lock.<name> may come with sensor.<name>_battery and binary_sensor.<name>_door.
+     */
+    lockDomain: 'lock.',
   },
 }
