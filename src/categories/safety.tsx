@@ -1,6 +1,6 @@
-import { type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import type { HouseState, Lock } from '../data/types'
-import type { UpdateHouse } from '../data/useHouse'
+import type { RunAction, UpdateHouse } from '../data/useHouse'
 import { AppLink, Card, Chip, Dot, Idea, KV, Toggle } from '../widgets'
 import { ConfirmButton } from '../widgets/ConfirmButton'
 import type { Category } from './types'
@@ -65,6 +65,42 @@ function DoorbellButton({ href, big }: { href?: string; big?: boolean }) {
     : <div className={`${cls} off`}>{body}</div>
 }
 
+/**
+ * Blink takes the picture when asked, but Home Assistant only fetches it at its next check,
+ * minutes later. So a few seconds after asking, the dashboard has Home Assistant fetch it,
+ * then reloads the picture (its address stays the same, so the browser would keep the old one).
+ */
+function BlinkCam({ cam, run, notify }: { cam: HouseState['cameras'][number]; run: RunAction; notify: (m: string) => void }) {
+  const [reload, setReload] = useState(0)
+  const [waiting, setWaiting] = useState(false)
+  const timers = useRef<number[]>([])
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
+  const snap = () => {
+    run({ cameraSnap: true, camera: cam.id })
+    notify(`Asking ${cam.name} for a new picture`)
+    setWaiting(true)
+    timers.current.push(
+      window.setTimeout(() => run({ cameraRefresh: cam.id }), 6000),
+      window.setTimeout(() => setReload(Date.now()), 10000),
+      window.setTimeout(() => { run({ cameraRefresh: cam.id }); setWaiting(false) }, 20000),
+      window.setTimeout(() => setReload(Date.now()), 24000),
+    )
+  }
+  const src = cam.image && reload && !cam.image.startsWith('data:') ? `${cam.image}${cam.image.includes('?') ? '&' : '?'}reload=${reload}` : cam.image
+  return (
+    <div className="cam-card">
+      <div className="cam">
+        {src && <img src={src} alt={`${cam.name} camera`} />}
+        <span>{cam.name}{cam.shotAt ? ` · picture ${cam.shotAt}` : ''}</span>
+      </div>
+      <div className="cam-foot">
+        <span>{cam.lastMotion ? `Motion ${cam.lastMotion}` : 'No motion today'}</span>
+        <button className="btn sm" disabled={waiting} onClick={snap}>{waiting ? 'Taking picture…' : 'New picture'}</button>
+      </div>
+    </div>
+  )
+}
+
 function StatusList({ house, update, notify }: { house: HouseState; update: UpdateHouse; notify: (m: string) => void }) {
   return (
     <div className="list">
@@ -115,18 +151,7 @@ export const safety: Category = {
       <>
         <Card wide color="var(--safety)" title="Blink cameras" chip={<Chip tone={house.camerasArmed ? 'good' : 'warn'}>{house.camerasArmed ? 'Armed' : 'Off'}</Chip>}>
           <div className="cams big">
-            {house.cameras.map((c) => (
-              <div key={c.id} className="cam-card">
-                <div className="cam">
-                  {c.image && <img src={c.image} alt={`${c.name} camera`} />}
-                  <span>{c.name}{c.shotAt ? ` · picture ${c.shotAt}` : ''}</span>
-                </div>
-                <div className="cam-foot">
-                  <span>{c.lastMotion ? `Motion ${c.lastMotion}` : 'No motion today'}</span>
-                  <button className="btn sm" onClick={() => { run({ cameraSnap: true, camera: c.id }); notify(`Asking ${c.name} for a new picture`) }}>New picture</button>
-                </div>
-              </div>
-            ))}
+            {house.cameras.map((c) => <BlinkCam key={c.id} cam={c} run={run} notify={notify} />)}
           </div>
           <div className="cam-actions">
             <Toggle label="Arm system" on={house.camerasArmed} onChange={(on) => update((h) => { h.camerasArmed = on })} />
