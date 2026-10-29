@@ -695,12 +695,24 @@ function cameraEntities(states: HassEntities): HassEntity[] {
     .sort((a, b) => cameraName(a).localeCompare(cameraName(b)))
 }
 const cameraName = (e: HassEntity) => String(e.attributes.friendly_name ?? e.entity_id.slice('camera.'.length))
-/** Blink names each camera's motion sensor after the camera: camera.patio → binary_sensor.patio_motion. */
-const motionOf = (e: HassEntity) => `binary_sensor.${e.entity_id.slice('camera.'.length)}_motion`
+/**
+ * Blink names each camera's motion sensor after the camera: camera.patio → binary_sensor.patio_motion.
+ * When Home Assistant still remembers an older camera of the same name, the new one's IDs get
+ * numbered separately (camera.patio_2, binary_sensor.patio_motion_2), so the sensor named
+ * "<camera> Motion" is used instead.
+ */
+function motionOf(states: HassEntities, cam: HassEntity): string {
+  const byId = `binary_sensor.${cam.entity_id.slice('camera.'.length)}_motion`
+  if (states[byId]) return byId
+  const name = `${cameraName(cam)} motion`.toLowerCase()
+  const byName = Object.values(states).find((e) => e.entity_id.startsWith('binary_sensor.') && !e.attributes.restored
+    && String(e.attributes.friendly_name ?? '').toLowerCase() === name)
+  return byName?.entity_id ?? byId
+}
 
 export function camerasFrom(states: HassEntities, now: Date): HouseState['cameras'] {
   return cameraEntities(states).map((cam) => {
-    const m = states[motionOf(cam)]
+    const m = states[motionOf(states, cam)]
     const changed = m && new Date(m.last_changed)
     const today = changed?.toDateString() === now.toDateString()
     // The picture's address carries a short-lived token; the timestamp makes a new picture load.
@@ -730,7 +742,7 @@ export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] 
     if (what) events.push({ category, who, what, when })
   }
 
-  for (const c of cameraEntities(states)) add(motionOf(c), 'outside', cameraName(c), (e) => (e.state === 'on' ? 'motion now' : 'motion'))
+  for (const c of cameraEntities(states)) add(motionOf(states, c), 'outside', cameraName(c), (e) => (e.state === 'on' ? 'motion now' : 'motion'))
   add(entities.cameras.armed, 'safety', 'Blink', (e) => (e.state.startsWith('armed') ? 'armed' : 'disarmed'))
   for (const z of entities.media.roon) {
     add(z.id, 'media', z.name, (e) => {
