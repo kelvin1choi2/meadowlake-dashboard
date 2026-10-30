@@ -1,5 +1,5 @@
 /* Meadowlake design tokens: the "Pastel" style Kelvin picked from the mockup, plus its dark
-   counterpart "Ink" below.
+   counterpart "Canyon" below.
    Every color in the app comes from here. Category hues are named after their tile. */
 :root {
   color-scheme: light;
@@ -65,52 +65,56 @@
   --radius-card: 18px;
 }
 
-/* Slate: the dark palette, chosen by src/app/theme.ts. Same hues, dusted down so nothing glows,
-   and tiles mix them into a dark paper instead of white. */
+/* Canyon: the dark palette, chosen by src/app/theme.ts. Warm espresso ground with rich, earthy
+   hues (terracotta, olive, mustard, teal), serif headings and squarer corners. */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #0f131c;
-  --surface: #171c28;
-  --surface-2: #1f2533;
-  --line: #283042;
-  --fg: #dfe3ec;
-  --muted: #8c94aa;
-  --faint: #5a6177;
-  --paper: #121722;
-  --on-hue: #121722;
+  --bg: #1a1410;
+  --surface: #251d17;
+  --surface-2: #30261e;
+  --line: #3d3127;
+  --fg: #f4eadf;
+  --muted: #b9a693;
+  --faint: #7a6857;
+  --paper: #1f1813;
+  --on-hue: #1a1410;
 
-  --inside: #c27e8c;
-  --outside: #6fa58d;
-  --media: #9f86c2;
-  --data: #6ea2b3;
-  --appliances: #c39a66;
-  --safety: #7d95c6;
-  --chores: #968ac0;
-  --scenes: #b8a565;
+  --inside: #c8553d;
+  --outside: #6b8f3a;
+  --media: #9a4a7a;
+  --data: #2e8a8a;
+  --appliances: #d99a2b;
+  --safety: #3f6f9e;
+  --chores: #8a6a3f;
+  --scenes: #d4b13a;
 
-  --tone-sun: #c4ad62;
-  --tone-amber: #bf8c58;
-  --tone-peach: #c49883;
-  --tone-coral: #c08075;
-  --tone-rose: #bf849e;
-  --tone-violet: #9584c2;
-  --tone-indigo: #7e88c4;
-  --tone-blue: #769bc2;
-  --tone-teal: #6ea4a4;
-  --tone-mint: #78ae8f;
-  --tone-dusk: #8189a6;
+  --tone-sun: #d9b23a;
+  --tone-amber: #d98a2b;
+  --tone-peach: #d98a5f;
+  --tone-coral: #c8553d;
+  --tone-rose: #b04a6a;
+  --tone-violet: #7a4a8a;
+  --tone-indigo: #4a5a9a;
+  --tone-blue: #3f6f9e;
+  --tone-teal: #2e8a8a;
+  --tone-mint: #6b9a5a;
+  --tone-dusk: #7a6a6a;
 
-  --preset-relax: #c49660;
-  --preset-read: #c4b27e;
-  --preset-daylight: #9fb3c6;
-  --preset-sunset: #c07a5c;
-  --preset-ocean: #5f8fb3;
-  --preset-forest: #6a9a78;
+  --preset-relax: #d98a3a;
+  --preset-read: #d9bf6a;
+  --preset-daylight: #8fa9b8;
+  --preset-sunset: #c8553d;
+  --preset-ocean: #2e6f8a;
+  --preset-forest: #5a7f3a;
 
-  --good: #74ad8e;
-  --warn: #c79a5a;
-  --bad: #d07e8b;
+  --good: #8fbf4a;
+  --warn: #e6a23a;
+  --bad: #e0604a;
 
-  --tint: 22%;
+  --tint: 38%;
+
+  --display: 'Fraunces', Georgia, serif;
+  --radius-tile: 18px;
+  --radius-card: 12px;
 }
