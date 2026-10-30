@@ -123,6 +123,17 @@ describe('applyEntities', () => {
     expect(house.cameras.map((c) => c.id)).toEqual(['camera.front_door'])
   })
 
+  it('finds a newer camera\'s motion sensor by name when its IDs got numbered', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity('camera.front_door', 'idle', { friendly_name: 'Garage' }),
+      entity('binary_sensor.front_door_motion', 'off', { friendly_name: 'Garage Motion' }, new Date(2026, 9, 15, 9, 5)),
+      entity('camera.patio_2', 'idle', { friendly_name: 'Patio' }),
+      entity('binary_sensor.patio_motion', 'off', { friendly_name: 'Patio Motion', restored: true }, new Date(2026, 9, 15, 7, 0)),
+      entity('binary_sensor.patio_motion_2', 'on', { friendly_name: 'Patio Motion' }),
+    ), now)
+    expect(house.cameras.map((c) => [c.name, c.lastMotion])).toEqual([['Garage', '9:05a'], ['Patio', 'now']])
+  })
+
   it("shows each camera's latest picture and when it was taken", () => {
     const shot = new Date(2026, 9, 15, 9, 0)
     const { house } = applyEntities(sampleHouse, states(
