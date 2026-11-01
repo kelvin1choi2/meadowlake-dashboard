@@ -73,7 +73,7 @@ export function Saver({ house, update, run, link, onExit }: SaverProps) {
               <h2>{hero.name}</h2>
               {status && <Chip tone={status.tone}>{status.label}</Chip>}
             </div>
-            <div className="sv-zoom">
+            <div className={`sv-zoom z-${hero.id}`}>
               <hero.Tile house={house} update={update} run={run} notify={noop} showHistory={noop} appUrl={() => undefined} />
             </div>
           </section>

@@ -31,6 +31,15 @@
 .sv-hero .th .ico svg { width: 34px; height: 34px; }
 .sv-hero .th .chip { font-size: 22px; padding: 6px 18px; border-width: 2px; }
 .sv-zoom { zoom: 2.4; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+/* Data: the tablet's three columns (rings | free space | task list) need ~850px, but the zoomed
+   spotlight only has ~525. Zoom it a little less and stack the task list under the volumes. */
+.sv-zoom.z-data { zoom: 1.8; }
+.sv-zoom .vols { grid-template-columns: auto minmax(0, 1fr); gap: 18px 28px; }
+.sv-zoom .vol-free { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sv-zoom .vol-free .v { white-space: nowrap; }
+.sv-zoom .vol-tasks { grid-column: 1 / -1; font-size: 14px; }
+.sv-zoom .vol-tasks > div { min-width: 0; }
+.sv-zoom .vol-tasks .r { white-space: nowrap; }
 @keyframes sv-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 
 .sv-side { display: flex; flex-direction: column; gap: 20px; min-height: 0; overflow: hidden; }
