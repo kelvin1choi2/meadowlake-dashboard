@@ -20,8 +20,6 @@ function Bulb() {
   )
 }
 
-const MOCK = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('mock') : null
-
 /** A big round button beside the temperature: the bulb glows while the light is on. */
 function LightButton({ light, update, notify }: { light: OutdoorLight; update: UpdateHouse; notify: (m: string) => void }) {
   return (
@@ -49,18 +47,8 @@ export const outside: Category = {
             <div className="lbl">Now</div>
             <div className="v num">{w.tempF}°<small> feels {w.feelsF}°</small></div>
           </div>
-          {MOCK === 'b' && house.outdoorLights.map((l) => <LightButton key={l.id} light={l} update={update} notify={notify} />)}
+          {house.outdoorLights.map((l) => <LightButton key={l.id} light={l} update={update} notify={notify} />)}
           <div className="list grow">
-            {MOCK !== 'b' && house.outdoorLights.map((l) => (
-              <div key={l.id} className="lock-row">
-                <Dot color={l.on ? 'var(--outside)' : 'var(--faint)'} /><span className="n">{l.name}</span>
-                <span className="r">{!l.reachable ? 'Not answering' : l.on ? 'On' : 'Off'}</span>
-                <span {...own}>
-                  <button type="button" className={`btn sm${l.on ? '' : ' primary'}`} disabled={!l.reachable}
-                    onClick={() => setLight(update, notify, l, !l.on)}>{l.on ? 'Turn off' : 'Turn on'}</button>
-                </span>
-              </div>
-            ))}
             <div><Dot color="var(--safety)" />Blink · {house.cameras.length} cameras<span className="r">{house.camerasArmed ? 'Armed' : 'Off'}</span></div>
             <div><Dot color="var(--outside)" />Rachio · next run<span className="r num">{house.irrigation.zones[0].next}</span></div>
             <div><Dot color="var(--appliances)" />Sunset<span className="r num">{w.sunset}</span></div>
