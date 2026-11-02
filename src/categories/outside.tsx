@@ -47,7 +47,11 @@ export const outside: Category = {
             <div className="lbl">Now</div>
             <div className="v num">{w.tempF}°<small> feels {w.feelsF}°</small></div>
           </div>
-          {house.outdoorLights.map((l) => <LightButton key={l.id} light={l} update={update} notify={notify} />)}
+          {house.outdoorLights.length > 0 && (
+            <div className="lights">
+              {house.outdoorLights.map((l) => <LightButton key={l.id} light={l} update={update} notify={notify} />)}
+            </div>
+          )}
           <div className="list grow">
             <div><Dot color="var(--safety)" />Blink · {house.cameras.length} cameras<span className="r">{house.camerasArmed ? 'Armed' : 'Off'}</span></div>
             <div><Dot color="var(--outside)" />Rachio · next run<span className="r num">{house.irrigation.zones[0].next}</span></div>
@@ -71,17 +75,20 @@ export const outside: Category = {
         <Card wide title="Next 12 hours" chip={<Chip tone="neutral">{w.rainNote}</Chip>}>
           <Sparkline points={w.hourly.map((p) => ({ label: p.label, value: p.tempF }))} color="var(--outside)" label="Hourly temperature forecast" />
         </Card>
-        {house.outdoorLights.map((l, i) => (
-          <Card key={l.id} color="var(--outside)" title={l.name} chip={<Chip tone={l.reachable ? 'neutral' : 'warn'}>{!l.reachable ? 'Not answering' : l.on ? 'On' : 'Off'}</Chip>}>
-            <div className="light-big">
-              <LightButton light={l} update={update} notify={notify} />
-            </div>
-            {l.dims && l.reachable && (
-              <Dimmer label="Brightness" value={l.on ? l.brightness ?? 100 : 0}
-                onCommit={(v) => update((h) => { h.outdoorLights[i].brightness = v; h.outdoorLights[i].on = true })} />
-            )}
+        {house.outdoorLights.length > 0 && (
+          <Card color="var(--outside)" title="Outdoor lights"
+            chip={<Chip tone="neutral">{house.outdoorLights.filter((l) => l.on).length} of {house.outdoorLights.length} on</Chip>}>
+            {house.outdoorLights.map((l, i) => (
+              <div key={l.id} className="light-big">
+                <LightButton light={l} update={update} notify={notify} />
+                {l.dims && l.reachable && (
+                  <Dimmer label="Brightness" value={l.on ? l.brightness ?? 100 : 0}
+                    onCommit={(v) => update((h) => { h.outdoorLights[i].brightness = v; h.outdoorLights[i].on = true })} />
+                )}
+              </div>
+            ))}
           </Card>
-        ))}
+        )}
         <Card color="var(--outside)" title="Rachio" chip={<Chip tone="neutral">Rain skip {ir.rainSkip ? 'on' : 'off'}</Chip>}>
           <KV rows={[...ir.zones.map((z): [string, string] => [z.name, `${z.next} · ${z.minutes}m`]), ['Rain, last 48h', `${ir.rain48hIn.toFixed(2)} in`]]} />
           <Toggle label="Skip watering for 24 hours" on={ir.rainSkip} onChange={(on) => update((h) => { h.irrigation.rainSkip = on })} />

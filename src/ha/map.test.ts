@@ -546,9 +546,11 @@ describe('outdoorLightsFrom', () => {
       entity('light.govee_strip', 'off', { supported_color_modes: ['onoff'] }),
       entity('light.lounge_lamp_1', 'on'),
       entity('light.front_entrance_light_2', 'on', { friendly_name: 'Front Entrance Light' }),
+      entity('light.patio', 'on', { friendly_name: 'Patio', is_hue_group: true }),
+      entity('light.patio_patio_light', 'off', { friendly_name: 'Patio Light', supported_color_modes: ['color_temp'] }),
     )
-    expect(outdoorLightsFrom(s).map((l) => l.name)).toEqual(['Front Entrance Light', 'Govee strip', 'Govee Porch'])
-    expect(outdoorLightsFrom(s).slice(1)).toEqual([
+    expect(outdoorLightsFrom(s).map((l) => l.name)).toEqual(['Front Entrance Light', 'Govee strip', 'Patio Light', 'Govee Porch'])
+    expect(outdoorLightsFrom(s).filter((l) => l.name.startsWith('Govee'))).toEqual([
       { id: 'light.govee_strip', name: 'Govee strip', on: false, brightness: undefined, dims: false, reachable: true },
       { id: 'light.porch', name: 'Govee Porch', on: true, brightness: 50, dims: true, reachable: true },
     ])
