@@ -545,8 +545,10 @@ describe('outdoorLightsFrom', () => {
       entity('light.h6008_ab12', 'unavailable', { friendly_name: 'H6008' }),
       entity('light.govee_strip', 'off', { supported_color_modes: ['onoff'] }),
       entity('light.lounge_lamp_1', 'on'),
+      entity('light.front_entrance_light_2', 'on', { friendly_name: 'Front Entrance Light' }),
     )
-    expect(outdoorLightsFrom(s)).toEqual([
+    expect(outdoorLightsFrom(s).map((l) => l.name)).toEqual(['Front Entrance Light', 'Govee strip', 'Govee Porch'])
+    expect(outdoorLightsFrom(s).slice(1)).toEqual([
       { id: 'light.govee_strip', name: 'Govee strip', on: false, brightness: undefined, dims: false, reachable: true },
       { id: 'light.porch', name: 'Govee Porch', on: true, brightness: 50, dims: true, reachable: true },
     ])
