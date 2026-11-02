@@ -18,6 +18,7 @@ const states: HassEntities = Object.fromEntries([
   entity(entities.appliances.waterHeater, 'heat_pump', { away_mode: 'off' }),
   entity(entities.cameras.armed, 'armed_away'),
   entity('lock.inside_garage_door', 'locked'),
+  entity('light.govee_outdoor', 'off', { friendly_name: 'Govee outdoor', supported_color_modes: ['brightness'] }),
 ].map((e) => [e.entity_id, e]))
 
 function change(edit: (h: HouseState) => void) {
@@ -28,6 +29,12 @@ function change(edit: (h: HouseState) => void) {
 }
 
 describe('serviceCalls', () => {
+  it('switches and dims an outdoor light', () => {
+    expect(change((h) => { h.outdoorLights[0].on = true })).toEqual([{ domain: 'light', service: 'turn_on', entityIds: ['light.govee_outdoor'] }])
+    expect(change((h) => { h.outdoorLights[0].on = true; h.outdoorLights[0].brightness = 40 }))
+      .toEqual([{ domain: 'light', service: 'turn_on', data: { brightness_pct: 40 }, entityIds: ['light.govee_outdoor'] }])
+  })
+
   it('locks and unlocks a door', () => {
     expect(change((h) => { h.safety.locks[0].state = 'unlocked' })).toEqual([{ domain: 'lock', service: 'unlock', entityIds: ['lock.inside_garage_door'] }])
     const unlocked = { ...states, 'lock.inside_garage_door': entity('lock.inside_garage_door', 'unlocked') }

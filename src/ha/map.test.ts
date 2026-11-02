@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, byDay, locksFrom, dailyForecastType, forecastSource, lightLook, nasTask, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
+import { applyEntities, byDay, locksFrom, dailyForecastType, forecastSource, lightLook, nasTask, outdoorLightsFrom, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -535,5 +535,26 @@ describe('locks', () => {
     const { house, onSample } = applyEntities(sampleHouse, states(entity('sun.sun', 'above_horizon')), now)
     expect(house.safety.locks).toEqual([])
     expect(onSample).toContain('Door lock (a lock.* entity)')
+  })
+})
+
+describe('outdoorLightsFrom', () => {
+  it('finds Govee lights by name or ID and listed lights, skipping others', () => {
+    const s = states(
+      entity('light.porch', 'on', { friendly_name: 'Govee Porch', brightness: 128, supported_color_modes: ['hs'] }),
+      entity('light.h6008_ab12', 'unavailable', { friendly_name: 'H6008' }),
+      entity('light.govee_strip', 'off', { supported_color_modes: ['onoff'] }),
+      entity('light.lounge_lamp_1', 'on'),
+      entity('light.front_entrance_light_2', 'on', { friendly_name: 'Front Entrance Light' }),
+    )
+    expect(outdoorLightsFrom(s).map((l) => l.name)).toEqual(['Front Entrance Light', 'Govee strip', 'Govee Porch'])
+    expect(outdoorLightsFrom(s).slice(1)).toEqual([
+      { id: 'light.govee_strip', name: 'Govee strip', on: false, brightness: undefined, dims: false, reachable: true },
+      { id: 'light.porch', name: 'Govee Porch', on: true, brightness: 50, dims: true, reachable: true },
+    ])
+  })
+
+  it('drops the sample light once Home Assistant is connected without one', () => {
+    expect(applyEntities(sampleHouse, states(entity('sun.sun', 'above_horizon'))).house.outdoorLights).toEqual([])
   })
 })

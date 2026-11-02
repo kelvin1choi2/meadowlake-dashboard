@@ -195,6 +195,19 @@ export interface Lock {
   doorOpen?: boolean
 }
 
+/** An outdoor light (the Govee), switched from the Outside tile. */
+export interface OutdoorLight {
+  /** The light's Home Assistant entity. */
+  id: string
+  name: string
+  on: boolean
+  /** 1–100 while on, when the light can dim. */
+  brightness?: number
+  dims?: boolean
+  /** false when Home Assistant can't reach it. */
+  reachable: boolean
+}
+
 export interface HouseState {
   mode: 'home' | 'away' | 'night' | 'guests'
   climate: {
@@ -227,6 +240,7 @@ export interface HouseState {
   /** `image` is the camera's latest picture, as Blink last took it, at `shotAt`. */
   cameras: { id: string; name: string; lastMotion: string | null; image?: string; shotAt?: string }[]
   camerasArmed: boolean
+  outdoorLights: OutdoorLight[]
   irrigation: {
     rainSkip: boolean
     rain48hIn: number

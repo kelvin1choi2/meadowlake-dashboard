@@ -1,5 +1,5 @@
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
-import type { CategoryId, HouseState, Lock } from '../data/types'
+import type { CategoryId, HouseState, Lock, OutdoorLight } from '../data/types'
 import type { ForecastEntry } from './connection'
 import { entities } from './entities'
 
@@ -437,6 +437,15 @@ export function applyEntities(
   } else onSample.push('Door lock (a lock.* entity)')
   if (locks.length || Object.keys(states).length) h.safety.locks = locks
 
+  // Outdoor lights, like locks: once Home Assistant is connected, only real ones show.
+  const outdoor = outdoorLightsFrom(states)
+  total++
+  if (outdoor.length) {
+    linked++
+    for (const l of outdoor) if (!l.reachable) unavailable.push(l.name)
+  } else onSample.push('Outdoor light (a Govee light.* entity)')
+  if (outdoor.length || Object.keys(states).length) h.outdoorLights = outdoor
+
   const found = scenesFrom(states)
   for (const id of entities.scenes.favorites) {
     total++
@@ -661,6 +670,27 @@ function washerFrom(get: (id: string) => HassEntity | undefined, now: Date): Hou
   }
 }
 
+/** The outdoor lights: those listed in entities.ts plus any Govee light, by name or ID. */
+export function outdoorLightsFrom(states: HassEntities): OutdoorLight[] {
+  const { ids, match } = entities.outdoorLights
+  return Object.values(states)
+    .filter((e) => e.entity_id.startsWith('light.') && !isGroup(e)
+      && (ids.includes(e.entity_id) || match.test(e.entity_id) || match.test(String(e.attributes.friendly_name ?? ''))))
+    .sort((a, b) => a.entity_id.localeCompare(b.entity_id))
+    .map((e) => {
+      const level = num(e.attributes.brightness)
+      const modes = e.attributes.supported_color_modes
+      return {
+        id: e.entity_id,
+        name: String(e.attributes.friendly_name ?? label(e.entity_id.slice('light.'.length))),
+        on: e.state === 'on',
+        brightness: e.state === 'on' && level !== undefined ? Math.max(1, Math.round((level / 255) * 100)) : undefined,
+        dims: Array.isArray(modes) ? modes.some((m) => m !== 'onoff') : level !== undefined,
+        reachable: !offline.has(e.state),
+      }
+    })
+}
+
 const lockStates = new Set<Lock['state']>(['locked', 'unlocked', 'locking', 'unlocking', 'jammed', 'open'])
 
 /** Every lock Home Assistant has, with the battery and door sensors that share its name. */
@@ -757,6 +787,7 @@ export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] 
   }
   add(entities.safety.garage, 'safety', 'Garage', (e) => (e.state === 'closed' ? 'closed' : e.state))
   add(entities.chores.vacuum, 'chores', 'Robovac', (e) => (e.state === 'docked' ? 'docked' : e.state))
+  for (const l of outdoorLightsFrom(states)) add(l.id, 'outside', l.name, (e) => (e.state === 'on' || e.state === 'off' ? `turned ${e.state}` : null))
   add(entities.irrigation.rainDelay, 'outside', 'Rachio', (e) => `rain delay ${e.state}`)
   add(entities.appliances.washer.machine, 'appliances', 'Washer', (e) => ({ run: 'started', pause: 'paused', stop: 'stopped' })[e.state] ?? null)
   for (const l of locksFrom(states)) {

@@ -43,6 +43,7 @@ export const sampleHouse: HouseState = {
     { id: 'camera.sample_driveway', name: 'Driveway', lastMotion: null, image: samplePictures.driveway, shotAt: '2:40p' },
   ],
   camerasArmed: true,
+  outdoorLights: [{ id: 'light.patio_string_lights', name: 'Patio lights', on: false, dims: true, reachable: true }],
   irrigation: {
     rainSkip: false,
     rain48hIn: 0,
