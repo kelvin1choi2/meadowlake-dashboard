@@ -67,6 +67,15 @@ export function serviceCalls(before: HouseState, after: HouseState, states: Hass
     calls.push({ domain: 'alarm_control_panel', service: after.camerasArmed ? 'alarm_arm_away' : 'alarm_disarm', entityIds: [blink] })
   }
 
+  for (const light of after.outdoorLights) {
+    const was = before.outdoorLights.find((l) => l.id === light.id)
+    if (!was || !has(light.id)) continue
+    const dimmed = light.on && light.brightness !== undefined && light.brightness !== was.brightness
+    if (was.on === light.on && !dimmed) continue
+    if (!light.on) calls.push({ domain: 'light', service: 'turn_off', entityIds: [light.id] })
+    else calls.push({ domain: 'light', service: 'turn_on', ...(dimmed ? { data: { brightness_pct: light.brightness } } : {}), entityIds: [light.id] })
+  }
+
   for (const lock of after.safety.locks) {
     const was = before.safety.locks.find((l) => l.id === lock.id)
     if (!was || was.state === lock.state || !has(lock.id)) continue

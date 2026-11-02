@@ -57,6 +57,14 @@ export const entities = {
   cameras: {
     armed: 'alarm_control_panel.blink_meadowlake',
   },
+  /**
+   * Outdoor lights with an on/off button on the Outside tile: the lights listed here, plus
+   * any light Home Assistant calls Govee (by name or ID), so it shows up without a code change.
+   */
+  outdoorLights: {
+    ids: [] as string[],
+    match: /govee/i,
+  },
   irrigation: {
     /** On = Rachio skips watering for the next 24 hours. */
     rainDelay: 'switch.meadowlake_rachio_rain_delay',
