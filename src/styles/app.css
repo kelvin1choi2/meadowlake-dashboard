@@ -409,5 +409,12 @@ table.zones td { vertical-align: top; }
 .light-btn .txt small { color: var(--muted); font-size: 12px; }
 .light-btn:disabled { opacity: .6; cursor: default; }
 .light-btn .bulb { width: 100%; height: 100%; display: block; }
-.light-big { margin-bottom: 10px; }
+.light-big { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.light-big:last-child { margin-bottom: 0; }
 .light-big .light-btn { width: 100%; }
+.lights { display: flex; flex-wrap: wrap; gap: 10px; min-width: 0; }
+@media (max-width: 560px) {
+  .lights { flex-basis: 100%; }
+  .lights .light-btn { flex: 1 1 140px; padding-right: 10px; }
+  .lights .light-btn small { display: none; }
+}

@@ -58,13 +58,14 @@ export const entities = {
     armed: 'alarm_control_panel.blink_meadowlake',
   },
   /**
-   * Outdoor lights with an on/off button on the Outside tile: the lights listed here, plus any
-   * light whose name or ID matches `match` (the Govee "Front Entrance Light", or any other light
-   * Home Assistant calls Govee), so a renamed entity ID still shows up.
+   * Outdoor lights with an on/off button on the Outside tile and a dimmer in its sheet: the
+   * lights listed here, plus any light whose name or ID matches `match` (the Govee "Front
+   * Entrance Light", the Hue "Patio Light", or any other light Home Assistant calls Govee),
+   * so a renamed entity ID still shows up. Hue room groups are skipped.
    */
   outdoorLights: {
-    ids: ['light.front_entrance_light'] as string[],
-    match: /govee|front entrance/i,
+    ids: ['light.front_entrance_light', 'light.patio_light'] as string[],
+    match: /govee|front[ _]entrance|patio[ _]light/i,
   },
   irrigation: {
     /** On = Rachio skips watering for the next 24 hours. */
