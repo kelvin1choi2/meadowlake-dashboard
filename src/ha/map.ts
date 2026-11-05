@@ -693,7 +693,7 @@ export function outdoorLightsFrom(states: HassEntities): OutdoorLight[] {
 
 /**
  * The garage door opener: the ID in entities.ts if Home Assistant still has it, else the cover
- * whose name or ID says "garage door" (or "pod bay doors"), else any cover HA marks as a garage.
+ * whose name or ID says "garage door", else any cover HA marks as a garage.
  * Renaming the door in Apple Home or HA can change its ID, and this keeps it on the dashboard.
  */
 export function garageId(states: HassEntities): string {

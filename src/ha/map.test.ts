@@ -309,18 +309,16 @@ describe('ecobee, garage and robovac', () => {
     expect(house.chores.robovac).toMatchObject({ state: 'Docked', battery: 96, lastClean: '38 min', next: undefined })
   })
 
-  it('finds the garage door after it is renamed from Pod Bay Doors to Garage Door', () => {
-    const renamed = entity('cover.garage_door', 'closed', { friendly_name: 'Garage Door', device_class: 'garage' })
-    const { house } = applyEntities(sampleHouse, states(renamed, entity('cover.patio_blind', 'open')), now)
+  it('finds the Garage Door by name when its ID is different', () => {
+    const { house } = applyEntities(sampleHouse, states(
+      entity('cover.garage_garage_door_2', 'closed', { friendly_name: 'Garage Door' }), entity('cover.patio_blind', 'open')), now)
     expect(house.safety.garage.open).toBe(false)
-    expect(garageId(states(entity('cover.garage_garage_door_2', 'open', { friendly_name: 'Garage Door' })))).toBe('cover.garage_garage_door_2')
     expect(garageId(states(entity('cover.homekit_opener', 'open', { device_class: 'garage' })))).toBe('cover.homekit_opener')
     expect(garageId(states(entity('cover.patio_blind', 'open')))).toBe(entities.safety.garage)
   })
 
-  it('still prefers the old Pod Bay Doors ID while Home Assistant has it', () => {
-    const both = states(entity(entities.safety.garage, 'open'), entity('cover.garage_door', 'closed', { friendly_name: 'Garage Door' }))
-    expect(garageId(both)).toBe(entities.safety.garage)
+  it('no longer looks for the old Pod Bay Doors name', () => {
+    expect(garageId(states(entity('cover.garage_pod_bay_doors', 'open', { friendly_name: 'Pod Bay Doors' })))).toBe(entities.safety.garage)
   })
 })
 

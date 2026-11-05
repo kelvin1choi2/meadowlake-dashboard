@@ -141,12 +141,12 @@ export const entities = {
   },
   safety: {
     /**
-     * eHome garage opener, paired through HomeKit Device. Renamed from "Pod Bay Doors" to
-     * "Garage Door", so if this ID is gone the dashboard picks the cover.* whose name or ID
-     * says "garage door" (or the old "pod bay doors"), then any cover that HA calls a garage.
+     * eHome garage opener "Garage Door", paired through HomeKit Device. If this ID isn't there,
+     * the dashboard picks the cover.* whose name or ID says "garage door", then any cover that
+     * Home Assistant calls a garage.
      */
-    garage: 'cover.garage_pod_bay_doors_garage_door',
-    garageMatch: /garage[ _]door|pod[ _]bay[ _]doors/i,
+    garage: 'cover.garage_door',
+    garageMatch: /garage[ _]door/i,
     /** Leak detectors in Home Assistant. Once any is found, only these are shown. */
     leaks: [
       {
