@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, byDay, locksFrom, dailyForecastType, forecastSource, lightLook, nasTask, outdoorLightsFrom, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
+import { applyEntities, byDay, garageId, locksFrom, dailyForecastType, forecastSource, lightLook, nasTask, outdoorLightsFrom, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -307,6 +307,20 @@ describe('ecobee, garage and robovac', () => {
     ), now)
     expect(house.safety.garage).toEqual({ open: true, since: '2:40p' })
     expect(house.chores.robovac).toMatchObject({ state: 'Docked', battery: 96, lastClean: '38 min', next: undefined })
+  })
+
+  it('finds the garage door after it is renamed from Pod Bay Doors to Garage Door', () => {
+    const renamed = entity('cover.garage_door', 'closed', { friendly_name: 'Garage Door', device_class: 'garage' })
+    const { house } = applyEntities(sampleHouse, states(renamed, entity('cover.patio_blind', 'open')), now)
+    expect(house.safety.garage.open).toBe(false)
+    expect(garageId(states(entity('cover.garage_garage_door_2', 'open', { friendly_name: 'Garage Door' })))).toBe('cover.garage_garage_door_2')
+    expect(garageId(states(entity('cover.homekit_opener', 'open', { device_class: 'garage' })))).toBe('cover.homekit_opener')
+    expect(garageId(states(entity('cover.patio_blind', 'open')))).toBe(entities.safety.garage)
+  })
+
+  it('still prefers the old Pod Bay Doors ID while Home Assistant has it', () => {
+    const both = states(entity(entities.safety.garage, 'open'), entity('cover.garage_door', 'closed', { friendly_name: 'Garage Door' }))
+    expect(garageId(both)).toBe(entities.safety.garage)
   })
 })
 

@@ -407,7 +407,7 @@ export function applyEntities(
   const hot = value(entities.appliances.hotWaterPct)
   if (hot !== undefined) h.appliances.waterHeater.availablePct = Math.round(hot)
 
-  const g = get(entities.safety.garage)
+  const g = get(garageId(states))
   if (g) h.safety.garage = { open: g.state !== 'closed', since: shortTime(new Date(g.last_changed)) }
 
   const vac = get(entities.chores.vacuum)
@@ -691,6 +691,20 @@ export function outdoorLightsFrom(states: HassEntities): OutdoorLight[] {
     })
 }
 
+/**
+ * The garage door opener: the ID in entities.ts if Home Assistant still has it, else the cover
+ * whose name or ID says "garage door" (or "pod bay doors"), else any cover HA marks as a garage.
+ * Renaming the door in Apple Home or HA can change its ID, and this keeps it on the dashboard.
+ */
+export function garageId(states: HassEntities): string {
+  const { garage, garageMatch } = entities.safety
+  if (states[garage]) return garage
+  const covers = Object.values(states).filter((e) => e.entity_id.startsWith('cover.') && !isGroup(e))
+    .sort((a, b) => a.entity_id.localeCompare(b.entity_id))
+  const named = covers.find((e) => garageMatch.test(e.entity_id) || garageMatch.test(String(e.attributes.friendly_name ?? '')))
+  return (named ?? covers.find((e) => e.attributes.device_class === 'garage'))?.entity_id ?? garage
+}
+
 const lockStates = new Set<Lock['state']>(['locked', 'unlocked', 'locking', 'unlocking', 'jammed', 'open'])
 
 /** Every lock Home Assistant has, with the battery and door sensors that share its name. */
@@ -785,7 +799,7 @@ export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] 
     const group = Object.values(states).find((e) => e.entity_id.startsWith(r.lights) && isGroup(e))
     if (group) add(group.entity_id, 'inside', `${r.name} lights`, (e) => e.state)
   }
-  add(entities.safety.garage, 'safety', 'Garage', (e) => (e.state === 'closed' ? 'closed' : e.state))
+  add(garageId(states), 'safety', 'Garage', (e) => (e.state === 'closed' ? 'closed' : e.state))
   add(entities.chores.vacuum, 'chores', 'Robovac', (e) => (e.state === 'docked' ? 'docked' : e.state))
   for (const l of outdoorLightsFrom(states)) add(l.id, 'outside', l.name, (e) => (e.state === 'on' || e.state === 'off' ? `turned ${e.state}` : null))
   add(entities.irrigation.rainDelay, 'outside', 'Rachio', (e) => `rain delay ${e.state}`)
