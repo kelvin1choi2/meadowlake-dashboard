@@ -424,8 +424,9 @@ table.zones td { vertical-align: top; }
 .party-colors { display: flex; gap: 10px; align-items: stretch; }
 .party-art { width: 92px; height: 92px; flex: none; border-radius: 14px; object-fit: cover; background: color-mix(in srgb, var(--media) 30%, var(--surface)); }
 .party-blocks { flex: 1; min-width: 0; display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 8px; }
-.party-blocks div { min-width: 0; border-radius: 14px; background: var(--sw); display: flex; align-items: flex-end; padding: 8px; font-size: 12px; font-weight: 700; color: var(--on-hue); text-shadow: 0 1px 2px color-mix(in srgb, var(--fg) 50%, transparent); }
-.party-blocks div.on { outline: 3px solid var(--fg); outline-offset: 2px; }
+.party-blocks button { min-width: 0; border: 0; cursor: pointer; font: inherit; border-radius: 14px; background: var(--sw); display: flex; align-items: flex-end; padding: 8px; font-size: 12px; font-weight: 700; color: var(--on-hue); text-shadow: 0 1px 2px color-mix(in srgb, var(--fg) 50%, transparent); }
+.party-blocks button:disabled { cursor: default; }
+.party-blocks button.on { outline: 3px solid var(--fg); outline-offset: 2px; }
 .party-empty { flex: 1; align-self: center; color: var(--muted); font-size: 14px; }
 .party-bar { height: 8px; border-radius: 99px; background: var(--grad); }
 .party-row { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
@@ -441,5 +442,5 @@ table.zones td { vertical-align: top; }
 @media (max-width: 560px) {
   .party-art { width: 64px; height: 92px; }
   .party-blocks { gap: 5px; }
-  .party-blocks div { padding: 6px 4px; font-size: 11px; }
+  .party-blocks button { padding: 6px 4px; font-size: 11px; }
 }

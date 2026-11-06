@@ -191,8 +191,16 @@ describe('party lights', () => {
     expect(partyChange((h) => { h.party!.albumColors = false })).toEqual([{ domain: 'input_boolean', service: 'turn_off', entityIds: ['input_boolean.party_lights_album_colors'] }])
     expect(partyChange((h) => { h.party!.changeSeconds = 90 })).toEqual([{ domain: 'input_number', service: 'set_value', data: { value: 90 }, entityIds: ['input_number.party_lights_change_seconds'] }])
     expect(partyChange((h) => { h.party!.sensitivity = 40 })).toEqual([{ domain: 'input_number', service: 'set_value', data: { value: 40 }, entityIds: ['input_number.party_lights_sensitivity'] }])
-    expect(partyChange((h) => { h.party!.palette = ['#ff0000', '#00ff00'] }))
+    expect(partyChange((h) => { h.party!.palette = ['#ff0000', '#00ff00']; h.party!.colorIndex = 0 }))
       .toEqual([{ domain: 'input_text', service: 'set_value', data: { value: '#ff0000,#00ff00' }, entityIds: ['input_text.party_lights_palette'] }])
+  })
+
+  it('puts a tapped color on the bars', () => {
+    const p = { ...party, 'input_text.party_lights_palette': entity('input_text.party_lights_palette', '#ff0000,#00ff00,#0000ff') }
+    const before = applyEntities(sampleHouse, p).house
+    const after = structuredClone(before)
+    after.party!.colorIndex = 2
+    expect(serviceCalls(before, after, p)).toEqual([{ domain: 'input_number', service: 'set_value', data: { value: 2 }, entityIds: ['input_number.party_lights_color_index'] }])
   })
 
   it('does not keep the Lounge room switch from reaching the bars', () => {

@@ -41,7 +41,8 @@ function Seg<T extends string | number>({ label, value, options, onPick, disable
 /**
  * Party lights (docs/party-lights.md): the album's colors as blocks with the one showing
  * outlined, then the controls. Strobing uses the bars' own mic, so it keeps the beat; the
- * colors move on every 30, 60 or 90 seconds and change with the album.
+ * colors move on every 30, 60 or 90 seconds and change with the album. Tapping a color puts it
+ * on the bars now (and switches to album colors); the cycle carries on from there.
  */
 export function PartyCard({ house, update }: { house: HouseState; update: UpdateHouse }) {
   const party = house.party!
@@ -64,11 +65,16 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
         {art ? <img className="party-art" src={art} alt="" /> : <div className="party-art" aria-hidden="true" />}
         {party.palette.length ? (
           <div className="party-blocks">
-            {party.palette.map((c, i) => (
-              <div key={i} className={i === party.colorIndex && party.albumColors ? 'on' : ''} style={{ '--sw': c } as CSSProperties}>
-                {i === party.colorIndex && party.albumColors ? 'Now' : ''}
-              </div>
-            ))}
+            {party.palette.map((c, i) => {
+              const now = i === party.colorIndex && party.albumColors
+              return (
+                <button key={i} className={now ? 'on' : ''} style={{ '--sw': c } as CSSProperties} disabled={!ready}
+                  aria-pressed={now} aria-label={`Color ${i + 1} of ${party.palette.length}`}
+                  onClick={() => set((p) => { p.colorIndex = i; p.albumColors = true })}>
+                  {now ? 'Now' : ''}
+                </button>
+              )
+            })}
           </div>
         ) : (
           <p className="party-empty">Play an album in {party.followName} and its colors show here.</p>
