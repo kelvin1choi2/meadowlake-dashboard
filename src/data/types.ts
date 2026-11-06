@@ -237,6 +237,11 @@ export interface PartyLights {
   colorIndex: number
   /** When that color came up (ISO time), for the countdown. */
   colorSince?: string
+  /**
+   * The followed zone's cover through Home Assistant's own picture address (which
+   * cors_allowed_origins covers), and a key that changes only with the cover.
+   */
+  cover?: { url: string; key: string }
   /** The Roon zone whose album the colors come from: its entity and name. */
   follow: string
   followName: string

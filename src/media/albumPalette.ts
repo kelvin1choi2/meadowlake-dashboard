@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import type { HouseState } from '../data/types'
 import type { UpdateHouse } from '../data/useHouse'
 import { paletteFrom } from './palette'
@@ -52,30 +52,42 @@ export function followedArt(house: HouseState): string | undefined {
   return party ? house.media.roon.find((z) => z.id === party.follow)?.art : undefined
 }
 
-/** Strips the short-lived token from a cover's address, so the same cover isn't read twice. */
-function coverKey(url: string): string {
-  return url.replace(/([?&])token=[^&]*&?/, '$1')
-}
+/** How often to try again while the cover can't be read (Home Assistant restarting, say). */
+const retryMs = 60_000
 
 /**
  * Watches the followed zone's cover and, when it changes, saves its colors to the party lights.
  * Runs wherever the dashboard is open and connected; each open dashboard comes to the same colors.
+ * The cover is fetched through Home Assistant's picture address with an extra marker, so the
+ * browser can't reuse the copy it loaded for the Now Playing card, which it fetched without
+ * asking Home Assistant's permission to read the pixels.
  */
 export function useAlbumPalette(house: HouseState, update: UpdateHouse, live: boolean) {
-  const art = live && house.party?.setUp ? followedArt(house) : undefined
-  const key = art ? coverKey(art) : undefined
+  const cover = live && house.party?.setUp ? house.party.cover : undefined
+  const latest = useRef(cover?.url)
+  latest.current = cover?.url
+  const key = cover?.key
   useEffect(() => {
-    if (!art) return
+    if (!key) return
     let cancelled = false
-    readCover(art).then(
-      (palette) => {
-        if (cancelled) return
-        setStatus('ok')
-        if (palette.length) update((h) => { if (h.party && h.party.palette.join(',') !== palette.join(',')) h.party.palette = palette })
-      },
-      () => { if (!cancelled) setStatus('blocked') },
-    )
-    return () => { cancelled = true }
-    // Only a new cover matters, not a new token for the same one.
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const attempt = () => {
+      const url = latest.current
+      if (!url) return
+      readCover(`${url}${url.includes('?') ? '&' : '?'}palette=1`).then(
+        (palette) => {
+          if (cancelled) return
+          setStatus('ok')
+          if (palette.length) update((h) => { if (h.party && h.party.palette.join(',') !== palette.join(',')) h.party.palette = palette })
+        },
+        () => {
+          if (cancelled) return
+          setStatus('blocked')
+          timer = setTimeout(attempt, retryMs)
+        },
+      )
+    }
+    attempt()
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [key, update])
 }
