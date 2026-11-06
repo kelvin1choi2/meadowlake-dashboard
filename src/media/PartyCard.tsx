@@ -75,6 +75,8 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
   const ready = party.setUp && party.reachable
   // Steady with the cloud: each half of the bars shows its own color, this one and the next.
   const showing = splitColors(party)
+  // Strobing in album colors goes over the home network, where only Shiny is known to work.
+  const lanStrobe = party.strobe && party.albumColors && !!party.lan
   const chip = !party.reachable ? <Chip tone="bad">Not answering</Chip>
     : party.on ? <Chip tone="good">{party.strobe ? 'On · strobing' : 'On'}</Chip>
     : <Chip tone="neutral">Off</Chip>
@@ -127,19 +129,23 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
             onPointerUp={commitLevel} onKeyUp={commitLevel} onBlur={commitLevel} />
         </label>
       </div>
-      {party.strobe && party.albumColors && party.lan && (
-        <p className="party-note">Strobing in album colors uses Govee's Shiny style, one album color on each bar.</p>
+      {(lanStrobe || (party.style && party.styles && party.styles.length > 1)) && (
+        <div className="party-row">
+          <span className="lbl">Strobe style</span>
+          {lanStrobe ? (
+            <>
+              <Seg label="Strobe style" value="Shiny" disabled={!ready} options={[['Shiny', 'Shiny']]} onPick={() => {}} />
+              <span className="party-note">Album colors strobe in Shiny, one color on each bar. Pick Govee colors for the other styles.</span>
+            </>
+          ) : (
+            <Seg label="Strobe style" value={party.style ?? ''} disabled={!ready || !party.strobe}
+              options={(party.styles ?? []).map((s): [string, string] => [s, s])}
+              onPick={(v) => set((p) => { p.style = v })} />
+          )}
+        </div>
       )}
       {party.setUp && party.strobe && party.albumColors && !party.lan && (
         <p className="party-note">To strobe in album colors only, add the bars' address in Home Assistant (docs/party-lights.md). Until then Govee mixes in its own colors.</p>
-      )}
-      {!(party.strobe && party.albumColors && party.lan) && party.style && party.styles && party.styles.length > 1 && (
-        <div className="party-row">
-          <span className="lbl">Strobe style</span>
-          <Seg label="Strobe style" value={party.style} disabled={!ready || !party.strobe}
-            options={party.styles.map((s): [string, string] => [s, s])}
-            onPick={(v) => set((p) => { p.style = v })} />
-        </div>
       )}
       {!party.setUp && (
         <p className="party-note">Strobe and album colors need the Home Assistant part set up first (docs/party-lights.md). On and off work already.</p>
