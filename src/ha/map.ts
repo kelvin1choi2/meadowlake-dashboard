@@ -725,14 +725,9 @@ export function partyFrom(states: HassEntities): PartyLights | undefined {
   const palette = (value(p.palette) ?? '').split(',').map((c) => c.trim()).filter((c) => hex.test(c)).slice(0, 5)
   const index = num(value(p.colorIndex)) ?? 0
   const zone = entities.media.roon.find((z) => z.id === p.follow)
-  const player = states[p.follow]
-  const token = str(player?.attributes.access_token)
-  const picture = str(player?.attributes.entity_picture)
-  // Home Assistant's picture proxy, even when the zone's own picture points at the ROCK.
-  const cover = token && picture
-    ? { url: `/api/media_player_proxy/${p.follow}?token=${encodeURIComponent(token)}&cache=${encodeURIComponent(picture.match(/[?&]cache=([^&]*)/)?.[1] ?? picture)}`,
-        key: picture.replace(/([?&])token=[^&]*&?/, '$1') }
-    : undefined
+  // The zone's own picture address: Home Assistant's picture proxy, which cors_allowed_origins covers.
+  const picture = str(states[p.follow]?.attributes.entity_picture)
+  const cover = picture ? { url: picture, key: picture.replace(/([?&])token=[^&]*&?/, '$1') } : undefined
   return {
     id: light.entity_id,
     name: String(light.attributes.friendly_name ?? label(light.entity_id.slice('light.'.length))),

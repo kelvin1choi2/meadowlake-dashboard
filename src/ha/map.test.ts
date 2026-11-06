@@ -593,13 +593,13 @@ describe('partyFrom', () => {
     })
   })
 
-  it("reads the followed zone's cover through Home Assistant's picture address", () => {
-    const zone = entity('media_player.1_lounge_linn_klimax', 'playing', { access_token: 'abc', entity_picture: 'http://rock:9330/api/image/1?token=x&cache=k1' })
+  it("reads the followed zone's cover from its picture address", () => {
+    const zone = entity('media_player.1_lounge_linn_klimax', 'playing', { entity_picture: '/api/media_player_proxy/media_player.1_lounge_linn_klimax?token=abc&cache=k1' })
     expect(partyFrom(states(bars, zone))?.cover).toEqual({
       url: '/api/media_player_proxy/media_player.1_lounge_linn_klimax?token=abc&cache=k1',
-      key: 'http://rock:9330/api/image/1?cache=k1',
+      key: '/api/media_player_proxy/media_player.1_lounge_linn_klimax?cache=k1',
     })
-    expect(partyFrom(states(bars, entity('media_player.1_lounge_linn_klimax', 'idle', { access_token: 'abc' })))?.cover).toBeUndefined()
+    expect(partyFrom(states(bars, entity('media_player.1_lounge_linn_klimax', 'idle')))?.cover).toBeUndefined()
   })
 
   it('works without the helpers, and is absent without the light', () => {

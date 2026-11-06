@@ -238,7 +238,7 @@ export interface PartyLights {
   /** When that color came up (ISO time), for the countdown. */
   colorSince?: string
   /**
-   * The followed zone's cover through Home Assistant's own picture address (which
+   * The followed zone's cover, at Home Assistant's own picture address (which
    * cors_allowed_origins covers), and a key that changes only with the cover.
    */
   cover?: { url: string; key: string }
