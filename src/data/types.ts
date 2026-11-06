@@ -208,6 +208,40 @@ export interface OutdoorLight {
   reachable: boolean
 }
 
+/**
+ * Light bars run as party lights (docs/party-lights.md): strobing to music with their own mic,
+ * in colors picked from the album playing in one Roon zone, changing every so often.
+ */
+export interface PartyLights {
+  /** The light's Home Assistant entity. */
+  id: string
+  name: string
+  on: boolean
+  /** false when Home Assistant can't reach it. */
+  reachable: boolean
+  /** false until the Home Assistant part (docs/party-lights.md) is installed. */
+  setUp: boolean
+  /** false when Home Assistant can't find the bars through Govee's cloud, which strobing needs. */
+  cloud: boolean
+  /** Strobe to music (the bars' mic), or a steady light. */
+  strobe: boolean
+  /** Colors from the album cover, or Govee's own. */
+  albumColors: boolean
+  /** How often the color moves on, in seconds. */
+  changeSeconds: number
+  /** Mic sensitivity, 0–100. */
+  sensitivity: number
+  /** The album's colors as #rrggbb, at most five. */
+  palette: string[]
+  /** Which of them is showing. */
+  colorIndex: number
+  /** When that color came up (ISO time), for the countdown. */
+  colorSince?: string
+  /** The Roon zone whose album the colors come from: its entity and name. */
+  follow: string
+  followName: string
+}
+
 export interface HouseState {
   mode: 'home' | 'away' | 'night' | 'guests'
   climate: {
@@ -241,6 +275,8 @@ export interface HouseState {
   cameras: { id: string; name: string; lastMotion: string | null; image?: string; shotAt?: string }[]
   camerasArmed: boolean
   outdoorLights: OutdoorLight[]
+  /** Absent when there are no party lights. */
+  party?: PartyLights
   irrigation: {
     rainSkip: boolean
     rain48hIn: number

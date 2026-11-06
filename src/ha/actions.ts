@@ -1,5 +1,5 @@
 import type { HassEntities } from 'home-assistant-js-websocket'
-import type { HouseAction, HouseState, LightPreset } from '../data/types'
+import type { HouseAction, HouseState, LightPreset, PartyLights } from '../data/types'
 import { lightPresets } from '../data/lightPresets'
 import { entities } from './entities'
 import { lightLook, roomLights } from './map'
@@ -76,6 +76,8 @@ export function serviceCalls(before: HouseState, after: HouseState, states: Hass
     else calls.push({ domain: 'light', service: 'turn_on', ...(dimmed ? { data: { brightness_pct: light.brightness } } : {}), entityIds: [light.id] })
   }
 
+  calls.push(...partyCalls(before.party, after.party, has))
+
   for (const lock of after.safety.locks) {
     const was = before.safety.locks.find((l) => l.id === lock.id)
     if (!was || was.state === lock.state || !has(lock.id)) continue
@@ -83,6 +85,27 @@ export function serviceCalls(before: HouseState, after: HouseState, states: Hass
     if (lock.state === 'unlocked') calls.push({ domain: 'lock', service: 'unlock', entityIds: [lock.id] })
   }
 
+  return calls
+}
+
+/** The party lights' switches and settings, each to its helper (docs/party-lights.md). */
+function partyCalls(was: PartyLights | undefined, now: PartyLights | undefined, has: (id: string) => boolean): ServiceCall[] {
+  if (!was || !now || was.id !== now.id) return []
+  const p = entities.party
+  const calls: ServiceCall[] = []
+  const flip = (id: string, on: boolean) => calls.push({ domain: 'input_boolean', service: on ? 'turn_on' : 'turn_off', entityIds: [id] })
+  if (was.on !== now.on && has(now.id)) calls.push({ domain: 'light', service: now.on ? 'turn_on' : 'turn_off', entityIds: [now.id] })
+  if (was.strobe !== now.strobe && has(p.strobe)) flip(p.strobe, now.strobe)
+  if (was.albumColors !== now.albumColors && has(p.albumColors)) flip(p.albumColors, now.albumColors)
+  if (was.changeSeconds !== now.changeSeconds && has(p.changeSeconds)) {
+    calls.push({ domain: 'input_number', service: 'set_value', data: { value: now.changeSeconds }, entityIds: [p.changeSeconds] })
+  }
+  if (was.sensitivity !== now.sensitivity && has(p.sensitivity)) {
+    calls.push({ domain: 'input_number', service: 'set_value', data: { value: now.sensitivity }, entityIds: [p.sensitivity] })
+  }
+  if (was.palette.join(',') !== now.palette.join(',') && now.palette.length && has(p.palette)) {
+    calls.push({ domain: 'input_text', service: 'set_value', data: { value: now.palette.join(',') }, entityIds: [p.palette] })
+  }
   return calls
 }
 

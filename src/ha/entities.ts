@@ -67,6 +67,25 @@ export const entities = {
     ids: ['light.front_entrance_light', 'light.patio_light'] as string[],
     match: /govee|front[ _]entrance|patio[ _]light/i,
   },
+  /**
+   * The Govee light bars in the Lounge, run as party lights (docs/party-lights.md). Found by ID,
+   * or by a name like "Lounge Lights" or "light bars". They're kept out of the Lounge's Hue
+   * lights and the outdoor lights. The helpers come from scripts/homeassistant/party-lights.yaml,
+   * and `cloud` is its lookup of the bars in Govee's cloud ("sku|device|music mode").
+   * Colors follow the album playing in `follow`.
+   */
+  party: {
+    light: 'light.lounge_lights',
+    match: /lounge[ _]lights?$|light[ _]bars?/i,
+    follow: 'media_player.1_lounge_linn_klimax',
+    strobe: 'input_boolean.party_lights_strobe',
+    albumColors: 'input_boolean.party_lights_album_colors',
+    changeSeconds: 'input_number.party_lights_change_seconds',
+    sensitivity: 'input_number.party_lights_sensitivity',
+    palette: 'input_text.party_lights_palette',
+    colorIndex: 'input_number.party_lights_color_index',
+    cloud: 'sensor.govee_party_bars',
+  },
   irrigation: {
     /** On = Rachio skips watering for the next 24 hours. */
     rainDelay: 'switch.meadowlake_rachio_rain_delay',

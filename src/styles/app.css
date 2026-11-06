@@ -418,3 +418,28 @@ table.zones td { vertical-align: top; }
   .lights .light-btn { flex: 1 1 140px; padding-right: 10px; }
   .lights .light-btn small { display: none; }
 }
+
+/* Party lights (media/PartyCard.tsx): album colors as blocks, then the controls. Block colors come from the album. */
+.party-sub { font-size: 13px; font-weight: 500; color: var(--muted); }
+.party-colors { display: flex; gap: 10px; align-items: stretch; }
+.party-art { width: 92px; height: 92px; flex: none; border-radius: 14px; object-fit: cover; background: color-mix(in srgb, var(--media) 30%, var(--surface)); }
+.party-blocks { flex: 1; min-width: 0; display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 8px; }
+.party-blocks div { min-width: 0; border-radius: 14px; background: var(--sw); display: flex; align-items: flex-end; padding: 8px; font-size: 12px; font-weight: 700; color: var(--on-hue); text-shadow: 0 1px 2px color-mix(in srgb, var(--fg) 50%, transparent); }
+.party-blocks div.on { outline: 3px solid var(--fg); outline-offset: 2px; }
+.party-empty { flex: 1; align-self: center; color: var(--muted); font-size: 14px; }
+.party-bar { height: 8px; border-radius: 99px; background: var(--grad); }
+.party-row { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
+.party-power, .party-level { display: flex; align-items: center; gap: 10px; }
+.party-level { flex: 1; min-width: 200px; }
+.party-level input { flex: 1; max-width: 280px; accent-color: var(--media); }
+.party-note { font-size: 13px; color: var(--muted); }
+.party-row .party-note { margin-left: auto; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; box-shadow: inset 0 0 0 1px var(--line); max-width: 100%; }
+.seg button { border: 0; background: transparent; padding: 7px 14px; border-radius: 999px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.seg button.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px color-mix(in srgb, var(--fg) 18%, transparent); }
+.seg button:disabled { cursor: default; opacity: 0.6; }
+@media (max-width: 560px) {
+  .party-art { width: 64px; height: 92px; }
+  .party-blocks { gap: 5px; }
+  .party-blocks div { padding: 6px 4px; font-size: 11px; }
+}

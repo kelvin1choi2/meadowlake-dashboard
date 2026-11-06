@@ -1,5 +1,5 @@
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
-import type { CategoryId, HouseState, Lock, OutdoorLight } from '../data/types'
+import type { CategoryId, HouseState, Lock, OutdoorLight, PartyLights } from '../data/types'
 import type { ForecastEntry } from './connection'
 import { entities } from './entities'
 
@@ -77,9 +77,16 @@ function isGroup(e: HassEntity): boolean {
   return a.is_hue_group === true || Array.isArray(a.lights) || Array.isArray(a.entity_id)
 }
 
-/** A room's Hue lights that are reachable, not counting the room group itself. */
+/** The party light bars (entities.party): by ID, or by name, but never a Hue room group. */
+export function isPartyLight(e: HassEntity): boolean {
+  const { light, match } = entities.party
+  return e.entity_id.startsWith('light.') && !isGroup(e)
+    && (e.entity_id === light || match.test(e.entity_id) || match.test(String(e.attributes.friendly_name ?? '')))
+}
+
+/** A room's Hue lights that are reachable, not counting the room group itself or the party lights. */
 export function roomLights(states: HassEntities, prefix: string): HassEntity[] {
-  return Object.values(states).filter((e) => e.entity_id.startsWith(prefix) && !isGroup(e) && !offline.has(e.state))
+  return Object.values(states).filter((e) => e.entity_id.startsWith(prefix) && !isGroup(e) && !isPartyLight(e) && !offline.has(e.state))
 }
 
 const colorModes = new Set(['hs', 'xy', 'rgb', 'rgbw', 'rgbww'])
@@ -218,7 +225,7 @@ export function applyEntities(
     const sensed = r.sensor ? sensorRoom(r.sensor) : { tempF: undefined, occupied: false }
     if (!lights.length && sensed.tempF === undefined) {
       // Bulbs that are off at the wall show as unavailable rather than missing.
-      const known = Object.values(states).some((e) => e.entity_id.startsWith(r.lights) && !isGroup(e))
+      const known = Object.values(states).some((e) => e.entity_id.startsWith(r.lights) && !isGroup(e) && !isPartyLight(e))
       if (known) unavailable.push(`${r.name} lights`)
       else onSample.push(`${r.name} room (${r.lights}*)`)
       return []
@@ -445,6 +452,16 @@ export function applyEntities(
     for (const l of outdoor) if (!l.reachable) unavailable.push(l.name)
   } else onSample.push('Outdoor light (a Govee light.* entity)')
   if (outdoor.length || Object.keys(states).length) h.outdoorLights = outdoor
+
+  // Party lights: shown only when Home Assistant has them.
+  const party = partyFrom(states)
+  total++
+  if (party) {
+    linked++
+    if (!party.reachable) unavailable.push(party.name)
+    else if (!party.setUp) onSample.push('Party lights helpers (docs/party-lights.md)')
+  } else onSample.push(`Party lights (${entities.party.light})`)
+  if (party || Object.keys(states).length) h.party = party
 
   const found = scenesFrom(states)
   for (const id of entities.scenes.favorites) {
@@ -674,7 +691,7 @@ function washerFrom(get: (id: string) => HassEntity | undefined, now: Date): Hou
 export function outdoorLightsFrom(states: HassEntities): OutdoorLight[] {
   const { ids, match } = entities.outdoorLights
   return Object.values(states)
-    .filter((e) => e.entity_id.startsWith('light.') && !isGroup(e)
+    .filter((e) => e.entity_id.startsWith('light.') && !isGroup(e) && !isPartyLight(e)
       && (ids.includes(e.entity_id) || match.test(e.entity_id) || match.test(String(e.attributes.friendly_name ?? ''))))
     .sort((a, b) => a.entity_id.localeCompare(b.entity_id))
     .map((e) => {
@@ -689,6 +706,42 @@ export function outdoorLightsFrom(states: HassEntities): OutdoorLight[] {
         reachable: !offline.has(e.state),
       }
     })
+}
+
+const hex = /^#[0-9a-f]{6}$/i
+
+/**
+ * The party lights and their settings, from the light and the helpers in
+ * scripts/homeassistant/party-lights.yaml. Undefined when Home Assistant has no such light.
+ */
+export function partyFrom(states: HassEntities): PartyLights | undefined {
+  const p = entities.party
+  const light = states[p.light] && isPartyLight(states[p.light])
+    ? states[p.light]
+    : Object.values(states).filter(isPartyLight).sort((a, b) => a.entity_id.localeCompare(b.entity_id))[0]
+  if (!light) return undefined
+  const value = (id: string) => (states[id] && !offline.has(states[id].state) ? states[id].state : undefined)
+  const setUp = [p.strobe, p.albumColors, p.changeSeconds, p.sensitivity, p.palette, p.colorIndex].every((id) => id in states)
+  const palette = (value(p.palette) ?? '').split(',').map((c) => c.trim()).filter((c) => hex.test(c)).slice(0, 5)
+  const index = num(value(p.colorIndex)) ?? 0
+  const zone = entities.media.roon.find((z) => z.id === p.follow)
+  return {
+    id: light.entity_id,
+    name: String(light.attributes.friendly_name ?? label(light.entity_id.slice('light.'.length))),
+    on: light.state === 'on',
+    reachable: !offline.has(light.state),
+    setUp,
+    cloud: (value(p.cloud) ?? '').split('|').length === 3,
+    strobe: value(p.strobe) === 'on',
+    albumColors: value(p.albumColors) === 'on',
+    changeSeconds: num(value(p.changeSeconds)) ?? 60,
+    sensitivity: num(value(p.sensitivity)) ?? 70,
+    palette,
+    colorIndex: palette.length ? Math.round(index) % palette.length : 0,
+    colorSince: states[p.colorIndex]?.last_changed,
+    follow: p.follow,
+    followName: zone?.name.split(' · ')[0] ?? label(p.follow.slice('media_player.'.length)),
+  }
 }
 
 /**
