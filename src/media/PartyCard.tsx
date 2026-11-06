@@ -19,11 +19,12 @@ export function secondsToNext(party: PartyLights, now: number): number | undefin
   return Math.max(0, left)
 }
 
-/** Which album colors are on the bars: one while strobing (Govee's limit), two when steady and split. */
+/** Which album colors are on the bars: one per bar when Home Assistant can split them (steady through
+ *  the cloud, strobing over the home network), otherwise one for both. */
 export function splitColors(party: PartyLights): number[] {
   const n = party.palette.length
   if (!n) return []
-  if (party.strobe || !party.split || n < 2) return [party.colorIndex]
+  if (!(party.strobe ? party.lan : party.split) || n < 2) return [party.colorIndex]
   return [party.colorIndex, (party.colorIndex + 1) % n]
 }
 
@@ -126,7 +127,13 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
             onPointerUp={commitLevel} onKeyUp={commitLevel} onBlur={commitLevel} />
         </label>
       </div>
-      {party.style && party.styles && party.styles.length > 1 && (
+      {party.strobe && party.albumColors && party.lan && (
+        <p className="party-note">Strobing in album colors uses Govee's Shiny style, one album color on each bar.</p>
+      )}
+      {party.setUp && party.strobe && party.albumColors && !party.lan && (
+        <p className="party-note">To strobe in album colors only, add the bars' address in Home Assistant (docs/party-lights.md). Until then Govee mixes in its own colors.</p>
+      )}
+      {!(party.strobe && party.albumColors && party.lan) && party.style && party.styles && party.styles.length > 1 && (
         <div className="party-row">
           <span className="lbl">Strobe style</span>
           <Seg label="Strobe style" value={party.style} disabled={!ready || !party.strobe}

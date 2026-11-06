@@ -5,6 +5,9 @@
 #   - on/off and steady colors go straight to the bars over the home network (Govee lights local)
 #   - "Strobe to music" switches on the bars' music mode through Govee's cloud API, because
 #     that isn't something they accept locally. The bars' own mic keeps the beat.
+#   - strobing with "Album colors" goes straight to the bars over the home network in Govee's
+#     Shiny music style, one album color per bar (scripts/homeassistant/govee-music-lan.py), because
+#     the cloud's music mode ignores the color on these bars. Needs the bars' address below.
 #   - with "Album colors" on, the music mode uses one of the album's colors, moving on to the
 #     next every 30, 60 or 90 seconds. Steady, each half of the bars gets its own album color
 #     (this one and the next) through the cloud's segment colors; music mode takes only one. When the Lounge album changes, Home Assistant picks its
@@ -59,6 +62,12 @@ input_text:
   party_lights_palette:
     name: Party lights album colors
     max: 255
+  # The bars' address on the home network (e.g. 192.168.4.60), set once in Settings → Helpers.
+  # With it, strobing in album colors goes straight to the bars, one album color per bar.
+  party_lights_address:
+    name: Party lights bars address
+    max: 15
+    icon: mdi:ip-network
 
 # Finds the bars in Govee's cloud once a day (and at startup):
 # "sku|device|Style=value;Style=value;...|segments" with the music styles the bars offer and
@@ -153,6 +162,8 @@ script:
       segments: "{{ cloud[3] | int(0) if cloud | count >= 4 else 0 }}"
       color2: "{{ palette[(index + 1) % (palette | count)] if palette | count > 1 else color }}"
       split: "{{ album and segments >= 2 and palette | count > 1 }}"
+      address: "{{ states('input_text.party_lights_address') | trim }}"
+      lan: "{{ album and address is match('^\\d{1,3}(\\.\\d{1,3}){3}$') }}"
     sequence:
       - condition: template
         value_template: "{{ is_state(light, 'on') }}"
@@ -161,6 +172,18 @@ script:
             entity_id: input_boolean.party_lights_strobe
             state: "on"
         then:
+          # Album colors over the home network: Shiny, this color on one bar and the next on the other.
+          - if:
+              - condition: template
+                value_template: "{{ lan }}"
+            then:
+              - action: shell_command.party_lights_lan
+                data:
+                  ip: "{{ address }}"
+                  style: "0x31"
+                  sensitivity: "{{ states('input_number.party_lights_sensitivity') | int(70) }}"
+                  colors: "{{ color ~ (',' ~ color2 if color2 != color else '') }}"
+              - stop: Sent over the home network
           - condition: template
             value_template: "{{ cloud | count >= 3 and style != '' }}"
           # With Album colors on, only an album color goes to the bars, never Govee's own.
@@ -232,6 +255,7 @@ automation:
           - input_select.party_lights_music_style
           - input_number.party_lights_sensitivity
           - input_number.party_lights_color_index
+          - input_text.party_lights_address
           - sensor.govee_party_bars
       - trigger: state
         entity_id: input_text.party_lights_palette

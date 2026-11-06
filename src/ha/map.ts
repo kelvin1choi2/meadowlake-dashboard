@@ -734,6 +734,7 @@ export function partyFrom(states: HassEntities): PartyLights | undefined {
     setUp,
     cloud: cloud.length >= 3,
     split: (num(cloud[3]) ?? 0) >= 2,
+    lan: /^\d{1,3}(\.\d{1,3}){3}$/.test((value(p.address) ?? '').trim()),
     strobe: value(p.strobe) === 'on',
     albumColors: value(p.albumColors) === 'on',
     changeSeconds: num(value(p.changeSeconds)) ?? 60,

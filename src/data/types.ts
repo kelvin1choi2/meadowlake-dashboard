@@ -225,6 +225,9 @@ export interface PartyLights {
   cloud: boolean
   /** true when the cloud can color each half of the bars on its own, so a steady light shows two album colors. */
   split?: boolean
+  /** true when Home Assistant has the bars' home-network address, so strobing in album colors
+   *  goes straight to them, one album color per bar. */
+  lan?: boolean
   /** Strobe to music (the bars' mic), or a steady light. */
   strobe: boolean
   /** Colors from the album cover, or Govee's own. */

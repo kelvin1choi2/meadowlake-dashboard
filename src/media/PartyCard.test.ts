@@ -5,8 +5,9 @@ import { splitColors, stripes } from './PartyCard'
 const party = sampleHouse.party!
 
 describe('splitColors', () => {
-  it('shows one color while strobing', () => {
-    expect(splitColors({ ...party, strobe: true, colorIndex: 2 })).toEqual([2])
+  it('shows one color while strobing through the cloud, two over the home network', () => {
+    expect(splitColors({ ...party, strobe: true, lan: false, colorIndex: 2 })).toEqual([2])
+    expect(splitColors({ ...party, strobe: true, lan: true, colorIndex: 4 })).toEqual([4, 0])
   })
 
   it('shows this color and the next when steady and split, wrapping round', () => {

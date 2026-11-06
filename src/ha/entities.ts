@@ -86,6 +86,7 @@ export const entities = {
     palette: 'input_text.party_lights_palette',
     colorIndex: 'input_number.party_lights_color_index',
     cloud: 'sensor.govee_party_bars',
+    address: 'input_text.party_lights_address',
   },
   irrigation: {
     /** On = Rachio skips watering for the next 24 hours. */
