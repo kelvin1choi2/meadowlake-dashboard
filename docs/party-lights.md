@@ -63,6 +63,16 @@ else printf '\nhttp:\n  cors_allowed_origins:\n    - %s\n' "$DASH" >> configurat
 grep -n -A2 'packages:\|cors_allowed_origins' configuration.yaml
 ```
 
+Every address you open the dashboard with needs its own line, e.g. both
+`http://192.168.4.54:8080` and `http://choi-vault.local:8080`. The card shows the exact address
+to add when it's missing. To add another one later:
+
+```sh
+cd /homeassistant 2>/dev/null || cd /config
+awk -v d="http://choi-vault.local:8080" '{print} /cors_allowed_origins:/{print "    - " d}' configuration.yaml > /tmp/c.yaml && cat /tmp/c.yaml > configuration.yaml
+grep -n -A4 cors_allowed_origins configuration.yaml
+```
+
 `cors_allowed_origins` lets the dashboard's address read pictures from Home Assistant (the
 album covers). It doesn't give that address any control. Without it, the colors can't be read,
 and the card says so.

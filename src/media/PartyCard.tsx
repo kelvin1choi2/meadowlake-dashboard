@@ -106,8 +106,11 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
       {party.setUp && !party.cloud && party.strobe && (
         <p className="party-note">Strobing goes through Govee's cloud, and Home Assistant hasn't found the bars there yet. Check the Govee API key (docs/party-lights.md).</p>
       )}
-      {party.setUp && party.albumColors && paletteStatus === 'blocked' && (
-        <p className="party-note">This dashboard can't read the album cover yet. Add its address to Home Assistant (docs/party-lights.md, step 3).</p>
+      {party.setUp && paletteStatus === 'blocked' && (
+        <p className="party-note">
+          This dashboard can't read the album cover yet. Add <b>{window.location.origin}</b> under cors_allowed_origins in Home
+          Assistant (docs/party-lights.md, step 3), then restart it.
+        </p>
       )}
     </Card>
   )
