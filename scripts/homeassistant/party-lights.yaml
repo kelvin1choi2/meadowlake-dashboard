@@ -96,6 +96,10 @@ rest:
 shell_command:
   party_album_palette: >-
     python3 /config/party/album-palette.py "{{ state_attr('media_player.1_lounge_linn_klimax', 'entity_picture') }}"
+  # Test: music mode in chosen colors over the home network (scripts/homeassistant/govee-music-lan.py).
+  # Data: ip (the bars' address), style (their id for a music style, e.g. "0x72"), sensitivity, colors ("#0000ff").
+  party_lights_lan: >-
+    python3 /config/party/govee-music-lan.py "{{ ip }}" "{{ style | default('0x72') }}" "{{ sensitivity | default(70) }}" "{{ colors | default('#0000ff') }}"
 
 rest_command:
   govee_party_music:
