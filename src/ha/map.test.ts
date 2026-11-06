@@ -2,7 +2,7 @@ import type { HassEntities, HassEntity } from 'home-assistant-js-websocket'
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
 import { entities } from './entities'
-import { applyEntities, byDay, garageId, locksFrom, dailyForecastType, forecastSource, lightLook, nasTask, outdoorLightsFrom, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
+import { applyEntities, byDay, garageId, locksFrom, dailyForecastType, forecastSource, lightLook, nasTask, outdoorLightsFrom, partyFrom, playersFrom, plexStream, pulseFrom, scenesFrom, shortTime, valvesFrom, windowsTasks } from './map'
 
 const now = new Date(2026, 9, 15, 15, 0)
 
@@ -570,5 +570,47 @@ describe('outdoorLightsFrom', () => {
 
   it('drops the sample light once Home Assistant is connected without one', () => {
     expect(applyEntities(sampleHouse, states(entity('sun.sun', 'above_horizon'))).house.outdoorLights).toEqual([])
+  })
+})
+
+describe('partyFrom', () => {
+  const bars = entity('light.lounge_lights', 'on', { friendly_name: 'Lounge Lights', supported_color_modes: ['rgb'] })
+  const helpers = [
+    entity('input_boolean.party_lights_strobe', 'on'),
+    entity('input_boolean.party_lights_album_colors', 'on'),
+    entity('input_number.party_lights_change_seconds', '30.0'),
+    entity('input_number.party_lights_sensitivity', '80.0'),
+    entity('input_text.party_lights_palette', '#3f7fd0,#30c0d0,bad,#f07850'),
+    entity('input_number.party_lights_color_index', '4.0'),
+    entity('sensor.govee_party_bars', 'H6046|AA:BB:CC:DD:EE:FF:00:11|5'),
+  ]
+
+  it('reads the light and its helpers, skipping malformed colors', () => {
+    expect(partyFrom(states(bars, ...helpers))).toMatchObject({
+      id: 'light.lounge_lights', name: 'Lounge Lights', on: true, reachable: true, setUp: true, cloud: true,
+      strobe: true, albumColors: true, changeSeconds: 30, sensitivity: 80,
+      palette: ['#3f7fd0', '#30c0d0', '#f07850'], colorIndex: 1, followName: 'Lounge',
+    })
+  })
+
+  it('works without the helpers, and is absent without the light', () => {
+    expect(partyFrom(states(bars))).toMatchObject({ setUp: false, cloud: false, palette: [], changeSeconds: 60 })
+    expect(partyFrom(states(entity('light.lounge_lamp_1', 'on')))).toBeUndefined()
+  })
+
+  it('finds the bars by name when the ID differs', () => {
+    expect(partyFrom(states(entity('light.h6046_1a2b', 'off', { friendly_name: 'Lounge Lights' })))?.id).toBe('light.h6046_1a2b')
+  })
+
+  it('keeps the bars out of the Lounge Hue lights and the outdoor lights', () => {
+    const s = states(bars, entity('light.lounge_lamp_1', 'off'), entity('light.govee_porch', 'off', { friendly_name: 'Govee Porch' }))
+    const { house } = applyEntities(sampleHouse, s, now)
+    expect(house.rooms.find((r) => r.id === 'lounge')).toMatchObject({ lightsOn: 0, lightsTotal: 1 })
+    expect(house.outdoorLights.map((l) => l.id)).toEqual(['light.govee_porch'])
+    expect(house.party?.id).toBe('light.lounge_lights')
+  })
+
+  it('drops the sample party lights once Home Assistant is connected without them', () => {
+    expect(applyEntities(sampleHouse, states(entity('sun.sun', 'above_horizon'))).house.party).toBeUndefined()
   })
 })

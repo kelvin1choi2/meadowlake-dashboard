@@ -8,6 +8,7 @@ import { Bar, Card, Chip, Dot, KV, Ring, Toggle } from '../widgets'
 import { ConfirmButton } from '../widgets/ConfirmButton'
 import { PlayerBar } from '../widgets/PlayerBar'
 import type { Category } from './types'
+import { PartyCard } from '../media/PartyCard'
 
 /** Artist photos already looked up, by name: a URL, or null when Wikipedia has none. */
 const artistPhotos = new Map<string, string | null>()
@@ -299,6 +300,7 @@ export const media: Category = {
     <>
       <NowPlayingCard zones={nowPlayingFrom(house.media.roon, house.media.players)} />
       <PlayerBar players={house.media.players} run={run} />
+      {house.party && <PartyCard house={house} update={update} />}
       <ZonesCard zones={house.media.roon} run={run} notify={notify} />
       <Card color="var(--media)" title="Plex" chip={<Chip tone={house.media.plex.up ? 'good' : 'bad'}>{house.media.plex.up ? 'Server up' : 'Server down'}</Chip>}>
         <KV

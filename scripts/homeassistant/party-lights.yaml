@@ -1,0 +1,202 @@
+# Party lights for the Lounge light bars (docs/party-lights.md).
+#
+# A Home Assistant package: copy it to /config/packages/party_lights.yaml. The dashboard's
+# Party lights card sets the helpers below; this file turns them into commands for the bars:
+#   - on/off and steady colors go straight to the bars over the home network (Govee lights local)
+#   - "Strobe to music" switches on the bars' music mode through Govee's cloud API, because
+#     that isn't something they accept locally. The bars' own mic keeps the beat.
+#   - with "Album colors" on, the music mode uses one of the album's colors, moving on to the
+#     next every 30, 60 or 90 seconds. The dashboard saves the album's colors here.
+# The Govee API key lives in secrets.yaml (govee_api_key), never in this repo.
+#
+# Govee allows 10,000 cloud commands a day per account. Changing every 30 seconds uses
+# about 2,900 a day if the lights are left on around the clock.
+
+input_boolean:
+  party_lights_strobe:
+    name: Party lights strobe to music
+    icon: mdi:music-note
+  party_lights_album_colors:
+    name: Party lights album colors
+    icon: mdi:palette
+
+input_number:
+  party_lights_change_seconds:
+    name: Party lights change every
+    min: 30
+    max: 90
+    step: 30
+    unit_of_measurement: s
+    icon: mdi:timer-outline
+  party_lights_sensitivity:
+    name: Party lights mic sensitivity
+    min: 0
+    max: 100
+    step: 5
+    icon: mdi:microphone
+  party_lights_color_index:
+    name: Party lights color showing
+    min: 0
+    max: 9
+    step: 1
+    mode: box
+
+input_text:
+  party_lights_palette:
+    name: Party lights album colors
+    max: 255
+
+# Finds the bars in Govee's cloud once a day (and at startup): "sku|device|music mode".
+# The bars are the H6046, or the device named with "lounge" or "bar" in the Govee Home app.
+# Music mode prefers Govee's "Energic" style, else the first one the bars offer.
+rest:
+  - resource: https://openapi.api.govee.com/router/api/v1/user/devices
+    headers:
+      Govee-API-Key: !secret govee_api_key
+    scan_interval: 86400
+    sensor:
+      - name: Govee party bars
+        unique_id: meadowlake_govee_party_bars
+        icon: mdi:led-strip-variant
+        value_template: >-
+          {%- set ns = namespace(d=none) -%}
+          {%- for d in (value_json.data if value_json is mapping and value_json.data is list else []) -%}
+            {%- set name = (d.deviceName | default('')) | lower -%}
+            {%- if ns.d is none and (d.sku == 'H6046' or 'lounge' in name or 'bar' in name) -%}{%- set ns.d = d -%}{%- endif -%}
+          {%- endfor -%}
+          {%- if ns.d is none -%}not found
+          {%- else -%}
+            {%- set cap = ns.d.capabilities | default([]) | selectattr('instance', 'eq', 'musicMode') | list -%}
+            {%- set fields = cap[0].parameters.fields | default([]) if cap else [] -%}
+            {%- set field = fields | selectattr('fieldName', 'eq', 'musicMode') | list -%}
+            {%- set opts = field[0].options | default([]) if field else [] -%}
+            {%- set pick = opts | selectattr('name', 'in', ['Energic', 'Dynamic']) | list -%}
+            {%- if opts -%}{{ ns.d.sku }}|{{ ns.d.device }}|{{ (pick[0] if pick else opts[0]).value }}{%- else -%}no music mode{%- endif -%}
+          {%- endif -%}
+
+rest_command:
+  govee_party_music:
+    url: https://openapi.api.govee.com/router/api/v1/device/control
+    method: POST
+    headers:
+      Govee-API-Key: !secret govee_api_key
+    content_type: application/json
+    payload: >-
+      {"requestId": "{{ now().timestamp() | int }}",
+       "payload": {"sku": "{{ sku }}", "device": "{{ device }}",
+        "capability": {"type": "devices.capabilities.music_setting", "instance": "musicMode",
+         "value": {"musicMode": {{ mode }}, "sensitivity": {{ sensitivity }}, "autoColor": {{ auto_color }}{% if rgb is defined and rgb != '' %}, "rgb": {{ rgb }}{% endif %}}}}}
+
+script:
+  party_lights_apply:
+    alias: Party lights apply
+    description: Sends the Party lights settings to the Lounge light bars.
+    mode: restart
+    variables:
+      light: light.lounge_lights
+      cloud: "{{ states('sensor.govee_party_bars').split('|') }}"
+      palette: >-
+        {{ states('input_text.party_lights_palette').split(',') | map('trim') | select('match', '^#[0-9a-fA-F]{6}$') | list }}
+      index: "{{ states('input_number.party_lights_color_index') | int(0) }}"
+      color: "{{ palette[index % (palette | count)] if palette | count else '' }}"
+      album: "{{ is_state('input_boolean.party_lights_album_colors', 'on') and color != '' }}"
+      rgb: "{{ [color[1:3] | int(base=16), color[3:5] | int(base=16), color[5:7] | int(base=16)] if color else [] }}"
+    sequence:
+      - condition: template
+        value_template: "{{ is_state(light, 'on') }}"
+      - if:
+          - condition: state
+            entity_id: input_boolean.party_lights_strobe
+            state: "on"
+        then:
+          - condition: template
+            value_template: "{{ cloud | count == 3 }}"
+          - action: rest_command.govee_party_music
+            data:
+              sku: "{{ cloud[0] }}"
+              device: "{{ cloud[1] }}"
+              mode: "{{ cloud[2] }}"
+              sensitivity: "{{ states('input_number.party_lights_sensitivity') | int(70) }}"
+              auto_color: "{{ 0 if album else 1 }}"
+              rgb: "{{ (rgb[0] * 65536 + rgb[1] * 256 + rgb[2]) if album else '' }}"
+        else:
+          - if:
+              - condition: template
+                value_template: "{{ album }}"
+            then:
+              - action: light.turn_on
+                target:
+                  entity_id: "{{ light }}"
+                data:
+                  rgb_color: "{{ rgb }}"
+            else:
+              - action: light.turn_on
+                target:
+                  entity_id: "{{ light }}"
+                data:
+                  color_temp_kelvin: 3000
+
+automation:
+  - id: meadowlake_party_lights_changed
+    alias: Party lights changed
+    description: Applies the Party lights settings whenever the dashboard changes one, or the bars come on.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: light.lounge_lights
+        to: "on"
+      - trigger: state
+        entity_id:
+          - input_boolean.party_lights_strobe
+          - input_boolean.party_lights_album_colors
+          - input_number.party_lights_sensitivity
+          - input_number.party_lights_color_index
+          - sensor.govee_party_bars
+      - trigger: state
+        entity_id: input_text.party_lights_palette
+        id: new_album
+    actions:
+      # Waits a moment so a slider drag sends one command, not one per step.
+      - delay: 1
+      - if:
+          - condition: trigger
+            id: new_album
+          - condition: template
+            value_template: "{{ states('input_number.party_lights_color_index') | int(0) != 0 }}"
+        then:
+          # A new album starts on its first color; that change runs this automation again.
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.party_lights_color_index
+            data:
+              value: 0
+        else:
+          - action: script.party_lights_apply
+
+  - id: meadowlake_party_lights_cycle
+    alias: Party lights next color
+    description: Moves to the album's next color every 30, 60 or 90 seconds while the bars are on.
+    mode: single
+    triggers:
+      - trigger: time_pattern
+        seconds: "/10"
+    conditions:
+      - condition: state
+        entity_id: light.lounge_lights
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.party_lights_album_colors
+        state: "on"
+      - condition: template
+        value_template: >-
+          {{ states('input_text.party_lights_palette').split(',') | select('match', '^#[0-9a-fA-F]{6}$') | list | count > 1
+             and (now() - states.input_number.party_lights_color_index.last_changed).total_seconds()
+                 >= states('input_number.party_lights_change_seconds') | int(60) - 5 }}
+    actions:
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.party_lights_color_index
+        data:
+          value: >-
+            {% set n = states('input_text.party_lights_palette').split(',') | select('match', '^#[0-9a-fA-F]{6}$') | list | count %}
+            {{ (states('input_number.party_lights_color_index') | int(0) + 1) % n }}

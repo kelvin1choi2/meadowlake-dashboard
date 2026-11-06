@@ -164,3 +164,39 @@ describe('player controls', () => {
     expect(call({ volume: 0.4 })).toMatchObject({ service: 'volume_set', data: { volume_level: 0.4 } })
   })
 })
+
+describe('party lights', () => {
+  const party: HassEntities = {
+    ...states,
+    ...Object.fromEntries([
+      entity('light.lounge_lights', 'off', { friendly_name: 'Lounge Lights' }),
+      entity('input_boolean.party_lights_strobe', 'off'),
+      entity('input_boolean.party_lights_album_colors', 'on'),
+      entity('input_number.party_lights_change_seconds', '60'),
+      entity('input_number.party_lights_sensitivity', '70'),
+      entity('input_text.party_lights_palette', ''),
+      entity('input_number.party_lights_color_index', '0'),
+    ].map((e) => [e.entity_id, e])),
+  }
+  const partyChange = (edit: (h: HouseState) => void) => {
+    const before = applyEntities(sampleHouse, party).house
+    const after = structuredClone(before)
+    edit(after)
+    return serviceCalls(before, after, party)
+  }
+
+  it('switches the bars and sets each helper', () => {
+    expect(partyChange((h) => { h.party!.on = true })).toEqual([{ domain: 'light', service: 'turn_on', entityIds: ['light.lounge_lights'] }])
+    expect(partyChange((h) => { h.party!.strobe = true })).toEqual([{ domain: 'input_boolean', service: 'turn_on', entityIds: ['input_boolean.party_lights_strobe'] }])
+    expect(partyChange((h) => { h.party!.albumColors = false })).toEqual([{ domain: 'input_boolean', service: 'turn_off', entityIds: ['input_boolean.party_lights_album_colors'] }])
+    expect(partyChange((h) => { h.party!.changeSeconds = 90 })).toEqual([{ domain: 'input_number', service: 'set_value', data: { value: 90 }, entityIds: ['input_number.party_lights_change_seconds'] }])
+    expect(partyChange((h) => { h.party!.sensitivity = 40 })).toEqual([{ domain: 'input_number', service: 'set_value', data: { value: 40 }, entityIds: ['input_number.party_lights_sensitivity'] }])
+    expect(partyChange((h) => { h.party!.palette = ['#ff0000', '#00ff00'] }))
+      .toEqual([{ domain: 'input_text', service: 'set_value', data: { value: '#ff0000,#00ff00' }, entityIds: ['input_text.party_lights_palette'] }])
+  })
+
+  it('does not keep the Lounge room switch from reaching the bars', () => {
+    const calls = partyChange((h) => { h.rooms.find((r) => r.id === 'lounge')!.lightsOn = 1 })
+    expect(calls.flatMap((c) => c.entityIds)).not.toContain('light.lounge_lights')
+  })
+})

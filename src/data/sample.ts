@@ -47,6 +47,12 @@ export const sampleHouse: HouseState = {
     { id: 'light.porch_lantern', name: 'Porch lantern', on: true, brightness: 70, dims: true, reachable: true },
     { id: 'light.patio_string_lights', name: 'Patio lights', on: false, dims: true, reachable: true },
   ],
+  party: {
+    id: 'light.sample_light_bars', name: 'Light bars', on: true, reachable: true, setUp: true, cloud: true,
+    strobe: true, albumColors: true, changeSeconds: 60, sensitivity: 70,
+    palette: ['#3f7fd0', '#30c0d0', '#f07850', '#f0c860', '#a060e0'], colorIndex: 2,
+    follow: 'sample-linn', followName: 'Linn Klimax DSM',
+  },
   irrigation: {
     rainSkip: false,
     rain48hIn: 0,

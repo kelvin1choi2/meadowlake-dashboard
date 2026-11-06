@@ -11,6 +11,7 @@ import { windowsHelperOn } from '../apps/helper'
 import { Clock } from './Clock'
 import { Rail } from './Rail'
 import { PlayerBar } from '../widgets/PlayerBar'
+import { useAlbumPalette } from '../media/albumPalette'
 import { Alerts } from './Alerts'
 import { History } from './History'
 import { Leaving } from './Leaving'
@@ -39,6 +40,7 @@ export function App({ house, update, run, history, link, notify, view, onView, t
   const appUrl = (id: AppId) => appHref(id, window.location.href, link.status === 'live' ? link.haUrl : undefined, device)
   const props = { house, update, run, notify, showHistory: setChart, appUrl }
   const openCategory = categories.find((c) => c.id === open)
+  useAlbumPalette(house, update, link.status === 'live')
 
   return (
     <div className="wrap">
