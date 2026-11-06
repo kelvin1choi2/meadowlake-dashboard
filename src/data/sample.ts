@@ -50,7 +50,7 @@ export const sampleHouse: HouseState = {
   party: {
     id: 'light.sample_light_bars', name: 'Light bars', on: true, reachable: true, setUp: true, cloud: true,
     strobe: true, albumColors: true, changeSeconds: 60, sensitivity: 70,
-    style: 'Rhythm', styles: ['Rhythm', 'Spectrum', 'Energic', 'Rolling'],
+    style: 'Rhythm', styles: ['Rhythm', 'Strike', 'Beat', 'Vibrate'],
     palette: ['#3f7fd0', '#30c0d0', '#f07850', '#f0c860', '#a060e0'], colorIndex: 2,
     follow: 'sample-linn', followName: 'Linn Klimax DSM',
   },

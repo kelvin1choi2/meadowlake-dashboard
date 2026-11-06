@@ -114,7 +114,7 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
         <div className="party-row">
           <span className="lbl">Strobe style</span>
           <Seg label="Strobe style" value={party.style} disabled={!ready || !party.strobe}
-            options={party.styles.map((s): [string, string] => [s, s === 'Rhythm' ? 'Rhythm · one color' : s])}
+            options={party.styles.map((s): [string, string] => [s, s])}
             onPick={(v) => set((p) => { p.style = v })} />
         </div>
       )}

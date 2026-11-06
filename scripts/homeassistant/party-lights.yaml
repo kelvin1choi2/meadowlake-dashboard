@@ -21,17 +21,17 @@ input_boolean:
     name: Party lights album colors
     icon: mdi:palette
 
-# Govee's music styles. Rhythm keeps to the one color we send; Energic and the others add
-# their own colors on top. Names the bars don't offer fall back to the first one they do.
+# Govee's music styles offered on the dashboard, Rhythm first (the default). Rhythm keeps to the
+# one color we send. A name the bars don't offer falls back to Rhythm, else their first style.
 input_select:
   party_lights_music_style:
     name: Party lights music style
     icon: mdi:waveform
     options:
       - Rhythm
-      - Spectrum
-      - Energic
-      - Rolling
+      - Strike
+      - Beat
+      - Vibrate
 
 input_number:
   party_lights_change_seconds:
@@ -120,7 +120,7 @@ script:
         {{ ns.m }}
       style: >-
         {% set want = states('input_select.party_lights_music_style') %}
-        {{ styles[want] if want in styles else (styles.values() | list | first if styles else '') }}
+        {{ styles[want] if want in styles else styles['Rhythm'] if 'Rhythm' in styles else (styles.values() | list | first if styles else '') }}
       palette: >-
         {{ states('input_text.party_lights_palette').split(',') | map('trim') | select('match', '^#[0-9a-fA-F]{6}$') | list }}
       index: "{{ states('input_number.party_lights_color_index') | int(0) }}"

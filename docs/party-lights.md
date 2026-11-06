@@ -9,8 +9,8 @@ The **Party lights** card in the Media sheet runs the Govee light bars in the Lo
   playing in the Lounge Roon zone. They move on to the next color every **30, 60 or 90 seconds**
   (**Change every**), and a new album brings new colors. Govee colors leaves the choice to the bars.
 - **Mic sensitivity**: how strongly the strobe reacts to the music.
-- **Strobe style**: Govee's music styles. **Rhythm** pulses in the one color sent; Energic,
-  Spectrum and Rolling add their own colors on top.
+- **Strobe style**: Govee's music styles **Rhythm** (the default), **Strike**, **Beat** and
+  **Vibrate**. Rhythm pulses in the one color sent.
 
 These controls don't depend on Roon. The lights stay as they are when the music stops. Only
 the colors follow the album.
