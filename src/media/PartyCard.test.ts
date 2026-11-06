@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { sampleHouse } from '../data/sample'
-import { splitColors } from './PartyCard'
+import { splitColors, stripes } from './PartyCard'
 
 const party = sampleHouse.party!
 
@@ -18,5 +18,11 @@ describe('splitColors', () => {
     expect(splitColors({ ...party, strobe: false, split: false })).toEqual([party.colorIndex])
     expect(splitColors({ ...party, strobe: false, palette: ['#ffffff'], colorIndex: 0 })).toEqual([0])
     expect(splitColors({ ...party, palette: [] })).toEqual([])
+  })
+})
+
+describe('stripes', () => {
+  it('puts each color in its own band with no blending', () => {
+    expect(stripes(['#ff0000', '#0000ff'])).toBe('linear-gradient(90deg, #ff0000 0.00% 50.00%, #0000ff 50.00% 100.00%)')
   })
 })

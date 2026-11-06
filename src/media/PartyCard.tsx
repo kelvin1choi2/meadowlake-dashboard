@@ -27,6 +27,12 @@ export function splitColors(party: PartyLights): number[] {
   return [party.colorIndex, (party.colorIndex + 1) % n]
 }
 
+/** The album's colors side by side with hard edges, so the bar shows no blended in-between colors. */
+export function stripes(palette: string[]): string {
+  const w = 100 / palette.length
+  return `linear-gradient(90deg, ${palette.map((c, i) => `${c} ${(i * w).toFixed(2)}% ${((i + 1) * w).toFixed(2)}%`).join(', ')})`
+}
+
 function useNow(on: boolean) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -95,7 +101,7 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
         )}
       </div>
       {party.palette.length > 0 && (
-        <div className="party-bar" style={{ '--grad': `linear-gradient(90deg, ${party.palette.join(', ')})` } as CSSProperties} />
+        <div className="party-bar" style={{ '--grad': stripes(party.palette) } as CSSProperties} />
       )}
       <div className="party-row">
         <label className="party-power">

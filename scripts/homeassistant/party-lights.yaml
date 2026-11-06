@@ -159,6 +159,9 @@ script:
         then:
           - condition: template
             value_template: "{{ cloud | count >= 3 and style != '' }}"
+          # With Album colors on, only an album color goes to the bars, never Govee's own.
+          - condition: template
+            value_template: "{{ album or not is_state('input_boolean.party_lights_album_colors', 'on') }}"
           - action: rest_command.govee_party_music
             data:
               sku: "{{ cloud[0] }}"
@@ -188,15 +191,20 @@ script:
                       first: "{{ segments // 2 }}"
                       last: "{{ segments }}"
                       rgb: "{{ color2[1:7] | int(base=16) }}"
+              # Album colors on: an album color, or (no colors picked yet) leave the bars as they are.
               - conditions:
                   - condition: template
-                    value_template: "{{ album }}"
+                    value_template: "{{ is_state('input_boolean.party_lights_album_colors', 'on') }}"
                 sequence:
-                  - action: light.turn_on
-                    target:
-                      entity_id: "{{ light }}"
-                    data:
-                      rgb_color: "{{ rgb }}"
+                  - if:
+                      - condition: template
+                        value_template: "{{ album }}"
+                    then:
+                      - action: light.turn_on
+                        target:
+                          entity_id: "{{ light }}"
+                        data:
+                          rgb_color: "{{ rgb }}"
             default:
               - action: light.turn_on
                 target:

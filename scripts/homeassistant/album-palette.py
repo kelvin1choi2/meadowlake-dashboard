@@ -2,8 +2,9 @@
 
 Home Assistant runs this (shell_command.party_album_palette in party-lights.yaml) whenever the
 Lounge zone's album changes. It reads the cover from Home Assistant itself and prints up to five
-colors, most prominent first, as "#rrggbb,#rrggbb,...". Colors are made as bright as they can be
-while keeping their hue, since LEDs can't show dark colors; a black-and-white cover gives white.
+colors, most prominent first, as "#rrggbb,#rrggbb,...". Each color is one that covers part of the
+cover (the average of a patch of near-identical pixels), never brightened or mixed. Near-black is
+left out because the bars would just go dark, unless the cover is nothing but dark.
 
 Usage: python3 album-palette.py <entity_picture>
 <entity_picture> is the zone's picture address, usually /api/media_player_proxy/...?token=...
@@ -36,11 +37,6 @@ def saturation(c):
     return 0 if hi == 0 else (hi - min(c)) / hi
 
 
-def vivid(c):
-    hi = max(c)
-    return (255, 255, 255) if hi == 0 else tuple(v * 255 / hi for v in c)
-
-
 def palette(pixels, count=COUNT):
     buckets = {}
     for r, g, b, a in pixels:
@@ -53,18 +49,20 @@ def palette(pixels, count=COUNT):
         s[2] += b
         s[3] += 1
     scored = []
+    total = sum(s[3] for s in buckets.values()) or 1
     for r, g, b, n in buckets.values():
+        if n / total < 0.01:  # a stray speck, not a color of the cover
+            continue
         c = (r / n, g / n, b / n)
         value = max(c) / 255
-        scored.append((n * (0.15 + saturation(c)) * (0.05 if value < 0.15 else value), c))
-    scored.sort(key=lambda x: -x[0])
+        scored.append((n * (0.15 + saturation(c)) * value, value < 0.12, c))
+    scored.sort(key=lambda x: (x[1], -x[0]))  # near-black last
     picked = []
-    for _, c in scored:
-        if len(picked) >= count:
+    for _, dark, c in scored:
+        if len(picked) >= count or (dark and picked):
             break
-        v = (255, 255, 255) if saturation(c) < 0.15 else vivid(c)
-        if all(math.dist(p, v) > 80 for p in picked):
-            picked.append(v)
+        if all(math.dist(p, c) > 60 for p in picked):
+            picked.append(c)
     return ["#%02x%02x%02x" % tuple(round(max(0, min(255, x))) for x in p) for p in picked]
 
 

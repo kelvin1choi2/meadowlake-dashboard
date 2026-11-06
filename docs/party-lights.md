@@ -5,8 +5,8 @@ The **Party lights** card in the Media sheet runs the Govee light bars in the Lo
 - **Lights on**: on and off.
 - **Strobe to music** or **Steady**: strobing uses the bars' own microphone, so the flashes keep
   the beat of whatever is playing in the room.
-- **Album colors** or **Govee colors**: with album colors, the bars use the colors of the album
-  playing in the Lounge Roon zone. They move on to the next color every **30, 60 or 90 seconds**
+- **Album colors** or **Govee colors**: with album colors, the bars use only colors taken from
+  the cover of the album playing in the Lounge Roon zone, exactly as they are on the cover. They move on to the next color every **30, 60 or 90 seconds**
   (**Change every**), and a new album brings new colors. Govee colors leaves the choice to the bars.
   With **Steady**, each bar shows its own album color (this one and the next) and both move on
   together. While strobing, both bars share one color: Govee's music mode takes only one.
