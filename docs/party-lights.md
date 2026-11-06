@@ -8,6 +8,8 @@ The **Party lights** card in the Media sheet runs the Govee light bars in the Lo
 - **Album colors** or **Govee colors**: with album colors, the bars use the colors of the album
   playing in the Lounge Roon zone. They move on to the next color every **30, 60 or 90 seconds**
   (**Change every**), and a new album brings new colors. Govee colors leaves the choice to the bars.
+  With **Steady**, each bar shows its own album color (this one and the next) and both move on
+  together. While strobing, both bars share one color: Govee's music mode takes only one.
 - **Mic sensitivity**: how strongly the strobe reacts to the music.
 - **Strobe style**: Govee's music styles **Rhythm** (the default), **Strike**, **Beat** and
   **Vibrate**. Rhythm pulses in the one color sent.
@@ -17,13 +19,14 @@ the colors follow the album.
 
 ```
 dashboard ──► Home Assistant helpers ──► on/off, steady colors: straight to the bars (home network)
-                                    └──► strobe to music: Govee's cloud (needs your API key)
+                                    └──► strobe to music, two-color steady: Govee's cloud (needs your API key)
 Lounge album changes ──► Home Assistant picks its colors from the cover (album-palette.py)
 ```
 
 Strobing goes through Govee's cloud because the bars don't take a "music mode" command over
-the home network. Govee allows 10,000 cloud commands a day. Changing every 30 seconds uses
-about 2,900 a day even if the lights stay on all day.
+the home network, and neither do separate colors for each bar. Govee allows 10,000 cloud
+commands a day. Changing every 30 seconds uses about 2,900 a day strobing, or 5,800 steady
+(one per bar), even if the lights stay on all day.
 
 Home Assistant picks the album's colors itself whenever the Lounge album changes, so they
 update even when no dashboard is open.
@@ -67,7 +70,8 @@ Run the same lines again later to pick up a newer version.
 ## 4. Check that Home Assistant found the bars in Govee's cloud
 
 Developer tools → States, search `sensor.govee_party_bars`. Its state should look like
-`H6046|AB:CD:…|5`.
+`H6046|AB:CD:…|Rhythm=3;Beat=…|10`. The number at the end is how many sections the cloud can
+color separately. If it's `0`, steady album colors use one color on both bars.
 
 - **not found**: in the Govee Home app, rename the bars so the name includes **Lounge** (or
   "bar"). Then in Developer tools → Actions run **Home Assistant Core Integration: Update entity**
@@ -81,7 +85,8 @@ Developer tools → States, search `sensor.govee_party_bars`. Its state should l
 
 Open the Media sheet and turn on **Lights on**, then **Strobe to music** and **Album colors**,
 with music playing in the Lounge. The color blocks show the album's colors. The one outlined
-(**Now**) is the one on the bars, and the countdown shows when the next one comes up.
+(**Now**) is the one on the bars, and the countdown shows when the next one comes up. Switch to
+**Steady** and two blocks are outlined, one for each bar.
 
 If a button shows **Home Assistant didn't accept that**, step 3's restart probably hasn't
 happened yet.

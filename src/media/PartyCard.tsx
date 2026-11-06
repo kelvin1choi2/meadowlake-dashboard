@@ -19,6 +19,14 @@ export function secondsToNext(party: PartyLights, now: number): number | undefin
   return Math.max(0, left)
 }
 
+/** Which album colors are on the bars: one while strobing (Govee's limit), two when steady and split. */
+export function splitColors(party: PartyLights): number[] {
+  const n = party.palette.length
+  if (!n) return []
+  if (party.strobe || !party.split || n < 2) return [party.colorIndex]
+  return [party.colorIndex, (party.colorIndex + 1) % n]
+}
+
 function useNow(on: boolean) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -58,6 +66,8 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
   const art = followedArt(house)
   const next = party.on && party.albumColors ? secondsToNext(party, now) : undefined
   const ready = party.setUp && party.reachable
+  // Steady with the cloud: each half of the bars shows its own color, this one and the next.
+  const showing = splitColors(party)
   const chip = !party.reachable ? <Chip tone="bad">Not answering</Chip>
     : party.on ? <Chip tone="good">{party.strobe ? 'On · strobing' : 'On'}</Chip>
     : <Chip tone="neutral">Off</Chip>
@@ -70,7 +80,7 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
         {party.palette.length ? (
           <div className="party-blocks">
             {party.palette.map((c, i) => {
-              const now = i === party.colorIndex && party.albumColors
+              const now = party.albumColors && showing.includes(i)
               return (
                 <button key={i} className={now ? 'on' : ''} style={{ '--sw': c } as CSSProperties} disabled={!ready}
                   aria-pressed={now} aria-label={`Color ${i + 1} of ${party.palette.length}`}

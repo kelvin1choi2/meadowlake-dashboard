@@ -48,7 +48,7 @@ export const sampleHouse: HouseState = {
     { id: 'light.patio_string_lights', name: 'Patio lights', on: false, dims: true, reachable: true },
   ],
   party: {
-    id: 'light.sample_light_bars', name: 'Light bars', on: true, reachable: true, setUp: true, cloud: true,
+    id: 'light.sample_light_bars', name: 'Light bars', on: true, reachable: true, setUp: true, cloud: true, split: true,
     strobe: true, albumColors: true, changeSeconds: 60, sensitivity: 70,
     style: 'Rhythm', styles: ['Rhythm', 'Strike', 'Beat', 'Vibrate'],
     palette: ['#3f7fd0', '#30c0d0', '#f07850', '#f0c860', '#a060e0'], colorIndex: 2,

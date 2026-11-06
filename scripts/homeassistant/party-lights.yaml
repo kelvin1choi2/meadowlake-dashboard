@@ -6,12 +6,13 @@
 #   - "Strobe to music" switches on the bars' music mode through Govee's cloud API, because
 #     that isn't something they accept locally. The bars' own mic keeps the beat.
 #   - with "Album colors" on, the music mode uses one of the album's colors, moving on to the
-#     next every 30, 60 or 90 seconds. When the Lounge album changes, Home Assistant picks its
+#     next every 30, 60 or 90 seconds. Steady, each half of the bars gets its own album color
+#     (this one and the next) through the cloud's segment colors; music mode takes only one. When the Lounge album changes, Home Assistant picks its
 #     colors from the cover with /config/party/album-palette.py (no dashboard needs to be open).
 # The Govee API key lives in secrets.yaml (govee_api_key), never in this repo.
 #
 # Govee allows 10,000 cloud commands a day per account. Changing every 30 seconds uses
-# about 2,900 a day if the lights are left on around the clock.
+# about 2,900 a day strobing, or 5,800 steady (two halves), if left on around the clock.
 
 input_boolean:
   party_lights_strobe:
@@ -60,7 +61,8 @@ input_text:
     max: 255
 
 # Finds the bars in Govee's cloud once a day (and at startup):
-# "sku|device|Style=value;Style=value;..." with the music styles the bars offer.
+# "sku|device|Style=value;Style=value;...|segments" with the music styles the bars offer and
+# how many segments the cloud can color one by one (0 if none).
 # The bars are the H6046, or the device named with "lounge" or "bar" in the Govee Home app.
 rest:
   - resource: https://openapi.api.govee.com/router/api/v1/user/devices
@@ -83,7 +85,11 @@ rest:
             {%- set fields = cap[0].parameters.fields | default([]) if cap else [] -%}
             {%- set field = fields | selectattr('fieldName', 'eq', 'musicMode') | list -%}
             {%- set opts = field[0].options | default([]) if field else [] -%}
-            {%- if opts -%}{{ ns.d.sku }}|{{ ns.d.device }}|{% for o in opts %}{{ o.name }}={{ o.value }}{{ ';' if not loop.last }}{% endfor %}{%- else -%}no music mode{%- endif -%}
+            {%- set seg = ns.d.capabilities | default([]) | selectattr('instance', 'eq', 'segmentedColorRgb') | list -%}
+            {%- set sfields = seg[0].parameters.fields | default([]) if seg else [] -%}
+            {%- set sfield = sfields | selectattr('fieldName', 'eq', 'segment') | list -%}
+            {%- set segs = ((sfield[0].elementRange.max | default(-1) | int(-1)) + 1) if sfield and sfield[0].elementRange is defined else 0 -%}
+            {%- if opts -%}{{ ns.d.sku }}|{{ ns.d.device }}|{% for o in opts %}{{ o.name }}={{ o.value }}{{ ';' if not loop.last }}{% endfor %}|{{ segs }}{%- else -%}no music mode{%- endif -%}
           {%- endif -%}
 
 # Picks up to five colors from the Lounge zone's album cover (scripts/homeassistant/album-palette.py).
@@ -104,6 +110,18 @@ rest_command:
         "capability": {"type": "devices.capabilities.music_setting", "instance": "musicMode",
          "value": {"musicMode": {{ mode }}, "sensitivity": {{ sensitivity }}, "autoColor": {{ auto_color }}{% if rgb is defined and rgb != '' %}, "rgb": {{ rgb }}{% endif %}}}}}
 
+  govee_party_segments:
+    url: https://openapi.api.govee.com/router/api/v1/device/control
+    method: POST
+    headers:
+      Govee-API-Key: !secret govee_api_key
+    content_type: application/json
+    payload: >-
+      {"requestId": "{{ now().timestamp() }}-{{ first }}",
+       "payload": {"sku": "{{ sku }}", "device": "{{ device }}",
+        "capability": {"type": "devices.capabilities.segment_color_setting", "instance": "segmentedColorRgb",
+         "value": {"segment": {{ range(first | int, last | int) | list | to_json }}, "rgb": {{ rgb }}}}}}
+
 script:
   party_lights_apply:
     alias: Party lights apply
@@ -114,7 +132,7 @@ script:
       cloud: "{{ states('sensor.govee_party_bars').split('|') }}"
       styles: >-
         {% set ns = namespace(m={}) %}
-        {% for kv in (cloud[2].split(';') if cloud | count == 3 else []) if '=' in kv %}
+        {% for kv in (cloud[2].split(';') if cloud | count >= 3 else []) if '=' in kv %}
           {% set ns.m = dict(ns.m, **{kv.split('=')[0]: kv.split('=')[1]}) %}
         {% endfor %}
         {{ ns.m }}
@@ -127,6 +145,10 @@ script:
       color: "{{ palette[index % (palette | count)] if palette | count else '' }}"
       album: "{{ is_state('input_boolean.party_lights_album_colors', 'on') and color != '' }}"
       rgb: "{{ [color[1:3] | int(base=16), color[3:5] | int(base=16), color[5:7] | int(base=16)] if color else [] }}"
+      # Steady: the second half of the bars shows the album's next color.
+      segments: "{{ cloud[3] | int(0) if cloud | count >= 4 else 0 }}"
+      color2: "{{ palette[(index + 1) % (palette | count)] if palette | count > 1 else color }}"
+      split: "{{ album and segments >= 2 and palette | count > 1 }}"
     sequence:
       - condition: template
         value_template: "{{ is_state(light, 'on') }}"
@@ -136,7 +158,7 @@ script:
             state: "on"
         then:
           - condition: template
-            value_template: "{{ cloud | count == 3 and style != '' }}"
+            value_template: "{{ cloud | count >= 3 and style != '' }}"
           - action: rest_command.govee_party_music
             data:
               sku: "{{ cloud[0] }}"
@@ -146,16 +168,36 @@ script:
               auto_color: "{{ 0 if album else 1 }}"
               rgb: "{{ (rgb[0] * 65536 + rgb[1] * 256 + rgb[2]) if album else '' }}"
         else:
-          - if:
-              - condition: template
-                value_template: "{{ album }}"
-            then:
-              - action: light.turn_on
-                target:
-                  entity_id: "{{ light }}"
-                data:
-                  rgb_color: "{{ rgb }}"
-            else:
+          - choose:
+              # Each half of the bars in its own album color, through the cloud.
+              - conditions:
+                  - condition: template
+                    value_template: "{{ split }}"
+                sequence:
+                  - action: rest_command.govee_party_segments
+                    data:
+                      sku: "{{ cloud[0] }}"
+                      device: "{{ cloud[1] }}"
+                      first: 0
+                      last: "{{ segments // 2 }}"
+                      rgb: "{{ color[1:7] | int(base=16) }}"
+                  - action: rest_command.govee_party_segments
+                    data:
+                      sku: "{{ cloud[0] }}"
+                      device: "{{ cloud[1] }}"
+                      first: "{{ segments // 2 }}"
+                      last: "{{ segments }}"
+                      rgb: "{{ color2[1:7] | int(base=16) }}"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ album }}"
+                sequence:
+                  - action: light.turn_on
+                    target:
+                      entity_id: "{{ light }}"
+                    data:
+                      rgb_color: "{{ rgb }}"
+            default:
               - action: light.turn_on
                 target:
                   entity_id: "{{ light }}"

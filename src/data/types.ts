@@ -223,6 +223,8 @@ export interface PartyLights {
   setUp: boolean
   /** false when Home Assistant can't find the bars through Govee's cloud, which strobing needs. */
   cloud: boolean
+  /** true when the cloud can color each half of the bars on its own, so a steady light shows two album colors. */
+  split?: boolean
   /** Strobe to music (the bars' mic), or a steady light. */
   strobe: boolean
   /** Colors from the album cover, or Govee's own. */

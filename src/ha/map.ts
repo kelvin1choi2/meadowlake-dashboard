@@ -725,13 +725,15 @@ export function partyFrom(states: HassEntities): PartyLights | undefined {
   const palette = (value(p.palette) ?? '').split(',').map((c) => c.trim()).filter((c) => hex.test(c)).slice(0, 5)
   const index = num(value(p.colorIndex)) ?? 0
   const zone = entities.media.roon.find((z) => z.id === p.follow)
+  const cloud = (value(p.cloud) ?? '').split('|')
   return {
     id: light.entity_id,
     name: String(light.attributes.friendly_name ?? label(light.entity_id.slice('light.'.length))),
     on: light.state === 'on',
     reachable: !offline.has(light.state),
     setUp,
-    cloud: (value(p.cloud) ?? '').split('|').length === 3,
+    cloud: cloud.length >= 3,
+    split: (num(cloud[3]) ?? 0) >= 2,
     strobe: value(p.strobe) === 'on',
     albumColors: value(p.albumColors) === 'on',
     changeSeconds: num(value(p.changeSeconds)) ?? 60,
