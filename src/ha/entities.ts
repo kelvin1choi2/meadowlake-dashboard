@@ -82,9 +82,11 @@ export const entities = {
     albumColors: 'input_boolean.party_lights_album_colors',
     changeSeconds: 'input_number.party_lights_change_seconds',
     sensitivity: 'input_number.party_lights_sensitivity',
+    style: 'input_select.party_lights_music_style',
     palette: 'input_text.party_lights_palette',
     colorIndex: 'input_number.party_lights_color_index',
     cloud: 'sensor.govee_party_bars',
+    address: 'input_text.party_lights_address',
   },
   irrigation: {
     /** On = Rachio skips watering for the next 24 hours. */

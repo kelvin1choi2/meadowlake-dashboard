@@ -582,15 +582,21 @@ describe('partyFrom', () => {
     entity('input_number.party_lights_sensitivity', '80.0'),
     entity('input_text.party_lights_palette', '#3f7fd0,#30c0d0,bad,#f07850'),
     entity('input_number.party_lights_color_index', '4.0'),
-    entity('sensor.govee_party_bars', 'H6046|AA:BB:CC:DD:EE:FF:00:11|5'),
+    entity('sensor.govee_party_bars', 'H6046|AA:BB:CC:DD:EE:FF:00:11|Rhythm=3|10'),
+    entity('input_text.party_lights_address', ' 192.168.0.20 '),
   ]
 
   it('reads the light and its helpers, skipping malformed colors', () => {
     expect(partyFrom(states(bars, ...helpers))).toMatchObject({
-      id: 'light.lounge_lights', name: 'Lounge Lights', on: true, reachable: true, setUp: true, cloud: true,
+      id: 'light.lounge_lights', name: 'Lounge Lights', on: true, reachable: true, setUp: true, cloud: true, split: true, lan: true,
       strobe: true, albumColors: true, changeSeconds: 30, sensitivity: 80,
       palette: ['#3f7fd0', '#30c0d0', '#f07850'], colorIndex: 1, followName: 'Lounge',
     })
+  })
+
+  it('reads the older sensor without a segment count', () => {
+    const old = entity('sensor.govee_party_bars', 'H6046|AA:BB|Rhythm=3')
+    expect(partyFrom(states(bars, old))).toMatchObject({ cloud: true, split: false, lan: false })
   })
 
   it('works without the helpers, and is absent without the light', () => {

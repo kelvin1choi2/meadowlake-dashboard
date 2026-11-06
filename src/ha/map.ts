@@ -725,17 +725,21 @@ export function partyFrom(states: HassEntities): PartyLights | undefined {
   const palette = (value(p.palette) ?? '').split(',').map((c) => c.trim()).filter((c) => hex.test(c)).slice(0, 5)
   const index = num(value(p.colorIndex)) ?? 0
   const zone = entities.media.roon.find((z) => z.id === p.follow)
+  const cloud = (value(p.cloud) ?? '').split('|')
   return {
     id: light.entity_id,
     name: String(light.attributes.friendly_name ?? label(light.entity_id.slice('light.'.length))),
     on: light.state === 'on',
     reachable: !offline.has(light.state),
     setUp,
-    cloud: (value(p.cloud) ?? '').split('|').length === 3,
+    cloud: cloud.length >= 3,
+    split: (num(cloud[3]) ?? 0) >= 2,
+    lan: /^\d{1,3}(\.\d{1,3}){3}$/.test((value(p.address) ?? '').trim()),
     strobe: value(p.strobe) === 'on',
     albumColors: value(p.albumColors) === 'on',
     changeSeconds: num(value(p.changeSeconds)) ?? 60,
     sensitivity: num(value(p.sensitivity)) ?? 70,
+    ...(value(p.style) ? { style: value(p.style), styles: (states[p.style].attributes.options as string[] | undefined) ?? [] } : {}),
     palette,
     colorIndex: palette.length ? Math.round(index) % palette.length : 0,
     colorSince: states[p.colorIndex]?.last_changed,

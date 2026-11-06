@@ -103,6 +103,12 @@ function partyCalls(was: PartyLights | undefined, now: PartyLights | undefined, 
   if (was.sensitivity !== now.sensitivity && has(p.sensitivity)) {
     calls.push({ domain: 'input_number', service: 'set_value', data: { value: now.sensitivity }, entityIds: [p.sensitivity] })
   }
+  if (now.style && was.style !== now.style && has(p.style)) {
+    calls.push({ domain: 'input_select', service: 'select_option', data: { option: now.style }, entityIds: [p.style] })
+  }
+  if (was.colorIndex !== now.colorIndex && has(p.colorIndex)) {
+    calls.push({ domain: 'input_number', service: 'set_value', data: { value: now.colorIndex }, entityIds: [p.colorIndex] })
+  }
   if (was.palette.join(',') !== now.palette.join(',') && now.palette.length && has(p.palette)) {
     calls.push({ domain: 'input_text', service: 'set_value', data: { value: now.palette.join(',') }, entityIds: [p.palette] })
   }

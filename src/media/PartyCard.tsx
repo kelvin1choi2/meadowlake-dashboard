@@ -1,17 +1,37 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import type { HouseState, PartyLights } from '../data/types'
 import type { UpdateHouse } from '../data/useHouse'
-import { followedArt, usePaletteStatus } from './albumPalette'
 import { Card, Chip } from '../widgets'
 
 /** The color-change choices, in seconds. */
 export const changeChoices = [30, 60, 90]
+
+/** The cover the party lights take their colors from, when that zone has one. */
+function followedArt(house: HouseState): string | undefined {
+  const party = house.party
+  return party ? house.media.roon.find((z) => z.id === party.follow)?.art : undefined
+}
 
 /** Seconds until the next color, from when the current one came up. */
 export function secondsToNext(party: PartyLights, now: number): number | undefined {
   if (!party.colorSince || party.palette.length < 2) return undefined
   const left = party.changeSeconds - Math.floor((now - new Date(party.colorSince).getTime()) / 1000)
   return Math.max(0, left)
+}
+
+/** Which album colors are on the bars: one per bar when Home Assistant can split them (steady through
+ *  the cloud, strobing over the home network), otherwise one for both. */
+export function splitColors(party: PartyLights): number[] {
+  const n = party.palette.length
+  if (!n) return []
+  if (!(party.strobe ? party.lan : party.split) || n < 2) return [party.colorIndex]
+  return [party.colorIndex, (party.colorIndex + 1) % n]
+}
+
+/** The album's colors side by side with hard edges, so the bar shows no blended in-between colors. */
+export function stripes(palette: string[]): string {
+  const w = 100 / palette.length
+  return `linear-gradient(90deg, ${palette.map((c, i) => `${c} ${(i * w).toFixed(2)}% ${((i + 1) * w).toFixed(2)}%`).join(', ')})`
 }
 
 function useNow(on: boolean) {
@@ -41,11 +61,11 @@ function Seg<T extends string | number>({ label, value, options, onPick, disable
 /**
  * Party lights (docs/party-lights.md): the album's colors as blocks with the one showing
  * outlined, then the controls. Strobing uses the bars' own mic, so it keeps the beat; the
- * colors move on every 30, 60 or 90 seconds and change with the album.
+ * colors move on every 30, 60 or 90 seconds and change with the album. Tapping a color puts it
+ * on the bars now (and switches to album colors); the cycle carries on from there.
  */
 export function PartyCard({ house, update }: { house: HouseState; update: UpdateHouse }) {
   const party = house.party!
-  const paletteStatus = usePaletteStatus()
   const now = useNow(party.on && party.albumColors)
   const [level, setLevel] = useState(party.sensitivity)
   useEffect(() => setLevel(party.sensitivity), [party.sensitivity])
@@ -53,6 +73,10 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
   const art = followedArt(house)
   const next = party.on && party.albumColors ? secondsToNext(party, now) : undefined
   const ready = party.setUp && party.reachable
+  // Steady with the cloud: each half of the bars shows its own color, this one and the next.
+  const showing = splitColors(party)
+  // Strobing in album colors goes over the home network, where only Shiny is known to work.
+  const lanStrobe = party.strobe && party.albumColors && !!party.lan
   const chip = !party.reachable ? <Chip tone="bad">Not answering</Chip>
     : party.on ? <Chip tone="good">{party.strobe ? 'On · strobing' : 'On'}</Chip>
     : <Chip tone="neutral">Off</Chip>
@@ -64,18 +88,23 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
         {art ? <img className="party-art" src={art} alt="" /> : <div className="party-art" aria-hidden="true" />}
         {party.palette.length ? (
           <div className="party-blocks">
-            {party.palette.map((c, i) => (
-              <div key={i} className={i === party.colorIndex && party.albumColors ? 'on' : ''} style={{ '--sw': c } as CSSProperties}>
-                {i === party.colorIndex && party.albumColors ? 'Now' : ''}
-              </div>
-            ))}
+            {party.palette.map((c, i) => {
+              const now = party.albumColors && showing.includes(i)
+              return (
+                <button key={i} className={now ? 'on' : ''} style={{ '--sw': c } as CSSProperties} disabled={!ready}
+                  aria-pressed={now} aria-label={`Color ${i + 1} of ${party.palette.length}`}
+                  onClick={() => set((p) => { p.colorIndex = i; p.albumColors = true })}>
+                  {now ? 'Now' : ''}
+                </button>
+              )
+            })}
           </div>
         ) : (
           <p className="party-empty">Play an album in {party.followName} and its colors show here.</p>
         )}
       </div>
       {party.palette.length > 0 && (
-        <div className="party-bar" style={{ '--grad': `linear-gradient(90deg, ${party.palette.join(', ')})` } as CSSProperties} />
+        <div className="party-bar" style={{ '--grad': stripes(party.palette) } as CSSProperties} />
       )}
       <div className="party-row">
         <label className="party-power">
@@ -100,14 +129,29 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
             onPointerUp={commitLevel} onKeyUp={commitLevel} onBlur={commitLevel} />
         </label>
       </div>
+      {(lanStrobe || (party.style && party.styles && party.styles.length > 1)) && (
+        <div className="party-row">
+          <span className="lbl">Strobe style</span>
+          {lanStrobe ? (
+            <>
+              <Seg label="Strobe style" value="Shiny" disabled={!ready} options={[['Shiny', 'Shiny']]} onPick={() => {}} />
+              <span className="party-note">Album colors strobe in Shiny, one color on each bar. Pick Govee colors for the other styles.</span>
+            </>
+          ) : (
+            <Seg label="Strobe style" value={party.style ?? ''} disabled={!ready || !party.strobe}
+              options={(party.styles ?? []).map((s): [string, string] => [s, s])}
+              onPick={(v) => set((p) => { p.style = v })} />
+          )}
+        </div>
+      )}
+      {party.setUp && party.strobe && party.albumColors && !party.lan && (
+        <p className="party-note">To strobe in album colors only, add the bars' address in Home Assistant (docs/party-lights.md). Until then Govee mixes in its own colors.</p>
+      )}
       {!party.setUp && (
         <p className="party-note">Strobe and album colors need the Home Assistant part set up first (docs/party-lights.md). On and off work already.</p>
       )}
       {party.setUp && !party.cloud && party.strobe && (
         <p className="party-note">Strobing goes through Govee's cloud, and Home Assistant hasn't found the bars there yet. Check the Govee API key (docs/party-lights.md).</p>
-      )}
-      {party.setUp && party.albumColors && paletteStatus === 'blocked' && (
-        <p className="party-note">This dashboard can't read the album cover yet. Add its address to Home Assistant (docs/party-lights.md, step 3).</p>
       )}
     </Card>
   )
