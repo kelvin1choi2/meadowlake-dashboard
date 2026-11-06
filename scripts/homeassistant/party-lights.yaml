@@ -6,7 +6,8 @@
 #   - "Strobe to music" switches on the bars' music mode through Govee's cloud API, because
 #     that isn't something they accept locally. The bars' own mic keeps the beat.
 #   - with "Album colors" on, the music mode uses one of the album's colors, moving on to the
-#     next every 30, 60 or 90 seconds. The dashboard saves the album's colors here.
+#     next every 30, 60 or 90 seconds. When the Lounge album changes, Home Assistant picks its
+#     colors from the cover with /config/party/album-palette.py (no dashboard needs to be open).
 # The Govee API key lives in secrets.yaml (govee_api_key), never in this repo.
 #
 # Govee allows 10,000 cloud commands a day per account. Changing every 30 seconds uses
@@ -73,6 +74,11 @@ rest:
             {%- set pick = opts | selectattr('name', 'in', ['Energic', 'Dynamic']) | list -%}
             {%- if opts -%}{{ ns.d.sku }}|{{ ns.d.device }}|{{ (pick[0] if pick else opts[0]).value }}{%- else -%}no music mode{%- endif -%}
           {%- endif -%}
+
+# Picks up to five colors from the Lounge zone's album cover (scripts/homeassistant/album-palette.py).
+shell_command:
+  party_album_palette: >-
+    python3 /config/party/album-palette.py "{{ state_attr('media_player.1_lounge_linn_klimax', 'entity_picture') }}"
 
 rest_command:
   govee_party_music:
@@ -172,6 +178,40 @@ automation:
               value: 0
         else:
           - action: script.party_lights_apply
+
+  - id: meadowlake_party_lights_album
+    alias: Party lights album colors
+    description: Picks new colors from the cover when the Lounge album changes.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: media_player.1_lounge_linn_klimax
+        attribute: entity_picture
+      - trigger: homeassistant
+        event: start
+    conditions:
+      - condition: template
+        value_template: "{{ state_attr('media_player.1_lounge_linn_klimax', 'entity_picture') not in [none, ''] }}"
+      # The picture's address carries a token that changes every few minutes; only a new cover counts.
+      - condition: template
+        value_template: >-
+          {% if trigger.platform != 'state' or trigger.from_state is none %}true{% else %}
+          {% set old = (trigger.from_state.attributes.entity_picture or '') | regex_replace('token=[^&]*', '') %}
+          {% set new = (trigger.to_state.attributes.entity_picture or '') | regex_replace('token=[^&]*', '') %}
+          {{ old != new }}{% endif %}
+    actions:
+      - delay: 2
+      - action: shell_command.party_album_palette
+        response_variable: picked
+      - if:
+          - condition: template
+            value_template: "{{ picked.returncode == 0 and (picked.stdout | trim) is match('^#[0-9a-f]{6}') }}"
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.party_lights_palette
+            data:
+              value: "{{ picked.stdout | trim }}"
 
   - id: meadowlake_party_lights_cycle
     alias: Party lights next color

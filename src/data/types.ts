@@ -231,17 +231,12 @@ export interface PartyLights {
   changeSeconds: number
   /** Mic sensitivity, 0–100. */
   sensitivity: number
-  /** The album's colors as #rrggbb, at most five. */
+  /** The album's colors as #rrggbb, at most five, picked by Home Assistant from the cover. */
   palette: string[]
   /** Which of them is showing. */
   colorIndex: number
   /** When that color came up (ISO time), for the countdown. */
   colorSince?: string
-  /**
-   * The followed zone's cover, at Home Assistant's own picture address (which
-   * cors_allowed_origins covers), and a key that changes only with the cover.
-   */
-  cover?: { url: string; key: string }
   /** The Roon zone whose album the colors come from: its entity and name. */
   follow: string
   followName: string

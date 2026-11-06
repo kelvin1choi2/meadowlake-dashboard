@@ -1,20 +1,15 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import type { HouseState, PartyLights } from '../data/types'
 import type { UpdateHouse } from '../data/useHouse'
-import { followedArt, usePaletteStatus, type PaletteProblem } from './albumPalette'
 import { Card, Chip } from '../widgets'
 
 /** The color-change choices, in seconds. */
 export const changeChoices = [30, 60, 90]
 
-/** What to do when the album cover can't be read. */
-export function problemText(problem: PaletteProblem, origin = window.location.origin): string {
-  if (problem === 'not-allowed') {
-    return `Home Assistant isn't letting ${origin} read the album cover. Add it under cors_allowed_origins (docs/party-lights.md, step 3), then restart Home Assistant.`
-  }
-  if (problem === 'unreachable') return "This dashboard can't reach Home Assistant's picture of the album cover. It tries again every minute."
-  if (problem === 'unreadable') return "The album cover arrived but couldn't be read as a picture. It tries again every minute."
-  return `Home Assistant answered "${problem.slice(7)}" when asked for the album cover. It tries again every minute.`
+/** The cover the party lights take their colors from, when that zone has one. */
+function followedArt(house: HouseState): string | undefined {
+  const party = house.party
+  return party ? house.media.roon.find((z) => z.id === party.follow)?.art : undefined
 }
 
 /** Seconds until the next color, from when the current one came up. */
@@ -56,7 +51,6 @@ function Seg<T extends string | number>({ label, value, options, onPick, disable
  */
 export function PartyCard({ house, update }: { house: HouseState; update: UpdateHouse }) {
   const party = house.party!
-  const paletteStatus = usePaletteStatus()
   const now = useNow(party.on && party.albumColors)
   const [level, setLevel] = useState(party.sensitivity)
   useEffect(() => setLevel(party.sensitivity), [party.sensitivity])
@@ -121,9 +115,6 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
       )}
       {party.setUp && !party.cloud && party.strobe && (
         <p className="party-note">Strobing goes through Govee's cloud, and Home Assistant hasn't found the bars there yet. Check the Govee API key (docs/party-lights.md).</p>
-      )}
-      {party.setUp && paletteStatus.state === 'blocked' && (
-        <p className="party-note">{problemText(paletteStatus.problem)}</p>
       )}
     </Card>
   )

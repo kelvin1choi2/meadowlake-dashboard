@@ -157,7 +157,6 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
     const haUrl = haConfig()?.url
     for (const p of [...house.media.players, ...house.media.roon]) if (haUrl && p.art?.startsWith('/')) p.art = haUrl + p.art
     for (const c of house.cameras) if (haUrl && c.image?.startsWith('/')) c.image = haUrl + c.image
-    if (haUrl && house.party?.cover?.url.startsWith('/')) house.party.cover.url = haUrl + house.party.cover.url
     live.current = { house, states }
     const entityList = () =>
       Object.values(states)

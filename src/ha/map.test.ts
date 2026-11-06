@@ -593,15 +593,6 @@ describe('partyFrom', () => {
     })
   })
 
-  it("reads the followed zone's cover from its picture address", () => {
-    const zone = entity('media_player.1_lounge_linn_klimax', 'playing', { entity_picture: '/api/media_player_proxy/media_player.1_lounge_linn_klimax?token=abc&cache=k1' })
-    expect(partyFrom(states(bars, zone))?.cover).toEqual({
-      url: '/api/media_player_proxy/media_player.1_lounge_linn_klimax?token=abc&cache=k1',
-      key: '/api/media_player_proxy/media_player.1_lounge_linn_klimax?cache=k1',
-    })
-    expect(partyFrom(states(bars, entity('media_player.1_lounge_linn_klimax', 'idle')))?.cover).toBeUndefined()
-  })
-
   it('works without the helpers, and is absent without the light', () => {
     expect(partyFrom(states(bars))).toMatchObject({ setUp: false, cloud: false, palette: [], changeSeconds: 60 })
     expect(partyFrom(states(entity('light.lounge_lamp_1', 'on')))).toBeUndefined()

@@ -15,16 +15,16 @@ the colors follow the album.
 
 ```
 dashboard ──► Home Assistant helpers ──► on/off, steady colors: straight to the bars (home network)
-   ▲                                └──► strobe to music: Govee's cloud (needs your API key)
-   └── reads the album cover's colors and saves them in Home Assistant
+                                    └──► strobe to music: Govee's cloud (needs your API key)
+Lounge album changes ──► Home Assistant picks its colors from the cover (album-palette.py)
 ```
 
 Strobing goes through Govee's cloud because the bars don't take a "music mode" command over
 the home network. Govee allows 10,000 cloud commands a day. Changing every 30 seconds uses
 about 2,900 a day even if the lights stay on all day.
 
-The album's colors are read by the dashboard, so they update while a dashboard (the tablet) is
-open. The bars keep cycling through the last album's colors either way.
+Home Assistant picks the album's colors itself whenever the Lounge album changes, so they
+update even when no dashboard is open.
 
 ## 1. Check the bars' name in Home Assistant
 
@@ -44,40 +44,23 @@ grep -q '^govee_api_key:' secrets.yaml && echo "Already there" || { read -r -p "
 Paste the key from Govee's email when it asks, then press Return. It stays in Home Assistant's
 `secrets.yaml`. Don't put it in the thread or anywhere else.
 
-## 3. Add the Party lights part, and let the dashboard read album covers
+## 3. Add the Party lights part
 
-Still in the Terminal, paste this. The first line is the dashboard's address as you open it on
-the tablet. Change it first if yours is different.
+Still in the Terminal, paste this. It adds the Party lights package and the small script that
+picks the album's colors, then checks the configuration and restarts Home Assistant.
 
 ```sh
-DASH=http://192.168.4.54:8080
 cd /homeassistant 2>/dev/null || cd /config
-mkdir -p packages
+mkdir -p packages party
 curl -fsSL https://raw.githubusercontent.com/kelvin1choi2/meadowlake-dashboard/main/scripts/homeassistant/party-lights.yaml -o packages/party_lights.yaml
+curl -fsSL https://raw.githubusercontent.com/kelvin1choi2/meadowlake-dashboard/main/scripts/homeassistant/album-palette.py -o party/album-palette.py
 if grep -q 'packages:' configuration.yaml; then echo "packages: is already set up"
 elif grep -q '^homeassistant:' configuration.yaml; then awk '{print} /^homeassistant:/{print "  packages: !include_dir_named packages"}' configuration.yaml > /tmp/c.yaml && cat /tmp/c.yaml > configuration.yaml
 else printf '\nhomeassistant:\n  packages: !include_dir_named packages\n' >> configuration.yaml; fi
-if grep -q 'cors_allowed_origins' configuration.yaml; then echo "Add $DASH under cors_allowed_origins: by hand"
-elif grep -q '^http:' configuration.yaml; then awk -v d="$DASH" '{print} /^http:/{print "  cors_allowed_origins:"; print "    - " d}' configuration.yaml > /tmp/c.yaml && cat /tmp/c.yaml > configuration.yaml
-else printf '\nhttp:\n  cors_allowed_origins:\n    - %s\n' "$DASH" >> configuration.yaml; fi
-grep -n -A2 'packages:\|cors_allowed_origins' configuration.yaml
+ha core check && ha core restart
 ```
 
-Every address you open the dashboard with needs its own line, e.g. both
-`http://192.168.4.54:8080` and `http://choi-vault.local:8080`. The card shows the exact address
-to add when it's missing. To add another one later:
-
-```sh
-cd /homeassistant 2>/dev/null || cd /config
-awk -v d="http://choi-vault.local:8080" '{print} /cors_allowed_origins:/{print "    - " d}' configuration.yaml > /tmp/c.yaml && cat /tmp/c.yaml > configuration.yaml
-grep -n -A4 cors_allowed_origins configuration.yaml
-```
-
-`cors_allowed_origins` lets the dashboard's address read pictures from Home Assistant (the
-album covers). It doesn't give that address any control. Without it, the colors can't be read,
-and the card says so.
-
-Then Developer tools → YAML → **Check configuration**, and if it's valid, **Restart**.
+Run the same lines again later to pick up a newer version.
 
 ## 4. Check that Home Assistant found the bars in Govee's cloud
 
@@ -100,3 +83,10 @@ with music playing in the Lounge. The color blocks show the album's colors. The 
 
 If a button shows **Home Assistant didn't accept that**, step 3's restart probably hasn't
 happened yet.
+
+If no colors show while an album plays in the Lounge, go to Developer tools → Actions, pick
+**Shell Command: party_album_palette**, tick **Return response** and run it. It should answer
+with `stdout` like `#ff734c,#3871ff,…`. Send Claude what it says otherwise.
+
+Earlier versions of this guide added `cors_allowed_origins` under `http:`. It isn't needed any
+more and can stay or go.
