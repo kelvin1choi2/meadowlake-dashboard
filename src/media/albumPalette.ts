@@ -58,9 +58,9 @@ const retryMs = 60_000
 /**
  * Watches the followed zone's cover and, when it changes, saves its colors to the party lights.
  * Runs wherever the dashboard is open and connected; each open dashboard comes to the same colors.
- * The cover is fetched through Home Assistant's picture address with an extra marker, so the
+ * The cover is fetched through Home Assistant's picture address with a fresh marker each time, so the
  * browser can't reuse the copy it loaded for the Now Playing card, which it fetched without
- * asking Home Assistant's permission to read the pixels.
+ * asking Home Assistant's permission to read the pixels (nor a failed try from before HA allowed it).
  */
 export function useAlbumPalette(house: HouseState, update: UpdateHouse, live: boolean) {
   const cover = live && house.party?.setUp ? house.party.cover : undefined
@@ -74,7 +74,7 @@ export function useAlbumPalette(house: HouseState, update: UpdateHouse, live: bo
     const attempt = () => {
       const url = latest.current
       if (!url) return
-      readCover(`${url}${url.includes('?') ? '&' : '?'}palette=1`).then(
+      readCover(`${url}${url.includes('?') ? '&' : '?'}palette=${Date.now()}`).then(
         (palette) => {
           if (cancelled) return
           setStatus('ok')
