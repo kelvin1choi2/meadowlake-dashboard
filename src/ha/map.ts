@@ -736,6 +736,7 @@ export function partyFrom(states: HassEntities): PartyLights | undefined {
     albumColors: value(p.albumColors) === 'on',
     changeSeconds: num(value(p.changeSeconds)) ?? 60,
     sensitivity: num(value(p.sensitivity)) ?? 70,
+    ...(value(p.style) ? { style: value(p.style), styles: (states[p.style].attributes.options as string[] | undefined) ?? [] } : {}),
     palette,
     colorIndex: palette.length ? Math.round(index) % palette.length : 0,
     colorSince: states[p.colorIndex]?.last_changed,

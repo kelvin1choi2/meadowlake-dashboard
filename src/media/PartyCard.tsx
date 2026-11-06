@@ -110,6 +110,14 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
             onPointerUp={commitLevel} onKeyUp={commitLevel} onBlur={commitLevel} />
         </label>
       </div>
+      {party.style && party.styles && party.styles.length > 1 && (
+        <div className="party-row">
+          <span className="lbl">Strobe style</span>
+          <Seg label="Strobe style" value={party.style} disabled={!ready || !party.strobe}
+            options={party.styles.map((s): [string, string] => [s, s === 'Rhythm' ? 'Rhythm · one color' : s])}
+            onPick={(v) => set((p) => { p.style = v })} />
+        </div>
+      )}
       {!party.setUp && (
         <p className="party-note">Strobe and album colors need the Home Assistant part set up first (docs/party-lights.md). On and off work already.</p>
       )}

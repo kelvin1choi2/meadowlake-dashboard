@@ -229,6 +229,9 @@ export interface PartyLights {
   albumColors: boolean
   /** How often the color moves on, in seconds. */
   changeSeconds: number
+  /** Govee's music style while strobing (Rhythm keeps to one color), and the ones to pick from. */
+  style?: string
+  styles?: string[]
   /** Mic sensitivity, 0–100. */
   sensitivity: number
   /** The album's colors as #rrggbb, at most five, picked by Home Assistant from the cover. */

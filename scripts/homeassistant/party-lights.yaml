@@ -21,6 +21,18 @@ input_boolean:
     name: Party lights album colors
     icon: mdi:palette
 
+# Govee's music styles. Rhythm keeps to the one color we send; Energic and the others add
+# their own colors on top. Names the bars don't offer fall back to the first one they do.
+input_select:
+  party_lights_music_style:
+    name: Party lights music style
+    icon: mdi:waveform
+    options:
+      - Rhythm
+      - Spectrum
+      - Energic
+      - Rolling
+
 input_number:
   party_lights_change_seconds:
     name: Party lights change every
@@ -47,9 +59,9 @@ input_text:
     name: Party lights album colors
     max: 255
 
-# Finds the bars in Govee's cloud once a day (and at startup): "sku|device|music mode".
+# Finds the bars in Govee's cloud once a day (and at startup):
+# "sku|device|Style=value;Style=value;..." with the music styles the bars offer.
 # The bars are the H6046, or the device named with "lounge" or "bar" in the Govee Home app.
-# Music mode prefers Govee's "Energic" style, else the first one the bars offer.
 rest:
   - resource: https://openapi.api.govee.com/router/api/v1/user/devices
     headers:
@@ -71,8 +83,7 @@ rest:
             {%- set fields = cap[0].parameters.fields | default([]) if cap else [] -%}
             {%- set field = fields | selectattr('fieldName', 'eq', 'musicMode') | list -%}
             {%- set opts = field[0].options | default([]) if field else [] -%}
-            {%- set pick = opts | selectattr('name', 'in', ['Energic', 'Dynamic']) | list -%}
-            {%- if opts -%}{{ ns.d.sku }}|{{ ns.d.device }}|{{ (pick[0] if pick else opts[0]).value }}{%- else -%}no music mode{%- endif -%}
+            {%- if opts -%}{{ ns.d.sku }}|{{ ns.d.device }}|{% for o in opts %}{{ o.name }}={{ o.value }}{{ ';' if not loop.last }}{% endfor %}{%- else -%}no music mode{%- endif -%}
           {%- endif -%}
 
 # Picks up to five colors from the Lounge zone's album cover (scripts/homeassistant/album-palette.py).
@@ -101,6 +112,15 @@ script:
     variables:
       light: light.lounge_lights
       cloud: "{{ states('sensor.govee_party_bars').split('|') }}"
+      styles: >-
+        {% set ns = namespace(m={}) %}
+        {% for kv in (cloud[2].split(';') if cloud | count == 3 else []) if '=' in kv %}
+          {% set ns.m = dict(ns.m, **{kv.split('=')[0]: kv.split('=')[1]}) %}
+        {% endfor %}
+        {{ ns.m }}
+      style: >-
+        {% set want = states('input_select.party_lights_music_style') %}
+        {{ styles[want] if want in styles else (styles.values() | list | first if styles else '') }}
       palette: >-
         {{ states('input_text.party_lights_palette').split(',') | map('trim') | select('match', '^#[0-9a-fA-F]{6}$') | list }}
       index: "{{ states('input_number.party_lights_color_index') | int(0) }}"
@@ -116,12 +136,12 @@ script:
             state: "on"
         then:
           - condition: template
-            value_template: "{{ cloud | count == 3 }}"
+            value_template: "{{ cloud | count == 3 and style != '' }}"
           - action: rest_command.govee_party_music
             data:
               sku: "{{ cloud[0] }}"
               device: "{{ cloud[1] }}"
-              mode: "{{ cloud[2] }}"
+              mode: "{{ style }}"
               sensitivity: "{{ states('input_number.party_lights_sensitivity') | int(70) }}"
               auto_color: "{{ 0 if album else 1 }}"
               rgb: "{{ (rgb[0] * 65536 + rgb[1] * 256 + rgb[2]) if album else '' }}"
@@ -155,6 +175,7 @@ automation:
         entity_id:
           - input_boolean.party_lights_strobe
           - input_boolean.party_lights_album_colors
+          - input_select.party_lights_music_style
           - input_number.party_lights_sensitivity
           - input_number.party_lights_color_index
           - sensor.govee_party_bars

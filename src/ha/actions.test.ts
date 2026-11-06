@@ -176,6 +176,7 @@ describe('party lights', () => {
       entity('input_number.party_lights_sensitivity', '70'),
       entity('input_text.party_lights_palette', ''),
       entity('input_number.party_lights_color_index', '0'),
+      entity('input_select.party_lights_music_style', 'Energic', { options: ['Rhythm', 'Energic'] }),
     ].map((e) => [e.entity_id, e])),
   }
   const partyChange = (edit: (h: HouseState) => void) => {
@@ -193,6 +194,11 @@ describe('party lights', () => {
     expect(partyChange((h) => { h.party!.sensitivity = 40 })).toEqual([{ domain: 'input_number', service: 'set_value', data: { value: 40 }, entityIds: ['input_number.party_lights_sensitivity'] }])
     expect(partyChange((h) => { h.party!.palette = ['#ff0000', '#00ff00']; h.party!.colorIndex = 0 }))
       .toEqual([{ domain: 'input_text', service: 'set_value', data: { value: '#ff0000,#00ff00' }, entityIds: ['input_text.party_lights_palette'] }])
+  })
+
+  it('picks the strobe style', () => {
+    expect(partyChange((h) => { h.party!.style = 'Rhythm' }))
+      .toEqual([{ domain: 'input_select', service: 'select_option', data: { option: 'Rhythm' }, entityIds: ['input_select.party_lights_music_style'] }])
   })
 
   it('puts a tapped color on the bars', () => {
