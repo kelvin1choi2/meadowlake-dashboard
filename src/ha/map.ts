@@ -456,15 +456,15 @@ export function applyEntities(
   } else onSample.push('Outdoor light (a Govee light.* entity)')
   if (outdoor.length || Object.keys(states).length) h.outdoorLights = outdoor
 
-  // Party lights: shown only when Home Assistant has them.
-  const party = partyFrom(states)
-  total++
-  if (party) {
-    linked++
-    if (!party.reachable) unavailable.push(party.name)
-    else if (!party.setUp) onSample.push('Party lights helpers (docs/party-lights.md)')
-  } else onSample.push(`Party lights (${entities.party.light})`)
-  if (party || Object.keys(states).length) h.party = party
+  // Party lights: once Home Assistant is connected they're real or "Unavailable", never sample data.
+  if (Object.keys(states).length) {
+    const party = partyFrom(states)
+    total++
+    if (party.reachable) linked++
+    else unavailable.push(party.name)
+    if (party.reachable && !party.setUp) onSample.push('Party lights helpers (docs/party-lights.md)')
+    h.party = party
+  }
 
   const found = scenesFrom(states)
   for (const id of entities.scenes.favorites) {
@@ -715,14 +715,15 @@ const hex = /^#[0-9a-f]{6}$/i
 
 /**
  * The party lights and their settings, from the light and the helpers in
- * scripts/homeassistant/party-lights.yaml. Undefined when Home Assistant has no such light.
+ * scripts/homeassistant/party-lights.yaml. When Home Assistant has no such light (the bars are
+ * unplugged, or Govee lights local hasn't found them), they read unavailable, never sample data.
  */
-export function partyFrom(states: HassEntities): PartyLights | undefined {
+export function partyFrom(states: HassEntities): PartyLights {
   const p = entities.party
-  const light = states[p.light] && isPartyLight(states[p.light])
+  const light: HassEntity | undefined = states[p.light] && isPartyLight(states[p.light])
     ? states[p.light]
     : Object.values(states).filter(isPartyLight).sort((a, b) => a.entity_id.localeCompare(b.entity_id))[0]
-  if (!light) return undefined
+  const id = light?.entity_id ?? p.light
   const value = (id: string) => (states[id] && !offline.has(states[id].state) ? states[id].state : undefined)
   const setUp = [p.strobe, p.albumColors, p.changeSeconds, p.sensitivity, p.palette, p.colorIndex].every((id) => id in states)
   const palette = (value(p.palette) ?? '').split(',').map((c) => c.trim()).filter((c) => hex.test(c)).slice(0, 5)
@@ -730,10 +731,10 @@ export function partyFrom(states: HassEntities): PartyLights | undefined {
   const zone = entities.media.roon.find((z) => z.id === p.follow)
   const cloud = (value(p.cloud) ?? '').split('|')
   return {
-    id: light.entity_id,
-    name: String(light.attributes.friendly_name ?? label(light.entity_id.slice('light.'.length))),
-    on: light.state === 'on',
-    reachable: !offline.has(light.state),
+    id,
+    name: String(light?.attributes.friendly_name ?? label(id.slice('light.'.length))),
+    on: light?.state === 'on',
+    reachable: !!light && !offline.has(light.state),
     setUp,
     cloud: cloud.length >= 3,
     split: (num(cloud[3]) ?? 0) >= 2,

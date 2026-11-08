@@ -57,7 +57,8 @@ describe('applyEntities', () => {
       entity(tv.entity, 'unavailable', { friendly_name: 'Samsung 6 Series (43)' }),
       entity(task.entity, 'unknown', { friendly_name: 'NAS Roon backup' }),
     ), now)
-    expect(unavailable).toEqual([])
+    // The party lights aren't in these states, so they read unavailable; the TV and NAS helper don't.
+    expect(unavailable).toEqual(['Lounge lights'])
     expect(house.media.screens).toContainEqual({ id: 'guest-tv', name: tv.name, tv: true, on: false })
     expect(house.nas.tasks[0]).toMatchObject({ name: task.name, ok: null, when: 'No report yet' })
   })
@@ -71,7 +72,7 @@ describe('applyEntities', () => {
 
   it('skips unavailable entities instead of showing them', () => {
     const { house, linked, unavailable } = applyEntities(sampleHouse, states(entity(entities.appliances.waterHeater, 'unavailable', { friendly_name: 'Electric Water Heater' })), now)
-    expect(unavailable).toEqual(['Electric Water Heater'])
+    expect(unavailable).toEqual(['Electric Water Heater', 'Lounge lights'])
     expect(house.appliances.waterHeater).toEqual(sampleHouse.appliances.waterHeater)
     expect(linked).toBe(0)
   })
@@ -617,9 +618,14 @@ describe('partyFrom', () => {
     expect(partyFrom(states(bars, old))).toMatchObject({ cloud: true, split: false, lan: false })
   })
 
-  it('works without the helpers, and is absent without the light', () => {
+  it('works without the helpers, and reads unavailable without the light', () => {
     expect(partyFrom(states(bars))).toMatchObject({ setUp: false, cloud: false, palette: [], changeSeconds: 60 })
-    expect(partyFrom(states(entity('light.lounge_lamp_1', 'on')))).toBeUndefined()
+    expect(partyFrom(states(entity('light.lounge_lamp_1', 'on')))).toMatchObject({ id: 'light.lounge_lights', name: 'Lounge lights', on: false, reachable: false })
+  })
+
+  it('reads off, and unavailable when Home Assistant has lost the bars', () => {
+    expect(partyFrom(states({ ...bars, state: 'off' }, ...helpers))).toMatchObject({ on: false, reachable: true })
+    expect(partyFrom(states({ ...bars, state: 'unavailable' }, ...helpers))).toMatchObject({ on: false, reachable: false })
   })
 
   it('finds the bars by name when the ID differs', () => {
@@ -634,7 +640,10 @@ describe('partyFrom', () => {
     expect(house.party?.id).toBe('light.lounge_lights')
   })
 
-  it('drops the sample party lights once Home Assistant is connected without them', () => {
-    expect(applyEntities(sampleHouse, states(entity('sun.sun', 'above_horizon'))).house.party).toBeUndefined()
+  it('shows the party lights as unavailable, not sample data, once Home Assistant is connected without them', () => {
+    const r = applyEntities(sampleHouse, states(entity('sun.sun', 'above_horizon')))
+    expect(r.house.party).toMatchObject({ id: 'light.lounge_lights', reachable: false, on: false, palette: [] })
+    expect(r.unavailable).toContain('Lounge lights')
+    expect(r.onSample.join(' ')).not.toMatch(/party/i)
   })
 })

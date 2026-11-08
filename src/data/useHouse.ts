@@ -5,7 +5,7 @@ import { actionCalls, serviceCalls } from '../ha/actions'
 import { roonRockUrl } from '../config/home'
 import { connectToHA, haConfig, liveAllowed, watchEntities, watchForecast } from '../ha/connection'
 import { entities } from '../ha/entities'
-import { applyEntities, dailyForecastType, forecastSource, type Forecasts } from '../ha/map'
+import { applyEntities, dailyForecastType, forecastSource, partyFrom, type Forecasts } from '../ha/map'
 import { fetchHistory } from '../ha/history'
 import { sampleHistory } from './history'
 import { useRock } from '../rock/useRock'
@@ -151,7 +151,11 @@ export function useHouse(onError?: (message: string) => void): { house: HouseSta
 
   return useMemo(() => {
     const base = rock ? { ...local, media: { ...local.media, rock } } : local
-    if (!states) return { house: withPickups(base, new Date()), update, run, history, link: { status: conn } as Link }
+    if (!states) {
+      // Waiting for (or cut off from) Home Assistant: the party lights read Unavailable, not the sample's "On".
+      const house = conn === 'sample' ? base : { ...base, party: partyFrom({}) }
+      return { house: withPickups(house, new Date()), update, run, history, link: { status: conn } as Link }
+    }
     const { house, linked, total, unavailable, onSample } = applyEntities(base, states, new Date(), forecasts)
     // Artwork comes as a path on the Home Assistant server.
     const haUrl = haConfig()?.url
