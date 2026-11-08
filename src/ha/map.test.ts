@@ -317,6 +317,24 @@ describe('ecobee, garage and robovac', () => {
     expect(garageId(states(entity('cover.patio_blind', 'open')))).toBe(entities.safety.garage)
   })
 
+  it('says the garage is not answering when Home Assistant has it as unavailable, instead of the sample Closed', () => {
+    const { house, unavailable } = applyEntities(sampleHouse, states(
+      entity('cover.garage_doors', 'unavailable', { friendly_name: 'Doors', device_class: 'garage' })), now)
+    expect(house.safety.garage).toEqual({ open: false, since: '', unknown: true })
+    expect(unavailable).toContain('Doors')
+    expect(garageId(states(entity('cover.garage_doors', 'closed', { friendly_name: 'Doors' })))).toBe('cover.garage_doors')
+  })
+
+  it('reads the garage from the Apple Home report when the HomeKit cover is unavailable or gone', () => {
+    const report = entity(entities.safety.garageReport, 'on', { device_class: 'garage_door' }, new Date(2026, 10, 8, 9, 5))
+    const stale = entity('cover.garage_doors', 'unavailable', { friendly_name: 'Doors', device_class: 'garage' })
+    expect(applyEntities(sampleHouse, states(stale, report), now).house.safety.garage).toEqual({ open: true, since: '9:05a' })
+    const closed = entity(entities.safety.garageReport, 'off')
+    expect(applyEntities(sampleHouse, states(closed), now).house.safety.garage.open).toBe(false)
+    // A working cover still wins over the report.
+    expect(garageId(states(entity('cover.garage_door', 'closed'), report))).toBe('cover.garage_door')
+  })
+
   it('no longer looks for the old Pod Bay Doors name', () => {
     expect(garageId(states(entity('cover.garage_pod_bay_doors', 'open', { friendly_name: 'Pod Bay Doors' })))).toBe(entities.safety.garage)
   })

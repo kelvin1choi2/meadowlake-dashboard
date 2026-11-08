@@ -414,8 +414,11 @@ export function applyEntities(
   const hot = value(entities.appliances.hotWaterPct)
   if (hot !== undefined) h.appliances.waterHeater.availablePct = Math.round(hot)
 
+  // Unavailable or missing reads "Not answering", never the sample "Closed": a wrong
+  // all-clear on the garage is worse than none.
   const g = get(garageId(states))
-  if (g) h.safety.garage = { open: g.state !== 'closed', since: shortTime(new Date(g.last_changed)) }
+  if (g) h.safety.garage = { open: garageOpen(g), since: shortTime(new Date(g.last_changed)) }
+  else if (Object.keys(states).length) h.safety.garage = { open: false, since: '', unknown: true }
 
   const vac = get(entities.chores.vacuum)
   if (vac) {
@@ -754,13 +757,19 @@ export function partyFrom(states: HassEntities): PartyLights | undefined {
  * Renaming the door in Apple Home or HA can change its ID, and this keeps it on the dashboard.
  */
 export function garageId(states: HassEntities): string {
-  const { garage, garageMatch } = entities.safety
-  if (states[garage]) return garage
+  const { garage, garageMatch, garageReport } = entities.safety
   const covers = Object.values(states).filter((e) => e.entity_id.startsWith('cover.') && !isGroup(e))
     .sort((a, b) => a.entity_id.localeCompare(b.entity_id))
   const named = covers.find((e) => garageMatch.test(e.entity_id) || garageMatch.test(String(e.attributes.friendly_name ?? '')))
-  return (named ?? covers.find((e) => e.attributes.device_class === 'garage'))?.entity_id ?? garage
+  const cover = states[garage] ?? named ?? covers.find((e) => e.attributes.device_class === 'garage')
+  // A working cover wins; else Apple Home's report; else the (unavailable) cover, so it reads Not answering.
+  if (cover && !offline.has(cover.state)) return cover.entity_id
+  if (states[garageReport]) return garageReport
+  return cover?.entity_id ?? garage
 }
+
+/** Open or closed, from either a garage cover or the on/off sensor Apple Home reports to. */
+const garageOpen = (e: HassEntity) => (e.entity_id.startsWith('binary_sensor.') ? e.state === 'on' : e.state !== 'closed')
 
 const lockStates = new Set<Lock['state']>(['locked', 'unlocked', 'locking', 'unlocking', 'jammed', 'open'])
 
@@ -856,7 +865,7 @@ export function pulseFrom(states: HassEntities, now: Date): HouseState['pulse'] 
     const group = Object.values(states).find((e) => e.entity_id.startsWith(r.lights) && isGroup(e))
     if (group) add(group.entity_id, 'inside', `${r.name} lights`, (e) => e.state)
   }
-  add(garageId(states), 'safety', 'Garage', (e) => (e.state === 'closed' ? 'closed' : e.state))
+  add(garageId(states), 'safety', 'Garage', (e) => (e.entity_id.startsWith('binary_sensor.') ? (garageOpen(e) ? 'opened' : 'closed') : e.state === 'closed' ? 'closed' : e.state))
   add(entities.chores.vacuum, 'chores', 'Robovac', (e) => (e.state === 'docked' ? 'docked' : e.state))
   for (const l of outdoorLightsFrom(states)) add(l.id, 'outside', l.name, (e) => (e.state === 'on' || e.state === 'off' ? `turned ${e.state}` : null))
   add(entities.irrigation.rainDelay, 'outside', 'Rachio', (e) => `rain delay ${e.state}`)

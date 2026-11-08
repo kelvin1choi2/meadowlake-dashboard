@@ -347,8 +347,11 @@ export interface HouseState {
     }
   }
   safety: {
-    /** `since` is when the door last opened or closed. */
-    garage: { open: boolean; since: string }
+    /**
+     * `since` is when the door last opened or closed. `unknown` means Home Assistant has the
+     * opener but can't reach it (or can't find it), so open/closed isn't known.
+     */
+    garage: { open: boolean; since: string; unknown?: boolean }
     leaks: { name: string; wet: boolean; battery?: number }[]
     /** Door locks (the Eufy on the door from the garage, through Matter). */
     locks: Lock[]

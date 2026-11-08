@@ -15,6 +15,8 @@ export interface LeavingPlan {
   /** The robovac starts, when it's set to run once everyone leaves and it's docked. */
   vacuum: boolean
   garageOpen: boolean
+  /** Home Assistant can't reach the garage opener, so open or closed isn't known. */
+  garageUnknown?: boolean
   /** Unlocked doors, by name, to lock. */
   locks: string[]
 }
@@ -29,6 +31,7 @@ export function leavingPlan(h: HouseState): LeavingPlan {
     arm: !h.camerasArmed,
     vacuum: h.chores.robovac.runWhenAway && /dock|charg/i.test(h.chores.robovac.state),
     garageOpen: h.safety.garage.open,
+    garageUnknown: h.safety.garage.unknown,
     locks: h.safety.locks.filter((l) => l.state === 'unlocked').map((l) => l.name),
   }
 }

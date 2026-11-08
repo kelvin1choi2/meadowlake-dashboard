@@ -1,0 +1,14 @@
+# Keeps the garage door's open/closed state in binary_sensor.garage_door_apple_home for the
+# dashboard (docs/garage-door.md). The opener stays paired to Apple Home only; two Apple Home
+# automations post {"state": "open"} or {"state": "closed"} here when it opens or closes.
+# The webhook id lives in Home Assistant's secrets.yaml, never in the repo.
+- triggers:
+    - trigger: webhook
+      webhook_id: !secret garage_door_webhook
+      allowed_methods: [POST]
+      local_only: true
+  binary_sensor:
+    - name: Garage door (Apple Home)
+      unique_id: meadowlake_garage_door_apple_home
+      device_class: garage_door
+      state: "{{ trigger.json is mapping and trigger.json.state | default('') | lower in ['open', 'opening'] }}"
