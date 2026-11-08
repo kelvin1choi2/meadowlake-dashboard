@@ -77,7 +77,7 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
   const showing = splitColors(party)
   // Strobing in album colors goes over the home network, where only Shiny is known to work.
   const lanStrobe = party.strobe && party.albumColors && !!party.lan
-  const chip = !party.reachable ? <Chip tone="bad">Not answering</Chip>
+  const chip = !party.reachable ? <Chip tone="bad">Unavailable</Chip>
     : party.on ? <Chip tone="good">{party.strobe ? 'On · strobing' : 'On'}</Chip>
     : <Chip tone="neutral">Off</Chip>
   const commitLevel = () => { if (level !== party.sensitivity) set((p) => { p.sensitivity = level }) }
@@ -99,6 +99,8 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
               )
             })}
           </div>
+        ) : !party.reachable ? (
+          <p className="party-empty">Home Assistant can't reach {party.name} right now.</p>
         ) : (
           <p className="party-empty">Play an album in {party.followName} and its colors show here.</p>
         )}
@@ -144,13 +146,16 @@ export function PartyCard({ house, update }: { house: HouseState; update: Update
           )}
         </div>
       )}
-      {party.setUp && party.strobe && party.albumColors && !party.lan && (
+      {!party.reachable && (
+        <p className="party-note">Check the bars are plugged in and LAN Control is on in the Govee Home app (docs/party-lights.md). This card updates by itself once Home Assistant sees them again.</p>
+      )}
+      {party.reachable && party.setUp && party.strobe && party.albumColors && !party.lan && (
         <p className="party-note">To strobe in album colors only, add the bars' address in Home Assistant (docs/party-lights.md). Until then Govee mixes in its own colors.</p>
       )}
-      {!party.setUp && (
+      {party.reachable && !party.setUp && (
         <p className="party-note">Strobe and album colors need the Home Assistant part set up first (docs/party-lights.md). On and off work already.</p>
       )}
-      {party.setUp && !party.cloud && party.strobe && (
+      {party.reachable && party.setUp && !party.cloud && party.strobe && (
         <p className="party-note">Strobing goes through Govee's cloud, and Home Assistant hasn't found the bars there yet. Check the Govee API key (docs/party-lights.md).</p>
       )}
     </Card>
