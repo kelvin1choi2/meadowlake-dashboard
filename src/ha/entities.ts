@@ -168,6 +168,12 @@ export const entities = {
      */
     garage: 'cover.garage_door',
     garageMatch: /garage[ _]door/i,
+    /**
+     * The opener can stay in Apple Home only: Apple Home automations post "open"/"closed" to a
+     * Home Assistant webhook, kept in this sensor (scripts/homeassistant/garage-door.yaml,
+     * docs/garage-door.md). Used whenever no working garage cover is found.
+     */
+    garageReport: 'binary_sensor.garage_door_apple_home',
     /** Leak detectors in Home Assistant. Once any is found, only these are shown. */
     leaks: [
       {
