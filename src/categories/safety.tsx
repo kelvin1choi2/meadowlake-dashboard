@@ -111,7 +111,7 @@ function StatusList({ house, update, notify }: { house: HouseState; update: Upda
           <span {...own}><LockButtons lock={l} update={update} notify={notify} small /></span>
         </div>
       ))}
-      <div><Dot color={house.safety.garage.open ? 'var(--warn)' : 'var(--good)'} />Garage door<span className="r">{house.safety.garage.open ? 'Open' : 'Closed'}</span></div>
+      <div><Dot color={`var(--${garageTone(house.safety.garage)})`} />Garage door<span className="r">{garageWords(house.safety.garage)}</span></div>
       {house.safety.leaks.map((l) => (
         <div key={l.name}><Dot color={l.wet ? 'var(--bad)' : 'var(--good)'} />Leak · {l.name.toLowerCase()}<span className="r">{l.wet ? 'Wet' : 'Dry'}</span></div>
       ))}
@@ -119,6 +119,11 @@ function StatusList({ house, update, notify }: { house: HouseState; update: Upda
     </div>
   )
 }
+
+type Garage = HouseState['safety']['garage']
+/** What the garage row says: open, closed, or "Not answering" when Home Assistant can't reach it. */
+export const garageWords = (g: Garage) => (g.unknown ? 'Not answering' : g.open ? 'Open' : 'Closed')
+const garageTone = (g: Garage) => (g.open || g.unknown ? 'warn' : 'good')
 
 export const safety: Category = {
   id: 'safety',
@@ -128,6 +133,7 @@ export const safety: Category = {
     if (h.safety.leaks.some((l) => l.wet)) return { tone: 'bad', label: 'Leak!' }
     if (h.safety.locks.some((l) => l.state === 'jammed')) return { tone: 'bad', label: 'Lock jammed' }
     if (h.safety.garage.open) return { tone: 'warn', label: 'Garage open' }
+    if (h.safety.garage.unknown) return { tone: 'warn', label: 'Garage not answering' }
     if (h.safety.locks.some((l) => l.state === 'unlocked' || l.state === 'open')) return { tone: 'warn', label: 'Unlocked' }
     return { tone: 'good', label: 'All clear' }
   },
@@ -177,7 +183,7 @@ export const safety: Category = {
             <Idea>Locking is one tap. Unlocking asks for a second tap, so a brush against the tablet can't open the door.</Idea>
           </Card>
         ))}
-        <Card color="var(--safety)" title="Garage door" chip={<Chip tone={g.open ? 'warn' : 'good'}>{g.open ? 'Open' : 'Closed'}</Chip>}>
+        <Card color="var(--safety)" title="Garage door" chip={<Chip tone={garageTone(g)}>{garageWords(g)}</Chip>}>
           <KV rows={[[g.open ? 'Open since' : 'Closed since', g.since]]} />
           <Idea>Opening and closing stays with the garage remote and Apple Home, so a stray tap here can't open it.</Idea>
         </Card>
@@ -189,7 +195,7 @@ export const safety: Category = {
           <div className="list">
             {stillOn.map((s) => <div key={s}><Dot color="var(--warn)" />{s}<span className="r">On</span></div>)}
             {house.safety.locks.map((l) => <div key={l.id}><Dot color={l.state === 'locked' ? 'var(--good)' : 'var(--warn)'} />{l.name}<span className="r">{lockWords[l.state]}</span></div>)}
-            <div><Dot color="var(--good)" />Oven, garage<span className="r">{house.appliances.range.oven}, {g.open ? 'open' : 'closed'}</span></div>
+            <div><Dot color="var(--good)" />Oven, garage<span className="r">{house.appliances.range.oven}, {garageWords(g).toLowerCase()}</span></div>
           </div>
         </Card>
       </>

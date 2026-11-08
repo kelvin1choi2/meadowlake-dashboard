@@ -37,8 +37,8 @@ export function Leaving({ house, update, run, notify, onClose }: {
           {rows.map((r) => <div key={r.what}><Dot color="var(--warn)" />{r.what}<span className="r">{r.does}</span></div>)}
           {!plan.arm && <div><Dot color="var(--good)" />Blink cameras<span className="r">Already armed</span></div>}
           <div>
-            <Dot color={plan.garageOpen ? 'var(--bad)' : 'var(--good)'} />Garage door
-            <span className="r">{plan.garageOpen ? 'Open: close it with the remote or Apple Home' : 'Closed'}</span>
+            <Dot color={plan.garageOpen ? 'var(--bad)' : plan.garageUnknown ? 'var(--warn)' : 'var(--good)'} />Garage door
+            <span className="r">{plan.garageOpen ? 'Open: close it with the remote or Apple Home' : plan.garageUnknown ? 'Not answering: check Apple Home' : 'Closed'}</span>
           </div>
         </div>
         <div className="leaving-btns">

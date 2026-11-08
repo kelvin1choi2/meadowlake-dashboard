@@ -414,8 +414,11 @@ export function applyEntities(
   const hot = value(entities.appliances.hotWaterPct)
   if (hot !== undefined) h.appliances.waterHeater.availablePct = Math.round(hot)
 
+  // Unavailable or missing reads "Not answering", never the sample "Closed": a wrong
+  // all-clear on the garage is worse than none.
   const g = get(garageId(states))
   if (g) h.safety.garage = { open: g.state !== 'closed', since: shortTime(new Date(g.last_changed)) }
+  else if (Object.keys(states).length) h.safety.garage = { open: false, since: '', unknown: true }
 
   const vac = get(entities.chores.vacuum)
   if (vac) {
